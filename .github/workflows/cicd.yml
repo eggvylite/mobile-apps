@@ -1,0 +1,455 @@
+name: Mobile CI/CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which app should be built?"
+        required: true
+        type: choice
+        options:
+          - all
+          - roja
+          - paiio
+          - jackpot
+#        default: all
+      platform:
+        description: "Which platform should be built?"
+        required: true
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+#        default: all
+
+# ==============================================================
+# GLOBAL CONFIGURATION
+# ==============================================================
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: your-mobile-builds
+  AWS_ROLE_ARN: arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/GitHubMobileCICD
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # ============================================================
+  # SELECT APPS
+  # ============================================================
+  setup:
+    name: Select Apps
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.matrix.outputs.apps }}
+    steps:
+      - name: Generate Matrix
+        id: matrix
+        shell: bash
+        run: |
+          APP="${{ github.event.inputs.app }}"
+          if [ -z "$APP" ] || [ "$APP" = "all" ]; then
+            echo 'apps=["roja","paiio","jackpot"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "apps=[\"$APP\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ============================================================
+  # IOS BUILD & DEPLOY
+  # ============================================================
+  build-ios:
+    name: iOS - ${{ matrix.app }}
+    needs: setup
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.platform == 'all' ||
+      github.event.inputs.platform == 'ios'
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.setup.outputs.apps) }}
+    env:
+      APP_NAME: ${{ matrix.app }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-mobile-${{ github.run_id }}
+
+      - name: Get iOS Secrets
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+            APP_SECRETS, mobile-cicd/${{ matrix.app }}
+          parse-json-secrets: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      # --------------------------------------------------------
+      # PATCH COMPATIBILITY (BOOST & RCT-FOLLY FOR XCODE 16+)
+      # --------------------------------------------------------
+      - name: Patch Dependencies & Podfile
+        shell: bash
+        run: |
+          # 1. Patch Boost Podspec URL
+          python3 -c "
+          import glob
+          for path in glob.glob('node_modules/**/boost*.podspec', recursive=True):
+              with open(path, 'r') as f:
+                  content = f.read()
+              new_content = content.replace('https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2', 'https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2')
+              with open(path, 'w') as f:
+                  f.write(new_content)
+              print(f'Successfully patched {path}')
+          "
+
+          # 2. Patch RCT-Folly for C++20 compiler standard
+          python3 -c "
+          import glob
+          for path in glob.glob('node_modules/**/RCT-Folly.podspec', recursive=True):
+              with open(path, 'r') as f:
+                  content = f.read()
+              if '-Wno-error=unqualified-std-cast-call' not in content:
+                  content = content.replace(
+                      'folly_compiler_flags = [',
+                      'folly_compiler_flags = [\"-Wno-error=unqualified-std-cast-call\", \"-Wno-error=c++11-narrowing\", \"-DFOLLY_NO_CONFIG=1\", '
+                  )
+                  with open(path, 'w') as f:
+                      f.write(content)
+                  print(f'Successfully patched {path}')
+          "
+
+          # 3. Patch Deployment Target inside existing post_install
+          python3 -c "
+          with open('ios/Podfile', 'r') as f:
+              lines = f.readlines()
+
+          target_code = '''
+              target.build_configurations.each do |config|
+                config.build_settings[\"IPHONEOS_DEPLOYMENT_TARGET\"] = \"13.0\"
+                config.build_settings[\"CLANG_CXX_LANGUAGE_STANDARD\"] = \"c++17\"
+                config.build_settings[\"GCC_WARN_INHIBIT_ALL_WARNINGS\"] = \"YES\"
+                config.build_settings[\"GCC_TREAT_WARNINGS_AS_ERRORS\"] = \"NO\"
+              end
+          '''
+
+          new_lines = []
+          for line in lines:
+              new_lines.append(line)
+              if 'installer.pods_project.targets.each do |target|' in line:
+                  new_lines.append(target_code)
+
+          with open('ios/Podfile', 'w') as f:
+              f.writelines(new_lines)
+          "
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: |
+          bundle exec pod cache clean boost --all || true
+          bundle exec pod cache clean RCT-Folly --all || true
+          bundle exec pod install --repo-update
+
+      # ========================================================
+      # SIGNING & CERTIFICATES
+      # ========================================================
+      - name: Import Apple Distribution Certificate
+        if: github.event_name != 'pull_request'
+        uses: Apple-Actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
+          p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
+
+      - name: Download Provisioning Profile
+        if: github.event_name != 'pull_request'
+        uses: Apple-Actions/download-provisioning-profiles@v3
+        with:
+          bundle-id: ${{ env.APP_SECRETS_IOS_BUNDLE_ID }}
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Check Signing Identity
+        if: github.event_name != 'pull_request'
+        run: security find-identity -v -p codesigning
+
+      # ========================================================
+      # ARCHIVE & EXPORT
+      # ========================================================
+      - name: Archive iOS App
+        shell: bash
+        run: |
+          rm -rf "ios/build/$APP_NAME"
+          mkdir -p "ios/build/$APP_NAME"
+
+          # Detect workspace accurately if not provided in secrets
+          if [ -n "$APP_SECRETS_IOS_WORKSPACE" ]; then
+            WORKSPACE_PATH="$APP_SECRETS_IOS_WORKSPACE"
+          else
+            WORKSPACE_PATH=$(find ios -maxdepth 1 -iname "${APP_NAME}.xcworkspace" -type d | head -n 1)
+            if [ -z "$WORKSPACE_PATH" ]; then
+              WORKSPACE_PATH=$(find ios -maxdepth 1 -name "*.xcworkspace" -type d | head -n 1)
+            fi
+          fi
+
+          # Detect scheme accurately
+          if [ -n "$APP_SECRETS_IOS_SCHEME" ]; then
+            SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
+          else
+            SCHEME_NAME=$(xcodebuild -list -workspace "$WORKSPACE_PATH" -json | python3 -c "import sys, json; print(json.load(sys.stdin)['workspace']['schemes'][0])")
+          fi
+
+          echo "Using Workspace: $WORKSPACE_PATH"
+          echo "Using Scheme: $SCHEME_NAME"
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            echo "Pull request build: unsigned archive"
+            xcodebuild \
+              -workspace "$WORKSPACE_PATH" \
+              -scheme "$SCHEME_NAME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination "generic/platform=iOS" \
+              -archivePath "$PWD/ios/build/$APP_NAME/$APP_NAME.xcarchive" \
+              clean archive \
+              CODE_SIGNING_ALLOWED=NO
+          else
+            xcodebuild \
+              -workspace "$WORKSPACE_PATH" \
+              -scheme "$SCHEME_NAME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination "generic/platform=iOS" \
+              -archivePath "$PWD/ios/build/$APP_NAME/$APP_NAME.xcarchive" \
+              clean archive \
+              CODE_SIGNING_ALLOWED=YES \
+              DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID"
+          fi
+
+      - name: Create ExportOptions.plist
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          cat > "ios/build/$APP_NAME/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APP_SECRETS_IOS_TEAM_ID}</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export IPA
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p "ios/build/$APP_NAME/export"
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$PWD/ios/build/$APP_NAME/$APP_NAME.xcarchive" \
+            -exportPath "$PWD/ios/build/$APP_NAME/export" \
+            -exportOptionsPlist "$PWD/ios/build/$APP_NAME/ExportOptions.plist" \
+            -allowProvisioningUpdates
+
+      - name: Prepare IPA
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          IPA=$(find "ios/build/$APP_NAME/export" -name "*.ipa" -type f | head -n 1)
+          if [ -z "$IPA" ]; then
+            echo "IPA not found"
+            exit 1
+          fi
+          cp "$IPA" "ios/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
+
+      - name: Upload iOS Artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-ios-${{ github.run_number }}
+          path: ios/build/${{ matrix.app }}/*.ipa
+          retention-days: 14
+
+      - name: Upload Current iOS IPA to S3
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          aws s3 cp \
+            "ios/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" \
+            "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" \
+            --only-show-errors
+
+      - name: Upload to TestFlight
+        if: github.event_name != 'pull_request'
+        uses: Apple-Actions/upload-testflight-build@v1
+        with:
+          app-path: ios/build/${{ matrix.app }}/${{ matrix.app }}-${{ github.run_number }}.ipa
+          issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
+
+  # ============================================================
+  # ANDROID BUILD & DEPLOY
+  # ============================================================
+  build-android:
+    name: Android - ${{ matrix.app }}
+    needs: setup
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.platform == 'all' ||
+      github.event.inputs.platform == 'android'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.setup.outputs.apps) }}
+    env:
+      APP_NAME: ${{ matrix.app }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-mobile-${{ github.run_id }}
+
+      - name: Get Android Secrets
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+            APP_SECRETS, mobile-cicd/${{ matrix.app }}
+          parse-json-secrets: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Create Android Keystore
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p android/app
+          echo "$APP_SECRETS_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          chmod 600 android/app/release.keystore
+
+      - name: Configure Android Signing
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          cat >> android/gradle.properties <<EOF
+          MYAPP_UPLOAD_STORE_FILE=release.keystore
+          MYAPP_UPLOAD_STORE_PASSWORD=${APP_SECRETS_ANDROID_KEYSTORE_PASSWORD}
+          MYAPP_UPLOAD_KEY_ALIAS=${APP_SECRETS_ANDROID_KEY_ALIAS}
+          MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
+          EOF
+
+      - name: Build Android AAB / APK
+        working-directory: android
+        shell: bash
+        run: |
+          chmod +x gradlew
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            echo "Pull request build: debug APK"
+            ./gradlew :app:assembleDebug
+          else
+            VARIANT="${APP_SECRETS_ANDROID_VARIANT:-Release}"
+            FIRST_CHAR="${VARIANT:0:1}"
+            REST="${VARIANT:1}"
+            FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
+            GRADLE_TASK="${FIRST_CHAR}${REST}"
+            echo "Building Gradle task: :app:bundle${GRADLE_TASK}"
+            ./gradlew ":app:bundle${GRADLE_TASK}"
+          fi
+
+      - name: Prepare AAB
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          AAB=$(find android/app/build/outputs/bundle -name "*.aab" -type f | head -n 1)
+          if [ -z "$AAB" ]; then
+            echo "AAB not found"
+            exit 1
+          fi
+          mkdir -p "android/build/$APP_NAME"
+          cp "$AAB" "android/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
+
+      - name: Upload Android Artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-android-${{ github.run_number }}
+          path: android/build/${{ matrix.app }}/*.aab
+          retention-days: 14
+
+      - name: Upload Current Android AAB to S3
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          aws s3 cp \
+            "android/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab" \
+            "s3://${S3_BUCKET}/android/${APP_NAME}/${APP_NAME}.aab" \
+            --only-show-errors
+
+      - name: Upload to Google Play
+        if: github.event_name != 'pull_request' && env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.APP_SECRETS_ANDROID_APPLICATION_ID }}
+          releaseFiles: android/build/${{ matrix.app }}/${{ matrix.app }}-${{ github.run_number }}.aab
+          track: internal
