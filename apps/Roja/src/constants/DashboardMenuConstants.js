@@ -1,0 +1,9 @@
+export const DASHBOARD_MENU_IDS = {
+    REMINDER: "698ac4a20089bb58e806bc77",
+    BANK_OVERVIEW: "698ac48c0089bb58e806bc29",
+    COMMON_OFFERS: "67402ad6be1acc2dccbf1261",
+    OFFER_CAROUSEL: "67402ab3be1acc2dccbf1245",
+    CREDIT_SCORE: "67402afabe1acc2dccbf1299",
+    BEYOND_CASH:'6a7adfa8ba4f747914cdf4e1',
+    INSURANCE:'6a7afd2fd5b6b1f0788ddaac'
+};

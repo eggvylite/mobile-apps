@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "186348726896",
+    "project_id": "roja-c9cb2",
+    "storage_bucket": "roja-c9cb2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186348726896:android:60ab220c2820f37e9022b5",
+        "android_client_info": {
+          "package_name": "com.rojaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-xyUsm_fIYG2q4AtDbLLn6HM57St3-88"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186348726896:android:6ac9e2ebb8175b5e9022b5",
+        "android_client_info": {
+          "package_name": "com.rojaone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-xyUsm_fIYG2q4AtDbLLn6HM57St3-88"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

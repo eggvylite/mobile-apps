@@ -1,0 +1,179 @@
+// src/components/AddCategoryModal.js
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
+import { getFontSize } from '../../constants/Font';
+import { fontsFamily } from '../../constants/fontsFamily';
+import { themeColors } from '../Common';
+import SubmitBtn from './SubmitBtn';
+
+const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName, loading }) => {
+  const [categoryName, setCategoryName] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSave = () => {
+    if (!categoryName.trim()) {
+      setError('Please enter a category name');
+      return;
+    }
+
+    onSave(categoryName.trim());
+    setCategoryName('');
+    setError('');
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Category</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Icon name="x" size={22} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.groupInfo}>
+            <Text style={styles.groupLabel}>Group</Text>
+            <Text style={styles.groupName}>{groupName}</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Category Name</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Rent, Groceries, etc."
+              placeholderTextColor="#94A3B8"
+              value={categoryName}
+              onChangeText={(text) => {
+                setCategoryName(text);
+                setError('');
+              }}
+              autoFocus
+            />
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </View>
+
+          <SubmitBtn
+            text={loading ? 'Loading' : 'Add Category'}
+            submit={handleSave}
+            disabled={loading}
+            disableGradient={loading}
+          />
+
+
+
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+    paddingHorizontal: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  modalTitle: {
+    fontSize: getFontSize(18),
+    fontFamily: fontsFamily.boldFont,
+    color: '#0F172A',
+  },
+  groupInfo: {
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  groupLabel: {
+    fontSize: getFontSize(12),
+    fontFamily: fontsFamily.regularFont,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  groupName: {
+    fontSize: getFontSize(16),
+    fontFamily: fontsFamily.semiboldFont,
+    color: '#0F172A',
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: getFontSize(14),
+    fontFamily: fontsFamily.semiboldFont,
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: getFontSize(15),
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    fontFamily: fontsFamily.regularFont,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: getFontSize(12),
+    fontFamily: fontsFamily.mediumFont,
+    marginTop: 6,
+  },
+  saveButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  saveButtonGradient: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    fontSize: getFontSize(16),
+    fontFamily: fontsFamily.boldFont,
+    color: '#FFFFFF',
+  },
+});
+
+export default AddCategoryModal;

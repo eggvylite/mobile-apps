@@ -1,0 +1,28 @@
+export const themeColors = {
+    primarColor: '#5C23F3',
+    bgbtn:'#3F2B96',
+    gradientColor:['#3E16AC', '#270093'],
+    buttonLightbackColor:'#ebe9ffb8',
+    backgroudColor: '#FBFBFF',
+    btnColor: '#fff',
+    negativeColor: "#FF6B6B",
+    surface: "#F5F6FA",
+    primarytextColor: "#333",
+    secondarytextColor: "#777",
+    textinputlabelColor: "'#000",
+    borderColor: "#EEE",
+    verticaldriveColor: "#DDD",
+    primarybtntextColor: "#FFF",
+    borderdashColor: "#4A2A63",
+    cardbgColor: "#fff",
+    dotactiveColor: "#E56772",
+    dotinactiveColor: "#E0E0E0",
+    placeholderColor: "#999",
+    iconColor: "#4A2A63",
+    inactiveColor: "#8E8E93",
+    tabgColor: "#FFFFFF",
+    headtextColor: "#111827",
+    mainContainerbgColor: "#FFFFFF",
+    inside: "#FFF0F1"
+
+}
