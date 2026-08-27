@@ -27,9 +27,9 @@ on:
 # GLOBAL CONFIGURATION
 # ==============================================================
 env:
-  AWS_REGION: ap-south-1
-  S3_BUCKET: your-mobile-builds
-  AWS_ROLE_ARN: arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/GitHubMobileCICD
+  AWS_REGION: us-east-1
+  S3_BUCKET: mobile-apps-artifacts
+  AWS_ROLE_ARN: arn:aws:iam::738678807623:role/MobileAppDeploymentRole
 
 permissions:
   contents: read
