@@ -22,6 +22,10 @@ on:
           - ios
           - android
         default: all
+      version_name:
+        description: "App Version (e.g., 1.9 — leave blank to keep project default)"
+        required: false
+        type: string
 
 # ==============================================================
 # GLOBAL CONFIGURATION
@@ -206,6 +210,21 @@ jobs:
         run: security find-identity -v -p codesigning
 
       # ========================================================
+      # VERSION & BUILD NUMBER AUTOMATION
+      # ========================================================
+      - name: Set iOS Version and Build Number
+        working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
+        run: |
+          echo "Setting CFBundleVersion (Build Number) to ${{ github.run_number }}"
+          xcrun agvtool new-version -all "${{ github.run_number }}"
+
+          if [ -n "${{ github.event.inputs.version_name }}" ]; then
+            echo "Setting CFBundleShortVersionString to ${{ github.event.inputs.version_name }}"
+            xcrun agvtool new-marketing-version "${{ github.event.inputs.version_name }}"
+          fi
+
+      # ========================================================
       # ARCHIVE & EXPORT
       # ========================================================
       - name: Archive iOS App
@@ -383,7 +402,7 @@ jobs:
           echo "$APP_SECRETS_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
           chmod 600 android/app/release.keystore
 
-      - name: Configure Android Signing
+      - name: Configure Android Signing & Version
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -392,6 +411,7 @@ jobs:
           MYAPP_UPLOAD_STORE_PASSWORD=${APP_SECRETS_ANDROID_KEYSTORE_PASSWORD}
           MYAPP_UPLOAD_KEY_ALIAS=${APP_SECRETS_ANDROID_KEY_ALIAS}
           MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
+          VERSION_CODE=${{ github.run_number }}
           EOF
 
       - name: Build Android AAB
@@ -405,7 +425,7 @@ jobs:
           FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
           GRADLE_TASK="${FIRST_CHAR}${REST}"
           echo "Building Gradle task: :app:bundle${GRADLE_TASK}"
-          ./gradlew ":app:bundle${GRADLE_TASK}"
+          ./gradlew ":app:bundle${GRADLE_TASK}" -PversionCode=${{ github.run_number }}
 
       - name: Prepare AAB
         working-directory: apps/${{ env.APP_DIR }}
