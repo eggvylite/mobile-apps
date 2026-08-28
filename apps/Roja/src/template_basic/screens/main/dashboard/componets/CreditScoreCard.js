@@ -15,10 +15,9 @@ import Svg, {
   Stop,
   Path,
 } from 'react-native-svg';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 
-// ============================================================
-// THEME
-// ============================================================
+
 const theme = {
   colors: {
     background: '#e8eaf6',
@@ -302,7 +301,7 @@ const CreditScoreCard = () => {
           </View>
         </View>
 
-   
+
         <Animated.Text style={[
           styles.scoreValue,
           {
@@ -318,7 +317,7 @@ const CreditScoreCard = () => {
           {category.emoji} Your Score is {category.label}
         </Text>
 
-       
+
         <View style={styles.summaryContainer}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>Credit Report Summary</Text>
@@ -377,9 +376,7 @@ const CreditScoreCard = () => {
   );
 };
 
-// ============================================================
-// STYLES
-// ============================================================
+
 const styles = StyleSheet.create({
   safeArea: {
     width: screenWidth * 0.9,
@@ -401,8 +398,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   pillText: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 13,
     color: theme.colors.pillText,
   },
@@ -445,23 +441,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   rangeLabel: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 12,
     marginTop: 30,
     color: theme.colors.scoreText,
   },
   scoreValue: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 28,
     color: theme.colors.scoreText,
     textAlign: 'center',
     marginBottom: 4,
   },
   scoreLabel: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
     color: theme.colors.scoreLabel,
     textAlign: 'center',
@@ -481,14 +474,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryTitle: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily:fontsFamily.boldFont,
     fontSize: 15,
     color: theme.colors.summaryTitle,
   },
   summarySubtitle: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: '600',
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 11,
     color: '#888',
     backgroundColor: '#e8ecf4',
@@ -513,15 +504,13 @@ const styles = StyleSheet.create({
     borderRightColor: theme.colors.summaryBorder,
   },
   colLabel: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 12,
     color: theme.colors.colLabel,
     marginBottom: 2,
   },
   colValue: {
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight,
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 14,
     color: theme.colors.colValue,
   },
@@ -532,7 +521,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
   },
   usNoteText: {
-    fontFamily: theme.typography.fontFamily,
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 11,
     color: '#666',
     textAlign: 'center',
@@ -541,7 +530,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   refreshHintText: {
-    fontFamily: theme.typography.fontFamily,
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 11,
     color: '#999',
     textAlign: 'center',

@@ -56,9 +56,10 @@ export default function AdvanceHistory() {
                       <Feather name="check-circle" size={16} color="#10B981" />
                     </View>
                     <View>
-                      <Text style={styles.historyType}>
+                      {/* <Text style={styles.historyType}>
                         {item?.txnmsg ? item?.txnmsg : 'N/A'}
-                      </Text>
+                      </Text> */}
+                       <Text style={styles.historyType}> Advance Received</Text>
                       <Text style={[styles.historyDate, { marginTop: 5 }]}>
                         {formatDate(item.advance_date) + '  ' + formatTime(item?.advance_date)}
                       </Text>
@@ -67,7 +68,7 @@ export default function AdvanceHistory() {
                   <View style={styles.historyRight}>
                     <Text style={styles.historyAmount}>
                       {storedata?.currency}
-                      {CommonFunction.formatamount(item?.advance_amount)}
+                      {CommonFunction.formatamount(item?.transaction_amount)}
                     </Text>
                     <Text style={styles.historyStatus}>{'Disbursement'}</Text>
                   </View>

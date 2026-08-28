@@ -3,19 +3,21 @@ import api from '../../service/api';
 import { getLoginInfo } from '../../service/storage';
 
 
-export const fetchHandpickCheck = createAsyncThunk('handpicheck/fetchHandpickCheck', async ({ code }) => {
-
-    try {
-        var info = await getLoginInfo()
-        const response = await api.get(`productsignal/getauditresponse/${info?.id}/${code}`)
-        console.log(response.data)
-        return response.data;
-    } catch(err) {
-        console.log(err.response)
-        return  err.message
+export const fetchHandpickCheck = createAsyncThunk(
+    'handpicheck/fetchHandpickCheck', 
+    // Add the second parameter to destructure rejectWithValue
+    async ({ code }, { rejectWithValue }) => {
+        try {
+            // Use const instead of var for better scoping
+            const info = await getLoginInfo();
+            const response = await api.get(`productsignal/getauditresponse/${info?.id}/${code}`);
+            
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
     }
-  
-});
+);
 
 const initialState = {
     handpickcheckdata: '',

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import { useSelector } from 'react-redux';
@@ -8,8 +8,8 @@ import useDashboardOffers from '../../../../hook/useDashboardOffers';
 import useMarketplaceHook from '../../../../hook/useOffersHook';
 import { DASHBOARD_MENU_IDS } from '../../../../constants/DashboardMenuConstants';
 import appLog from '../../../../constants/logger';
-import { useMemo } from 'react';
 import BenefitsGrids from './componets/BenefitsGrids';
+import PetCare from './componets/PetCare';
 
 
 // Lazy loaded components
@@ -19,7 +19,7 @@ const BillsSection = lazy(() => import('../../../component/BillsSection'));
 const WageVerificationScreen = lazy(() => import('../../../widgets/WageVerificationScreen'));
 const RecentTransaction = lazy(() => import('../../../component/RecentTransaction'));
 const InstantFunds = lazy(() => import('../../../component/InstantFunds'));
-const BenefitsGrid = lazy(() => import('../../../component/BenefitsGrid'));
+
 const PicksForYou = lazy(() => import('./componets/PicksForYou'));
 const RecommendedSection = lazy(() => import('./componets/RecommendedSection'));
 const CreditScoreCard = lazy(() => import('./componets/CreditScoreCard'));
@@ -52,12 +52,12 @@ const DashboardFeatureContent = ({
     const { isVisible: creditscoreVisible } = useDashboardFeatureAccess(WORKFLOW_CONSTANT.CREDIT_SCORE);
     const { isVisible: offersVisible } = useDashboardFeatureAccess(WORKFLOW_CONSTANT.MARKETPLACE);
     const { offerRec, offerssdata, advanceOffer } = useDashboardOffers();
-    const { filterOffers, filterCategory } = useMarketplaceHook();
+    const { filterOffers, filterCategory, filterHandpickOffers, dashboardOfferId } = useMarketplaceHook();
     const [reminderList, setReminderList] = useState([]);
     const { reminderdata } = useSelector((state) => state.reminder);
     const { dashboardmenudata, dashboardmenuloading, dashboardmenuerror } = useSelector((state) => state.dashboardmenu);
-    const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
-
+    const { marketPlaceHandpickOffer, marketplaceFlag, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
+    const { handpickcheckdata } = useSelector((state) => state.handpicheck);
 
     useEffect(() => {
         if (reminderdata?.length > 0) {
@@ -79,7 +79,7 @@ const DashboardFeatureContent = ({
 
 
     const TemplateTwo = ({ navigation, record }) => (
-        <View style={{marginTop:20}}>
+        <View style={{ marginTop: 20 }}>
             <Healthcare navigation={navigation} record={record} />
         </View>
     );
@@ -96,43 +96,80 @@ const DashboardFeatureContent = ({
         '6a845d456a75da1a773c6a94': TemplateThree
     };
 
- const reverseOffer = [...(marketPlaceHandpickOffer || [])].reverse();
 
-const targetId = '6a58fac671bb94adadcd8350';
+    const templateOffer = useMemo(() => {
+        const templateOfferIds = [
+            dashboardOfferId?.roadside,
+            dashboardOfferId?.travel,
+            dashboardOfferId?.healthcare,
+        ].filter(Boolean);
 
-const targetIndex = reverseOffer.findIndex(
-  product => product.id === targetId
-);
+        const handpickIds = new Set(
+            filterHandpickOffers
+                .filter(({ id }) => templateOfferIds.includes(id))
+                .map(({ id }) => id)
+        );
 
-let updatedProducts = [...reverseOffer];
+        const handpickOffers = filterHandpickOffers.filter(({ id }) =>
+            handpickIds.has(id)
+        );
 
-if (targetIndex !== -1) {
-  const [targetProduct] = updatedProducts.splice(targetIndex, 1);
+        const missingOfferIds = new Set(
+            templateOfferIds.filter((id) => !handpickIds.has(id))
+        );
 
-  // Insert at index 3
-  updatedProducts.splice(3, 0, targetProduct);
-}
+        const openOffers = filterOffers.filter(({ id }) =>
+            missingOfferIds.has(id)
+        );
 
-//    console.log(reverseOffer)
-    
-//    const updatedProducts = reverseOffer.map((product,position) =>
-//     product.id === '6a58fac671bb94adadcd8350'
-//         ? { ...product, position: 3 }
-//         : product
-// );
+        return [...handpickOffers, ...openOffers];
+    }, [
+        dashboardOfferId?.roadside,
+        dashboardOfferId?.travel,
+        dashboardOfferId?.healthcare,
+        filterHandpickOffers,
+        filterOffers,
+    ]);
+
+
+    const updatedProducts = useMemo(() => {
+        const targetId = '6a58fac671bb94adadcd8350';
+
+        const products = [...templateOffer].reverse();
+
+        const targetIndex = products.findIndex(
+            ({ id }) => id === targetId
+        );
+
+        if (targetIndex === -1) {
+            return products;
+        }
+
+        const [targetProduct] = products.splice(targetIndex, 1);
+
+        products.splice(
+            Math.min(3, products.length),
+            0,
+            targetProduct
+        );
+
+        return products;
+    }, [templateOffer]);
+
+
+
+
+
 
     return (
         <View style={{ flex: 1 }}>
             <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-                <View >
+                <View style={{ marginBottom: 20 }}>
                     <Suspense fallback={<SectionLoader />}>
                         <AdvanceLimitCard navigation={navigation} />
                     </Suspense>
                 </View>
 
-                <Suspense fallback={<SectionLoader />}>
-                    <AccountCards />
-                </Suspense>
 
                 {dashboardmenudata.map((value, key) => {
                     const renderItem = () => {
@@ -148,6 +185,7 @@ if (targetIndex !== -1) {
                                 if (storedata?.chirp !== "Yes") return null;
                                 return (
                                     <Suspense fallback={<SectionFallback />}>
+                                        <AccountCards />
                                         <RecentTransaction
                                             navigation={navigation} />
                                     </Suspense>
@@ -159,10 +197,14 @@ if (targetIndex !== -1) {
                                     return (
                                         <Suspense fallback={<SectionFallback />}>
                                             <View>
-                                                <PicksForYou
+                                                <PicksForYou        // open offers
                                                     navigation={navigation} />
 
-                                                <RecommendedSection   navigation={navigation} />
+                                                <PetCare        // open offers
+                                                    navigation={navigation} />
+
+                                                <RecommendedSection  // open offers
+                                                    navigation={navigation} />
 
 
                                             </View>
@@ -179,7 +221,7 @@ if (targetIndex !== -1) {
                                     return (
                                         <Suspense fallback={<SectionFallback />}>
                                             <View>
-                                                <BenefitsGrids
+                                                <BenefitsGrids           // open offers
                                                     navigation={navigation} />
                                             </View>
                                         </Suspense>
@@ -188,31 +230,33 @@ if (targetIndex !== -1) {
                                 } else {
                                     return null;
                                 }
-                            
+
                             case DASHBOARD_MENU_IDS.INSURANCE:
                                 if (offersVisible) {
                                     return (
-                                        <Suspense  fallback={<SectionFallback />}>
-                                            <View>
-                                            {
-                                                updatedProducts.map((value, key) => {
-                                                    
-                                                    const templateId = value?.template_id?._id;
-                                                    const TemplateComponent = TEMPLATE_MAP[templateId];
-                                                    if (!TemplateComponent) return null;
+                                        <Suspense fallback={<SectionFallback />}>
 
-                                                    return (
-                                                        <View style={{}}>
-                                                          
-                                                        <TemplateComponent
-                                                            key={value?._id ?? key}
-                                                            navigation={navigation}
-                                                            record={value}
-                                                        />
-                                                        </View>
-                                                    );
-                                                })
-                                            }
+                                            <View>
+                                                {
+                                                    // handpick offers
+                                                    updatedProducts.map((value, key) => {
+
+                                                        const templateId = value?.template_id?._id;
+                                                        const TemplateComponent = TEMPLATE_MAP[templateId];
+                                                        if (!TemplateComponent) return null;
+
+                                                        return (
+                                                            <View style={{}}>
+
+                                                                <TemplateComponent
+                                                                    key={value?._id ?? key}
+                                                                    navigation={navigation}
+                                                                    record={value}
+                                                                />
+                                                            </View>
+                                                        );
+                                                    })
+                                                }
                                             </View>
                                             <View >
 

@@ -106,7 +106,7 @@ export default function Comprehensive(props) {
                   </Text>
 
                 </View>
-               
+
                <View style={{justifyContent:'center'}}>
  {
                   details?.temp_image &&
@@ -116,7 +116,7 @@ export default function Comprehensive(props) {
                     cloudSource={details?.temp_image} />
                 }
                </View>
-               
+
 
 
               </TouchableOpacity>
@@ -149,10 +149,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: getFontSize(18),
-    fontWeight: '700',
     color: '#1b1b1b',
     marginBottom: 16,
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.semiboldFont,
   },
   cardsWrapper: {
     width: '100%',
@@ -177,8 +176,7 @@ const styles = StyleSheet.create({
     left: 15,
     top: 17,
     fontSize: getFontSize(17),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.mediumFont,
     color: '#1b1b1b',
     width: 165,
   },
@@ -193,7 +191,6 @@ const styles = StyleSheet.create({
     top: 43,
     fontSize: getFontSize(12),
     fontFamily: fontsFamily.regularFont,
-    fontWeight: '500',
     color: '#676767',
     width: 200,
     lineHeight: 18,

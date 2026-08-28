@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Image,Dimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Image, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import useDashboardOffers from '../../hook/useDashboardOffers';
 import CommonFunction from '../../utill/CommonFunction';
@@ -14,7 +14,7 @@ export default function InstantFunds() {
   const [activeIndex, setActiveIndex] = useState(0);
   const { offerRec, offerssdata, advanceOffer } = useDashboardOffers();
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
-  
+
   const CARD_WIDTH = 286;
   const CARD_GAP = 16;
 
@@ -38,8 +38,8 @@ export default function InstantFunds() {
     ['rgba(189, 255, 235, 1)', 'rgba(225, 239, 255, 1)'], ['rgba(255, 161, 249, 1)', 'rgba(255, 225, 249, 1)']
   ]
 
-  const amount_color=[
-    ['rgb(99, 214, 182)', 'rgb(159, 187, 220)'],['rgb(158, 99, 214)', 'rgb(220, 159, 219)']
+  const amount_color = [
+    ['rgb(99, 214, 182)', 'rgb(159, 187, 220)'], ['rgb(158, 99, 214)', 'rgb(220, 159, 219)']
   ]
 
   return (
@@ -131,7 +131,7 @@ export default function InstantFunds() {
                     end={{ x: 1, y: 1 }}
                     style={styles.amountValueGradient}
                   >
-                    <Text style={[styles.amountValue, styles.amountValueTeal]}>{storedata?.currency}{value?.price ||  value?.avgDailyBalanceMin || '0.00'}</Text>
+                    <Text style={[styles.amountValue, styles.amountValueTeal]}>{storedata?.currency}{value?.price || value?.avgDailyBalanceMin || '0.00'}</Text>
                   </LinearGradient>
                   <Text style={styles.amountSublabel}>credit on bank</Text>
                 </View>
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   promoCards: {
-  margin:10,
+    margin: 10,
     gap: 16,
   },
   cardz: {
@@ -207,8 +207,7 @@ const styles = StyleSheet.create({
   },
   cardzTitle: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: 'black',
     lineHeight: 20,
     marginBottom: 6,
@@ -224,8 +223,7 @@ const styles = StyleSheet.create({
   },
   cardzButtonText: {
     fontSize: getFontSize(9),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#000',
     textAlign: 'center',
   },
@@ -244,8 +242,7 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: getFontSize(10),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#565656',
     lineHeight: 11,
     textAlign: 'center',
@@ -254,21 +251,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 0,
     marginVertical: 3,
-    marginTop:5,
-    marginBottom:5
+    marginTop: 5,
+    marginBottom: 5
   },
   amountValue: {
     fontSize: getFontSize(20),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     lineHeight: 24,
     textAlign: 'center',
     color: 'white',
   },
   amountSublabel: {
     fontSize: getFontSize(10),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#565656',
     lineHeight: 11,
   },

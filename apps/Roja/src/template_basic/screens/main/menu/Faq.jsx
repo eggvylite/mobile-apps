@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GradientCard from '../../../component/GradientCard';
 import SubmitBtn from '../../../component/SubmitBtn';
 import { useSelector } from 'react-redux';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 
 const { width } = Dimensions.get('window');
 
@@ -80,7 +81,7 @@ export default function Faq() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['left','right','top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0a0a6d" />
 
       <TopBar
@@ -139,17 +140,7 @@ export default function Faq() {
             </Text>
           </View>
 
-          {/* <TouchableOpacity style={styles.helpButton}>
-            <LinearGradient
-              colors={['#0a0a6d', '#2633a7']}
-              style={styles.helpButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Feather name="mail" size={18} color="#FFFFFF" />
-              <Text style={styles.helpButtonText}>Contact Support</Text>
-            </LinearGradient>
-          </TouchableOpacity> */}
+
           <SubmitBtn text="Contact Support" />
 
         </View>
@@ -162,6 +153,8 @@ export default function Faq() {
     </SafeAreaView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -193,8 +186,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerTitle: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 22,
-    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
@@ -256,8 +249,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   faqQuestion: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0F172A',
     flex: 1,
   },
@@ -292,8 +285,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   helpTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 16,
-    fontWeight: '600',
     color: '#0F172A',
     marginBottom: 4,
   },
@@ -317,8 +310,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   helpButtonText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
   },
   bottomPadding: {

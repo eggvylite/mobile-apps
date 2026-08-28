@@ -43,6 +43,7 @@ import workflowLabelSlice from '../slices/workflowlableSilce'
 import applabelsSlice from '../slices/applabelsSlice'
 import merketplaceSlice from '../slices/merketplaceSlice'
 import handpicheckSlice from '../slices/handpicheckSlice'
+import insightSlice  from '../slices/insightSlice';
 import { reduxStorage } from './ storage';
 
 const appReducer = combineReducers({
@@ -88,7 +89,8 @@ const appReducer = combineReducers({
   workflowLabel:workflowLabelSlice,
   appscreenlabels:applabelsSlice,
   marketplace:merketplaceSlice,
-  handpicheck:handpicheckSlice
+  handpicheck:handpicheckSlice,
+  insights:insightSlice
 })
 
 const rootReducer = (state, action) => {

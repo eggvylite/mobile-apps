@@ -22,7 +22,7 @@ import { fetchCustomer } from '../../../../redux/slices/customerSlice';
 import { fetchDashboardmenu } from '../../../../redux/slices/dashboardmenuSlice';
 import DashboardSkeleton from '../../../component/DashboardSkeleton';
 import ErrorView from '../../../component/ErrorView';
-import  { DashBordStatus } from '../../../../hook/useDashbordViewScreen';
+import { DashBordStatus } from '../../../../hook/useDashbordViewScreen';
 import ConnectBankWidgetScreen from '../../../widgets/ConnectBankWidgetScreen';
 import SubscriptionPromtScreen from '../../../widgets/SubscriptionPromtScreen';
 import DashboardFeatureContent from '../dashboard/DashboardFeatureContent';
@@ -33,6 +33,8 @@ import { useConnectBankWorkFlow } from '../../../../hook/useConnectBankWorkFlow'
 import { fetchWorkflowInfoLabels } from '../../../../redux/slices/workflowlableSilce';
 import useFeatureWorkInfoLabel from '../../../../hook/useFeatureInfoWorkLablehook';
 import { fetchHandpickCheck } from '../../../../redux/slices/handpicheckSlice';
+import useGeneralLabelsHook from '../../../../hook/Labels/useGenerallablehoo';
+import { fetchInsights } from '../../../../redux/slices/insightSlice';
 
 
 
@@ -52,12 +54,13 @@ const Dashboard = (props) => {
     const { stloading, stateMentError } = useSelector((state) => state.statement);
     const { getaccounterror, getaccountloading } = useSelector((state) => state.getaccount);
     const { dashboardmenudata, dashboardmenuloading, dashboardmenuerror } = useSelector((state) => state.dashboardmenu);
-    const {handpickcheckdata} = useSelector((state) => state.handpicheck);
-    const { marketplacedata, marketPlaceCategory, marketplaceFeature,marketPlaceHandpickOffer } = useSelector((state) => state.marketplace);
+    const { handpickcheckdata } = useSelector((state) => state.handpicheck);
+    const { marketplacedata, marketPlaceCategory, marketplaceFeature, marketPlaceHandpickOffer, marketplaceFlag } = useSelector((state) => state.marketplace);
     const dispatch = useDispatch();
     const [bankResFreshLoading, setBankResFreshLoading] = useState(false)
     const featureStatus = useDashBordFeatureFlow();
     const { title } = useFeatureFlow(WORKFLOW_CONSTANT.MANUAL_ACCOUNT);
+    const { dashboardSycnStatementHead, dashboardSyncStamenDescription } = useGeneralLabelsHook()
 
 
 
@@ -68,11 +71,15 @@ const Dashboard = (props) => {
     } = useConnectBank({ navigation, screen: "Dashboard" });
 
 
-    // useEffect(()=>{
-    //   if(defbank) {
-    //     dispatch(fetchHandpickCheck({ code: defbank?.chirp_request }))
-    //   }
-    // },[defbank])
+    useEffect(() => {
+        if (defbank && marketplaceFlag !== 'Everyone') {
+            dispatch(fetchHandpickCheck({ code: defbank?.chirp_request }))
+        }
+    }, [marketplaceFlag, defbank])
+
+
+
+
 
 
 
@@ -98,9 +105,7 @@ const Dashboard = (props) => {
         if (marketplaceFeature?.length === 0) {
             dispatch(fetchMarketplaceFeatures())
         }
-        if (marketPlaceHandpickOffer?.length === 0) {
-            dispatch(fetchMarketplaceHandPickOffer())
-        }
+
     }, [dispatch]);
 
 
@@ -134,6 +139,7 @@ const Dashboard = (props) => {
                 dispatch(fetchAuth());
                 dispatch(fetchgetAccount());
                 dispatch(fetchAccount());
+                dispatch(fetchInsights({ code: defbank?.chirp_request }))
                 setBankResFreshLoading(false)
 
             }
@@ -167,13 +173,13 @@ const Dashboard = (props) => {
     const renderDashboardFeature = () => {
         switch (featureStatus) {
             case DashBordStatus.CONNECT_BANK:
-                return <ConnectBankWidgetScreen  connectBankData={title}  onConnectBank={handleConnectPress} />;
+                return <ConnectBankWidgetScreen connectBankData={title} onConnectBank={handleConnectPress} />;
 
             case DashBordStatus.WAGEVERIFICATION:
-                return <WageVerificationScreen  wageVerificationLabeleData={title} connectBankOnPress={handleConnectPress}/>;
+                return <WageVerificationScreen wageVerificationLabeleData={title} connectBankOnPress={handleConnectPress} />;
 
             case DashBordStatus.SUBSCRIPTION:
-                return <SubscriptionPromtScreen subscriptionLabelData = {title} />;
+                return <SubscriptionPromtScreen subscriptionLabelData={title} />;
 
             case DashBordStatus.SHOWALLFEATURE:
                 return (
@@ -212,8 +218,8 @@ const Dashboard = (props) => {
             <AppCommonModal
                 visible={openGetStatementModal}
                 icon='file-text'
-                title="Get Statement"
-                message="Are you sure you want to get a new statement? This might take a moment to sync your recent transactions."
+                title={dashboardSycnStatementHead}
+                message={dashboardSyncStamenDescription}
                 confirmText="Yes, Sync"
                 cancelText="Cancel"
                 loading={bankResFreshLoading}

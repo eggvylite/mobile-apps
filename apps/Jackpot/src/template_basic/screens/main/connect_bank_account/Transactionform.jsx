@@ -153,14 +153,7 @@ const Transactionform = ({ navigation, route }) => {
 
       const account = await createTransaction(transactionForm, route?.params?.screen, dispatch);
 
-      Alert.alert(
-        'Success',
-        account.data.message,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (route?.params?.screen !== 'budget') {
+       if (route?.params?.screen !== 'budget') {
                  const data = {
                 bankaccount: transactionForm?.bankaccount,
                 account_guid: transactionForm.account_guid,
@@ -177,10 +170,36 @@ const Transactionform = ({ navigation, route }) => {
                 navigation.goBack()
               }
 
-            },
-          },
-        ]
-      );
+          
+
+      // Alert.alert(
+      //   'Success',
+      //   account.data.message,
+      //   [
+      //     {
+      //       text: 'OK',
+      //       onPress: () => {
+      //         if (route?.params?.screen !== 'budget') {
+      //            const data = {
+      //           bankaccount: transactionForm?.bankaccount,
+      //           account_guid: transactionForm.account_guid,
+      //           account_id: transactionForm.account_id,
+      //           type: transactionForm.type,
+      //           accountname: transactionForm?.institution_code,
+      //           transaction_source: transactionForm?.transaction_source
+      //       }
+
+      //           navigation.replace('Statement', data)
+      //         } else if (route?.params?.screen === 'budget') {
+      //           navigation.replace('Budget')
+      //         } else {
+      //           navigation.goBack()
+      //         }
+
+      //       },
+      //     },
+      //   ]
+      // );
     } catch (error) {
       console.log(error);
 

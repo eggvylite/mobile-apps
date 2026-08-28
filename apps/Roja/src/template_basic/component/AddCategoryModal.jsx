@@ -18,7 +18,7 @@ import { fontsFamily } from '../../constants/fontsFamily';
 import { themeColors } from '../Common';
 import SubmitBtn from './SubmitBtn';
 
-const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName,loading }) => {
+const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName, loading }) => {
   const [categoryName, setCategoryName] = useState('');
   const [error, setError] = useState('');
 
@@ -72,20 +72,14 @@ const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName,loading
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </View>
 
-           <SubmitBtn
-                        text={loading ? 'Loading':'Add Category'}
-                        submit={handleSave}
-                        disabled={loading}
-                        disableGradient={loading}
-                      />
+          <SubmitBtn
+            text={loading ? 'Loading' : 'Add Category'}
+            submit={handleSave}
+            disabled={loading}
+            disableGradient={loading}
+          />
 
-          {/* <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <LinearGradient
-              colors={themeColors?.gradientColor}
-              style={styles.saveButtonGradient}>
-              <Text style={styles.saveButtonText}>Add Category</Text>
-            </LinearGradient>
-          </TouchableOpacity> */}
+
 
         </View>
       </KeyboardAvoidingView>
@@ -118,8 +112,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
   },
   groupInfo: {
@@ -136,8 +129,7 @@ const styles = StyleSheet.create({
   },
   groupName: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   inputContainer: {
@@ -145,8 +137,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 8,
   },
@@ -159,13 +150,13 @@ const styles = StyleSheet.create({
     fontSize: getFontSize(15),
     color: '#0F172A',
     backgroundColor: '#F8FAFC',
+    fontFamily: fontsFamily.regularFont,
   },
   errorText: {
     color: '#DC2626',
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     marginTop: 6,
-    fontWeight: '500',
   },
   saveButton: {
     borderRadius: 12,
@@ -174,13 +165,13 @@ const styles = StyleSheet.create({
   saveButtonGradient: {
     paddingVertical: 16,
     borderRadius: 12,
-    height: 80,
+    minHeight: 56,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
 });

@@ -200,7 +200,7 @@ const imagecall = (url, name, file, cdn, folder) => {
 const documentView = (file, data) => {
     var serverlink=''
     if (file) {
-        if(domain !== 'loacl'){
+        if(domain !== 'local'){
         var file = file?.split('##');
         var url = data?.cdnURL || 'https://cdn.roja.one/'
          serverlink = `${url}/${folderPath}/documents/${file[1]}`;

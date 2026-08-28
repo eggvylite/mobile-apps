@@ -492,7 +492,7 @@ export default function CreateGoalStep2Screen() {
   return (
     <SafeAreaView style={styles.container} edges={['left','right','top']} >
 
-      <TopBar title="Create Goal" showBack={true} onBackPress={() => {
+      <TopBar title={edit ?  "Edit Goal" :"Create Goal"} showBack={true} onBackPress={() => {
         navigation.goBack()
       }} />
 

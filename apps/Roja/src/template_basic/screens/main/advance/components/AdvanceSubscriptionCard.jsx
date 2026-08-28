@@ -2,6 +2,7 @@ import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import React from 'react'
 import LinearGradient from 'react-native-linear-gradient';
 import { useSelector } from 'react-redux';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 
 
 const { width, height } = Dimensions.get('window');
@@ -39,6 +40,7 @@ const AdvanceSubscriptionCard = ({
     );
 };
 
+
 const styles = StyleSheet.create({
     advanceCardContainer: {
         width: Platform.OS === 'ios' ? width * 1 : width * 0.9,
@@ -56,7 +58,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         aligntypes: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal:10,
+        paddingHorizontal: 10,
         overflow: 'hidden',
     },
     leftContent: {
@@ -65,12 +67,12 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     title: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 16,
-        fontWeight: '600',
         color: '#000000',
         lineHeight: 24,
         marginBottom: 12,
-        textAlign:'center'
+        textAlign: 'center'
 
     },
     button: {
@@ -86,13 +88,12 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     buttonText: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 11,
-        fontWeight: '600',
         textAlign: 'center',
         color: '#000000',
     },
 
 
 });
-
 export default AdvanceSubscriptionCard;

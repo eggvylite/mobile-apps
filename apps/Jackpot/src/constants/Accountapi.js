@@ -36,7 +36,7 @@ export const createTransaction = async (payload, type, dispatch) => {
         const response = await api.post(url, payload)
         if (response.status == 200) {
             dispatch(resetStatement())
-            // CommonFunction.message(response.data.message)
+            CommonFunction.message(response.data.message)
             return response
         }
     } catch (error) {

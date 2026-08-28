@@ -6,13 +6,13 @@ import {
     TextInput,
     TouchableOpacity,
     Image,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     Dimensions,
     Alert,
     ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderIOS from '../../../common_component/HeaderIOS';
 import { getOTP } from '../../../constants/Loginapi';
 import { ErrorContext } from '../../../context/ErrorContext';

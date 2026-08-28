@@ -13,58 +13,15 @@ import { fontsFamily } from '../../../../../constants/fontsFamily';
 import { useSelector } from 'react-redux';
 import CloudImage from '../../../../../utill/CloudImage';
 import useMarketplaceHook from '../../../../../hook/useOffersHook';
+import { mergeOffer } from '../../../../../utill/Utills';
 
 export default function BenefitsGrids(props) {
   const scrollRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
-  const { filterOffers, filterCategory } = useMarketplaceHook();
+  const { filterOffers, filterCategory, filterHandpickOffers, dashboardOfferId } = useMarketplaceHook();
   const { marketPlaceLabel } = useSelector((state) => state.labels || {});
 
-  const cashCards = [
-    {
-      id: 1,
-      title: 'Member Perks',
-      description: 'Save up to 40% on movies, theme parks, concerts & hotels',
-      // image: require('../../assets/images/movies.png'),
-      backgroundColor: '#fffee0'
-    },
-    {
-      id: 2,
-      title: 'ShoppingBoss',
-      description: 'Get 5% instant cash back at 350+ retailers & restaurants',
-      // image: require('../../assets/images/shopping.png'),
-      backgroundColor: '#ddfffc'
-    },
-    {
-      id: 3,
-      title: 'Travel Savings',
-      description: 'Save up to 25% on car rentals & 60% on hotel bookings',
-      // image: require('../../assets/images/car-rental.png'),
-      backgroundColor: '#e3f7fd'
-    },
-    {
-      id: 4,
-      title: 'Retail Discounts',
-      description: 'Exclusive deals at Home Depot, Best Buy, Macy\'s & more',
-      // image: require('../../assets/images/Get-Cash.png'),
-      backgroundColor: '#fce4ec'
-    },
-    {
-      id: 5,
-      title: 'Dining Rewards',
-      description: 'Cash back at Buffalo Wild Wings, Applebee\'s & Panera',
-      // image: require('../../assets/images/Dinings.png'),
-      backgroundColor: '#f5f2e5'
-    },
-    {
-      id: 6,
-      title: 'Digital Perks',
-      description: 'Instant eTicket delivery & mobile app for quick access',
-      // image: require('../../assets/images/e-ticket.png'),
-      backgroundColor: '#e0e6fa'
-    },
-  ];
 
   const handleScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -73,28 +30,42 @@ export default function BenefitsGrids(props) {
     setActiveIndex(activeIndex);
   };
 
-const savingOffer = useMemo(() => {
-  const savingOffer = filterOffers.find(
-    obj => obj?.id === '6a58fc881883601a35f972ad'
-  );
 
-  const travelOffer = filterOffers.find(
-    obj => obj?.id === '6a58fbe81883601a35f97158'
-  );
 
-  return {
-    features: [
-      ...(savingOffer?.features || []).map(feature => ({
-        id: savingOffer.id,
-        feature,
-      })),
-      ...(travelOffer?.features || []).map(feature => ({
-        id: travelOffer.id,
-        feature,
-      })),
-    ],
-  };
-}, [filterOffers]);
+  const savingOffer = useMemo(() => {
+    const offerIds = [
+      dashboardOfferId?.saving,
+      dashboardOfferId?.travel,
+    ];
+
+    const handpickOffers = offerIds
+      .map(id =>
+        filterHandpickOffers?.find(obj => obj?.id === id)
+      )
+      .filter(Boolean);
+
+    const missingIds = offerIds.filter(
+      id => !handpickOffers.some(obj => obj?.id === id)
+    );
+
+    const openOffers = missingIds
+      .map(id =>
+        filterOffers?.find(obj => obj?.id === id)
+      )
+      .filter(Boolean);
+
+    const allOffers = [...handpickOffers, ...openOffers];
+
+
+    return {
+      features: allOffers.flatMap(obj =>
+        (obj?.features || []).map(feature => ({
+          id: obj.id,
+          feature,
+        }))
+      ),
+    };
+  }, [filterOffers, filterHandpickOffers]);
 
 
 
@@ -118,12 +89,12 @@ const savingOffer = useMemo(() => {
         decelerationRate="fast"
       >
 
-     
+
 
         {savingOffer && 0 < savingOffer?.features?.length &&
           savingOffer?.features.map((cashCard) => {
             const details = marketplaceFeature.find((obj) => obj?._id === cashCard?.feature?.value)
-            const offer = filterOffers.find((obj)=>obj?.id  === cashCard?.id)
+            const offer = filterOffers.find((obj) => obj?.id === cashCard?.id)
             return (
               <TouchableOpacity
                 key={cashCard._id}
@@ -184,8 +155,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#1b1b1b',
     marginBottom: 18,
   },
@@ -217,15 +187,14 @@ const styles = StyleSheet.create({
   },
   cashTitle: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     lineHeight: 16,
     color: '#2b2b2b',
     marginBottom: 8,
   },
   cashDescription: {
-    fontSize: 10,
-    fontWeight: '400',
+    fontSize: 11,
+    fontFamily: fontsFamily.regularFont,
     lineHeight: 15,
     color: '#2b2b2b',
   },

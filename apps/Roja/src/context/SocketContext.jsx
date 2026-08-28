@@ -138,7 +138,7 @@ export const SocketProvider = ({ children }) => {
                     //  dispatch(fetchOffertype())
                 } else if (msg?.type === "open_offer") {
                     dispatch(fetchOpenoffers())
-                }  else if (msg?.type === "basic_offer") {
+                } else if (msg?.type === "basic_offer") {
                     dispatch(fetchHanpickoffers())
                 } else if (msg?.type === 'Workflow') {
 
@@ -154,7 +154,7 @@ export const SocketProvider = ({ children }) => {
                     dispatch(fetchMarketplaceCategory());
                     dispatch(fetchMarketplaceHandPickOffer())
 
-                }  else if(msg?.type === 'marketplace_features') {
+                } else if (msg?.type === 'marketplace_features') {
                     dispatch(fetchMarketplaceFeatures())
                 } else if (msg?.type === 'labels') {
                     console.log('yest ')

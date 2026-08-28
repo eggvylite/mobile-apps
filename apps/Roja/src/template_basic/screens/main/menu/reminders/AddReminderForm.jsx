@@ -841,11 +841,11 @@ export default function AddReminderForm() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
-        title="Add Reminder"
+        title={screen === 'edit' ? "Edit Reminder" :"Add Reminder"}
         showBack={true}
         onBackPress={() => {
           enableMenu()
@@ -884,10 +884,20 @@ export default function AddReminderForm() {
 
 
         </ScrollView>
-        <SubmitBtn
-          text={activeTab === 'basic' ? 'Next' : 'Submit'}
-          submit={activeTab === 'basic' ? handleSubmit(chageTaptwo) : handleSubmit(onSubmit)}
-        />
+        <View style={{ marginVertical: 20 }}>
+          {
+            loading ? <SubmitBtn
+
+              text={'Loading...'}
+
+            /> : <SubmitBtn
+
+              text={activeTab === 'basic' ? 'Next' : 'Submit'}
+              submit={activeTab === 'basic' ? handleSubmit(chageTaptwo) : handleSubmit(onSubmit)}
+            />
+          }
+
+        </View>
       </Animated.View>
 
       {renderPickerModal()}

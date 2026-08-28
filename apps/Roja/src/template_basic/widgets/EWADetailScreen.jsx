@@ -222,7 +222,7 @@ const EWADetailScreen = () => {
         <View style={styles.wellnessCard}>
           <Text style={styles.wellnessTitle}>Stay in Control</Text>
           <Text style={styles.wellnessDescription}>
-            {appName}+ helps you take control of your finances with tools designed for your success.
+            {appName} helps you take control of your finances with tools designed for your success.
           </Text>
 
           <View style={styles.wellnessItem}>

@@ -31,6 +31,7 @@ import OfferSkeleton from '../../../component/OfferSkeleton';
 import ErrorView from '../../../component/ErrorView';
 import WorkflowScreen from '../../../widgets/WorkflowScreen';
 import { fontsFamily } from '../../../../constants/fontsFamily';
+import api from '../../../../service/api';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -206,19 +207,23 @@ const Offers = ({ navigation, route }) => {
             filterHandpickOffers.map((value) => { arr.push(value?.id) })
         }
 
+        if(0 < arr?.length) {
         try {
             const payload = {
                 customer_id: storedata?.id,
                 product_id: arr
             }
+            console.log(payload)
             const productImpressionCount = await api.post('offer_eligibility/updateProductImpressionCount',payload)
             console.log(productImpressionCount?.data)
 
         } catch (error) {
-                console.log(error)
+                console.log(error.response.data)
         } finally {
 
         }
+        }
+
 
 
     }

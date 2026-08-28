@@ -30,6 +30,8 @@ import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
 import OfferSkeleton from '../../../component/OfferSkeleton';
 import ErrorView from '../../../component/ErrorView';
 import WorkflowScreen from '../../../widgets/WorkflowScreen';
+import { fontsFamily } from '../../../../constants/fontsFamily';
+import api from '../../../../service/api';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -110,8 +112,8 @@ const DealCard = ({ title, description, category, bgColor, tags, onPress, image 
 const Offers = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const { offerstypedata } = useSelector((state) => state.offerstype);
-    const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
-
+    const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, handpickError, categoryError,marketplaceFlag, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
+    const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
     const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -121,7 +123,7 @@ const Offers = ({ navigation, route }) => {
     const [arryId, setArryId] = useState([]);
     const { handpickcheckdata } = useSelector((state) => state.handpicheck);
     const { filterOffers, filterHandpickOffers, filterCategory } = useMarketplaceHook(
-    userId ? userId: selectedFilter ,
+        userId ? userId : selectedFilter,
         searchQuery
     );
 
@@ -132,13 +134,16 @@ const Offers = ({ navigation, route }) => {
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const autoCloseTimerRef = useRef(null);
     const isFocused = useIsFocused()
+    const [change, setChange] = useState('')
 
 
-    useEffect(()=>{
-        if(userId) {
+    useEffect(() => {
+        if (userId) {
             setSelectedFilter(userId)
         }
-    },[userId])
+    }, [userId])
+
+
 
 
     useEffect(() => {
@@ -176,9 +181,52 @@ const Offers = ({ navigation, route }) => {
     useEffect(() => {
         if (!isFocused) {
             setUserId('')
+            setChange('')
+            setActiveTab('all')
+        }
+        if (isFocused) {
+            setChange('1')
         }
 
     }, [isFocused])
+
+    useEffect(() => {
+        if (change && storedata?.plan === 'Yes' &&  (filterOffers.length > 0 || filterHandpickOffers.length > 0)) {
+            impressinoCount()
+        }
+
+    }, [change])
+
+
+
+    const impressinoCount = async() => {
+        var arr = []
+        if (activeTab === 'all' && filterOffers.length > 0) {
+            filterOffers.map((value) => { arr.push(value?.id) })
+        } else if (activeTab === 'handpicked' && filterHandpickOffers.length > 0 && marketplaceFlag === 'Handpicked') {
+            filterHandpickOffers.map((value) => { arr.push(value?.id) })
+        }
+
+        if(0 < arr?.length) {
+        try {
+            const payload = {
+                customer_id: storedata?.id,
+                product_id: arr
+            }
+            console.log(payload)
+            const productImpressionCount = await api.post('offer_eligibility/updateProductImpressionCount',payload)
+            console.log(productImpressionCount?.data)
+
+        } catch (error) {
+                console.log(error.response.data)
+        } finally {
+
+        }
+        }
+
+
+
+    }
 
     const recallAPISercice = useCallback(() => {
         dispatch(fetchMarketplaceHandPickOffer)
@@ -295,7 +343,10 @@ const Offers = ({ navigation, route }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tab, activeTab === 'handpicked' && styles.tabActive]}
-                    onPress={() => handleTabPress('handpicked')}
+                    onPress={() => {
+                        setChange('2')
+                        handleTabPress('handpicked')
+                    }}
                     activeOpacity={0.7}
                 >
                     <Text style={[styles.tabText, activeTab === 'handpicked' && styles.tabTextActive]}>
@@ -371,7 +422,8 @@ const Offers = ({ navigation, route }) => {
             <Text style={styles.noRecordText}>No record found</Text>
         </View>
     );
-    
+
+
     const renderContent = () => {
         if (activeTab === 'handpicked') {
             return (
@@ -406,21 +458,21 @@ const Offers = ({ navigation, route }) => {
                                     //         />
                                     //     )
                                     // }
-                                     const key = deal?._id || deal?.id;
-                                        const image = deal?.image ? deal.image : null;
-                                        const onPress = () => navigation?.navigate('OfferDetailScreen', { product: deal });
-                                        return (
-                                            <DealCard
-                                                key={key}
-                                                title={deal?.name}
-                                                description={deal.short_description}
-                                                category={deal.product_cat?.name}
-                                                image={image}
-                                                bgColor={deal.bgcolor}
-                                                tags={deal?.features ?? []}
-                                                onPress={onPress}
-                                            />
-                                        )
+                                    const key = deal?._id || deal?.id;
+                                    const image = deal?.image ? deal.image : null;
+                                    const onPress = () => navigation?.navigate('OfferDetailScreen', { product: deal });
+                                    return (
+                                        <DealCard
+                                            key={key}
+                                            title={deal?.name}
+                                            description={deal.short_description}
+                                            category={deal.product_cat?.name}
+                                            image={image}
+                                            bgColor={deal.bgcolor}
+                                            tags={deal?.features ?? []}
+                                            onPress={onPress}
+                                        />
+                                    )
 
                                 })}
                             </View>
@@ -582,7 +634,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 5,
     },
-    notificationBadgeText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
+    notificationBadgeText: { fontSize: 10, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
     searchContainer: {
         paddingHorizontal: 16,
         paddingVertical: 12,
@@ -599,7 +651,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         gap: 10,
     },
-    searchInput: { flex: 1, fontSize: 15, color: '#0F172A', padding: 0 },
+    searchInput: { flex: 1, fontSize: 15, fontFamily: fontsFamily.regularFont, color: '#0F172A', padding: 0 }, // was missing
     tabContainer: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F8FAFC' },
     tabs: {
         flexDirection: 'row',
@@ -621,8 +673,8 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     tabActive: { backgroundColor: '#5A21F1' },
-    tabText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-    tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
+    tabText: { fontSize: 14, fontFamily: fontsFamily.semiboldFont, color: '#64748B' },
+    tabTextActive: { color: '#FFFFFF', fontFamily: fontsFamily.boldFont },
     filterSection: {
         marginHorizontal: 16,
         marginTop: 8,
@@ -642,7 +694,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     filterLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    filterTitle: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+    filterTitle: { fontSize: 14, fontFamily: fontsFamily.semiboldFont, color: '#0F172A' },
     filterRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     selectedFilterBadge: {
         flexDirection: 'row',
@@ -654,10 +706,10 @@ const styles = StyleSheet.create({
         gap: 5,
         maxWidth: 150,
     },
-    selectedFilterText: { fontSize: 12, fontWeight: '600', color: '#3F2B96' },
+    selectedFilterText: { fontSize: 12, fontFamily: fontsFamily.semiboldFont, color: '#3F2B96' },
     noFilterText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: fontsFamily.mediumFont,
         color: '#3F2B96',
         backgroundColor: '#F0F0FF',
         paddingHorizontal: 10,
@@ -683,7 +735,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     filterTagActive: { backgroundColor: '#3F2B96' },
-    filterTagText: { fontSize: 13, fontWeight: '500', color: '#475569' },
+    filterTagText: { fontSize: 13, fontFamily: fontsFamily.mediumFont, color: '#475569' }, // was fontWeight: '500', no fontFamily
     filterTagTextActive: { color: '#FFFFFF' },
     activeIndicator: {
         width: 16,
@@ -695,7 +747,7 @@ const styles = StyleSheet.create({
     },
     noRecordContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 40 },
     noRecordImage: { width: 150, height: 150, marginBottom: 20 },
-    noRecordText: { fontSize: 18, fontWeight: '600', color: '#0F172A' },
+    noRecordText: { fontSize: 18, fontFamily: fontsFamily.semiboldFont, color: '#0F172A' }, // was fontWeight: '600', no fontFamily
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -704,8 +756,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         marginTop: 8,
     },
-    sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-    sectionCount: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+    sectionTitle: { fontSize: 18, fontFamily: fontsFamily.boldFont, color: '#0F172A' }, // was fontWeight: '700', no fontFamily
+    sectionCount: { fontSize: 13, color: '#64748B', fontFamily: fontsFamily.mediumFont }, // was fontWeight: '500', no fontFamily
     offersContainer: { paddingHorizontal: 0 },
     offerSection: { marginBottom: 8 },
     dealsContainer: { paddingHorizontal: 16, gap: 16 },
@@ -731,13 +783,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 2,
     },
-    pillHealthText: { fontWeight: '600', fontSize: 9, color: '#000000' },
+    pillHealthText: { fontFamily: fontsFamily.semiboldFont, fontSize: 9, color: '#000000' }, // was fontWeight: '600', no fontFamily
     dealTitle: {
         position: 'absolute',
         top: 51,
         left: 19,
         width: 194,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont, // was fontWeight: '700', no fontFamily
         fontSize: 20,
         color: '#1B1B1B',
         lineHeight: 28,
@@ -767,7 +819,7 @@ const styles = StyleSheet.create({
         width: 200,
         left: 19,
         right: 19,
-        fontWeight: '500',
+        fontFamily: fontsFamily.mediumFont, // was fontWeight: '500', no fontFamily
         fontSize: 14,
         color: '#676767',
         lineHeight: 20,
@@ -782,7 +834,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    dealTagText: { fontWeight: '500', fontSize: 10, color: '#000000' },
+    dealTagText: { fontFamily: fontsFamily.mediumFont, fontSize: 10, color: '#000000' }, // was fontWeight: '500', no fontFamily
     dealArrowBtn: {
         position: 'absolute',
         bottom: 15,

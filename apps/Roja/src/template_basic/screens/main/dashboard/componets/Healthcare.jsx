@@ -114,7 +114,7 @@ export default function Healthcare(props) {
               <TouchableOpacity style={styles.serviceCard} key={key} onPress={() => {
                navigateScreen()
               }}>
-                <View style={[styles.cardHeader, { backgroundColor: details.card_bg }]}>
+                <View style={[styles.cardHeader, { backgroundColor: details?.card_bg || '#fff' }]}>
                   <View style={[styles.cardIcon]}>
 
                     <CommonIcon family={details?.iconfamily} name={details?.appicon} size={30} color={details?.icon_color} />
@@ -134,40 +134,6 @@ export default function Healthcare(props) {
           })
         }
 
-
-        {/* <View style={styles.serviceCard}>
-          <View style={[styles.cardHeader, styles.purpleHeader]}>
-            <View style={styles.cardIcon}>
-              <Feather name="video" size={30} color="#6A5ACD" />
-            </View>
-            <TouchableOpacity style={styles.arrowButton}>
-              <Feather name="arrow-up-right" size={16} color="#000000" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.cardBody}>
-            <Text style={styles.cardTitle}>Online Medical Help</Text>
-            <Text style={styles.cardDescription}>
-              Get trusted medical advice from home without long waits or clinic visits.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.serviceCard}>
-          <View style={[styles.cardHeader, styles.greenHeader]}>
-            <View style={styles.cardIcon}>
-              <Feather name="clock" size={30} color="#4CAF50" />
-            </View>
-            <TouchableOpacity style={styles.arrowButton}>
-              <Feather name="arrow-up-right" size={16} color="#000000" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.cardBody}>
-            <Text style={styles.cardTitle}>24/7 Service</Text>
-            <Text style={styles.cardDescription}>
-              Access medical help anytime, day or night. Available 24 hours.
-            </Text>
-          </View>
-        </View> */}
       </ScrollView>
     </View>
   );
@@ -206,14 +172,15 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 22,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont,
     color: "#003D59",
     marginBottom: 8,
     letterSpacing: -0.5,
   },
   heroDescription: {
     fontSize: 13,
-    fontWeight: "500",
+
+    fontFamily: fontsFamily.mediumFont,
     color: "#FFFFFF",
     lineHeight: 20,
     marginBottom: 24,
@@ -228,7 +195,7 @@ const styles = StyleSheet.create({
   },
   ctaButtonText: {
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: fontsFamily.boldFont,
     color: "#232323",
     letterSpacing: 0.3,
   },
@@ -250,8 +217,7 @@ const styles = StyleSheet.create({
   },
   servicesTitle: {
         fontSize: getFontSize(20),
-        fontFamily:fontsFamily.regularFont,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#1b1b1b',
     letterSpacing: -0.3,
   },
@@ -309,14 +275,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#000000",
     marginBottom: 8,
     letterSpacing: -0.3,
   },
   cardDescription: {
     fontSize: 12,
-    fontWeight: "400",
+    fontFamily: fontsFamily.regularFont,
     color: "#666666",
     lineHeight: 16,
   },

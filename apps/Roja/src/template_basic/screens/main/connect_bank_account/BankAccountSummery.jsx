@@ -360,6 +360,7 @@ export default function BankAccountSummary() {
     );
 }
 
+
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -398,8 +399,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     headerTitle: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 16,
-        fontWeight: '600',
         color: 'rgba(255,255,255,0.9)',
         flex: 1,
     },
@@ -410,13 +411,13 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     headerBadgeText: {
+        fontFamily: fontsFamily.boldFont,
         fontSize: 12,
-        fontWeight: '700',
         color: '#FFFFFF',
     },
     headerBalance: {
+        fontFamily: fontsFamily.boldFont,
         fontSize: 34,
-        fontWeight: '700',
         color: '#FFFFFF',
         marginBottom: 4,
     },
@@ -440,14 +441,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     quickStatLabel: {
+        fontFamily: fontsFamily.mediumFont,
         fontSize: 12,
         color: '#94A3B8',
-        fontWeight: '500',
         marginBottom: 4,
     },
     quickStatValue: {
+        fontFamily: fontsFamily.boldFont,
         fontSize: 18,
-        fontWeight: '700',
         color: '#0F172A',
     },
     quickStatValueContainer: {
@@ -465,8 +466,8 @@ const styles = StyleSheet.create({
         gap: 3,
     },
     quickStatBadgeText: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 10,
-        fontWeight: '600',
         color: '#10B981',
     },
     quickStatDivider: {
@@ -492,8 +493,8 @@ const styles = StyleSheet.create({
         borderBottomColor: '#F1F5F9',
     },
     accountsTitle: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 16,
-        fontWeight: '600',
         color: '#0F172A',
     },
     accountsCount: {
@@ -532,8 +533,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     accountType: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 15,
-        fontWeight: '600',
         color: '#0F172A',
     },
     accountSubCount: {
@@ -547,8 +548,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     accountBalance: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 15,
-        fontWeight: '600',
         color: '#0F172A',
     },
     expandIndicator: {
@@ -590,13 +591,13 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     subItemName: {
+        fontFamily: fontsFamily.mediumFont,
         fontSize: 14,
         color: '#475569',
-        fontWeight: '500',
     },
     subItemBalance: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 14,
-        fontWeight: '600',
         color: '#0F172A',
     },
     subItemDivider: {
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
     bottomPadding: {
         height: 20,
     },
-    // FAB Button - Fixed positioning
+
     fabButton: {
         position: 'absolute',
         bottom: 40,

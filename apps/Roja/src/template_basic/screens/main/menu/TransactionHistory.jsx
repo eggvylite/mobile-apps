@@ -433,13 +433,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#3F2B96',
   },
   tabText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 14,
-    fontWeight: '500',
     color: '#94A3B8',
   },
   tabTextActive: {
+    fontFamily: fontsFamily.semiboldFont,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   // Results
   resultsContainer: {
@@ -450,9 +450,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   resultsText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
     color: '#94A3B8',
-    fontWeight: '500',
   },
   filterButton: {
     flexDirection: 'row',
@@ -464,8 +464,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   filterButtonText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 12,
-    fontWeight: '500',
     color: '#3F2B96',
   },
   // Transaction Card
@@ -492,8 +492,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   transactionType: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
-    fontWeight: '600',
     color: '#0F172A',
   },
   dateContainer: {
@@ -511,8 +511,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   transactionAmount: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 16,
-    fontWeight: '700',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -528,8 +528,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   statusText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 10,
-    fontWeight: '600',
   },
   // Empty State
   emptyContainer: {
@@ -538,8 +538,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 18,
-    fontWeight: '600',
     color: '#0F172A',
     marginTop: 8,
   },

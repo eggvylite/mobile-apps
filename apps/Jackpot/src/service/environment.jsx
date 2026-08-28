@@ -1,4 +1,4 @@
-export const domain = 'local';
+export const domain = 'stg';
 const environments = {
     live: "https://api.roja.one",
     stg: "https://stg-api.roja.one",

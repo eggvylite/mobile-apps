@@ -1,6 +1,8 @@
 import AdvanceDetailsScreen from "../screens/main/advance/AdvanceDetailsScreen";
 import AdvanceHistory from "../screens/main/advance/AdvanceHistory";
 import GetAdvance from "../screens/main/advance/GetAdvance";
+import GetPayment from "../screens/main/advance/GetPayment";
+import Repayment from "../screens/main/advance/Repayment";
 import SelectPaymentMethod from "../screens/main/advance/SelectPaymentMethod";
 import CategoryDetail from "../screens/main/budget/CategoryDetail";
 import Account from "../screens/main/connect_bank_account/Account";
@@ -65,4 +67,6 @@ export const CommonScreens = [
   { name: 'AdvanceHistory', component: AdvanceHistory },
   { name: 'AdvanceDetailsScreen', component: AdvanceDetailsScreen },
   { name: 'SubscriptionDetailsScreen', component: SubscriptionDetailsScreen },
+  { name: 'Repayment', component: Repayment },
+  { name: 'GetPayment', component: GetPayment },
 ];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -22,6 +22,7 @@ import { BottomContext } from '../../../../context/BottomContext';
 import { useContext } from 'react';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import CategoryDetailSkeleton from '../../../component/CategoryDetailSkeleton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -138,7 +139,7 @@ const CategoryDetail = ({ navigation, route }) => {
   const isOverBudget = spent > budget && budget > 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left','right','top']}>
       <TopBar title={'Category Details'} showBack={true} onBackPress={handleBackPress} />
 
 

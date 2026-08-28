@@ -9,6 +9,7 @@ const selectByScreen = (state) => state.appscreenlabels.byScreen;
 export default function useGeneralLabelsHook() {
     const byScreen = useSelector(selectByScreen);
 
+
     return useMemo(() => {
         const record = byScreen?.find((r) => r._id === COMMONSCREENLABELSIDS.GENERAL);
         const labels = record?.labels || [];
@@ -22,12 +23,16 @@ export default function useGeneralLabelsHook() {
         const subScriptionCancelAlertTitle = labels[7]?.message ?? "Cancel Subscription?";
         const subscriptionAdvanceAlertDescription = labels[8]?.message ?? "You have a payment that is still pending. Please review it and complete the payment to keep your account up to date.";
         const subscriptionAdvanceAlertTitle = labels[9]?.message ?? "Cancel Subscription?";
-         const wageProgress = labels[10]?.message ?? "Wage verification is currently in progress. You’ll be notified through your preferred communication channel once it’s complete.";
-         const manageBankConnection = labels[11]?.message ?? "Manage Bank Connection";
-          const manageBankConnectionDescription = labels[12]?.message ?? "Manage your connected bank accounts";
+        const wageProgress = labels[10]?.message ?? "Wage verification is currently in progress. You’ll be notified through your preferred communication channel once it’s complete.";
+        const manageBankConnection = labels[11]?.message ?? "Manage Bank Connection";
+        const manageBankConnectionDescription = labels[12]?.message ?? "Manage your connected bank accounts";
+        const advanceLimitSHowMessage = labels[13]?.message ?? "You’re not eligible for another advance at this time. Please repay the previous advance before requesting a new one.";
+        const dashboardSycnStatementHead = labels[14]?.message ?? "Get Statement";
+        const dashboardSyncStamenDescription = labels[15]?.message ?? "Are you sure you want to get a new statement? This might take a moment to sync your recent transactions.";
+        const unlockFeature = labels[16]?.message ?? "Subscribe to unlock this feature";
 
 
-         return {
+        return {
             subscriptionbages,
             subscriptionInformation,
             connectNewBankAlertPromt,
@@ -40,7 +45,12 @@ export default function useGeneralLabelsHook() {
             subscriptionAdvanceAlertTitle,
             wageProgress,
             manageBankConnection,
-            manageBankConnectionDescription
+            manageBankConnectionDescription,
+            advanceLimitSHowMessage,
+            dashboardSycnStatementHead,
+            dashboardSyncStamenDescription,
+            manageBankConnectionDescription,
+            unlockFeature
         };
     }, [byScreen]);
 }

@@ -7,6 +7,7 @@ import { themeColors } from '../../../../Common';
 import { useSelector } from 'react-redux';
 import api from '../../../../../service/api';
 import appLog from '../../../../../constants/logger';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 const { width, height } = Dimensions.get('window');
 
 const PayBillComponent = ({ totalBill, storedata, handlePayNow }) => {
@@ -48,7 +49,7 @@ const PayBillComponent = ({ totalBill, storedata, handlePayNow }) => {
           end={{ x: 1, y: 1 }}
           style={styles.card}
         >
-          <View style={[styles.leftContent,{marginStart:5}]}>
+          <View style={[styles.leftContent, { marginStart: 5 }]}>
             <Text style={styles.title}>{`${dashboardLabel?.labels?.[6]?.message}\n${dashboardLabel?.labels?.[7]?.message}`}</Text>
             <TouchableOpacity
               onPress={onPayPress}
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   },
   optionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont, // was fontWeight: '600', no fontFamily
     color: '#0F172A',
     marginBottom: 12,
   },
@@ -188,12 +189,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#000000',
     lineHeight: 24,
     marginBottom: 12,
 
   },
+
   button: {
     backgroundColor: '#F3F6FD',
     borderRadius: 20,
@@ -208,7 +210,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     textAlign: 'center',
     color: '#000000',
   },
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
   },
   payButtonText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont, // was fontWeight: '700', no fontFamily
     color: '#FFFFFF',
   },
 
@@ -237,12 +239,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont, // was fontWeight: '700', no fontFamily
     color: '#525252',
   },
   amount: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont, // was fontWeight: '700', no fontFamily
     color: '#7F75D9',
     lineHeight: 30,
     marginVertical: 1,
@@ -303,11 +305,12 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   optionFee: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont,
     color: '#94A3B8',
   },
   optionRadio: {
@@ -324,6 +327,7 @@ const styles = StyleSheet.create({
   },
   optionDescription: {
     fontSize: 13,
+    fontFamily: fontsFamily.regularFont,
     color: '#64748B',
     paddingLeft: 52,
   },
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
   },
   getAdvanceText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   loadingContainer: {
@@ -359,7 +363,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     borderTopColor: 'transparent',
   },
-   providerCard: {
+  providerCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1.5,
@@ -391,12 +395,13 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
 
   },
   providerDescription: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont,
     color: '#94A3B8',
     marginBottom: 2,
   },
@@ -407,6 +412,7 @@ const styles = StyleSheet.create({
   },
   processingTime: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont,
     color: '#94A3B8',
   },
   radioCircle: {
@@ -427,6 +433,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#3F2B96',
   },
+
   payButton: {
     borderRadius: 14,
     overflow: 'hidden',
@@ -443,22 +450,21 @@ const styles = StyleSheet.create({
     height: 50,
     gap: 8,
   },
-  sectionTitle:{
+  sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 12,
-    marginTop:5
+    marginTop: 5
   },
-   payText: {
+  payText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
 
 
 });
-
 
 
 export default PayBillComponent;

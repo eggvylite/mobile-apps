@@ -88,17 +88,18 @@ export default function AddmanualAccount() {
             setIsSubmitting(true);
 
             const account = await createAccount(accountData, dispatch);
+             navigation.goBack()
 
-            Alert.alert(
-                'Success',
-                account.data.message,
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => navigation.goBack(),
-                    },
-                ]
-            );
+            // Alert.alert(
+            //     'Success',
+            //     account.data.message,
+            //     [
+            //         {
+            //             text: 'OK',
+            //             onPress: () => navigation.goBack(),
+            //         },
+            //     ]
+            // );
         } catch (error) {
             console.log(error);
 

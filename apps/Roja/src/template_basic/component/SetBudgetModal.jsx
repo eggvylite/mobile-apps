@@ -6,7 +6,7 @@ import { fontsFamily } from '../../constants/fontsFamily';
 import { getFontSize } from '../../constants/Font';
 import SubmitBtn from './SubmitBtn';
 
-const SetBudgetModal = ({ visible, onClose, category, onSave,loading }) => {
+const SetBudgetModal = ({ visible, onClose, category, onSave, loading }) => {
   const [budgetAmount, setBudgetAmount] = useState('');
   const [error, setError] = useState('');
 
@@ -145,8 +145,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
   },
   categoryInfo: {
@@ -154,8 +153,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 2,
   },
@@ -169,8 +167,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 8,
   },
@@ -186,8 +183,7 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
     marginRight: 6,
   },
@@ -201,18 +197,16 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#DC2626',
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     marginTop: 6,
-    fontWeight: '500',
   },
   quickAmounts: {
     marginBottom: 24,
   },
   quickAmountsLabel: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#64748B',
-    fontWeight: '500',
     marginBottom: 10,
   },
   quickAmountsRow: {
@@ -230,8 +224,7 @@ const styles = StyleSheet.create({
   },
   quickAmountText: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#3F2B96',
   },
   saveButton: {
@@ -246,10 +239,8 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
 });
-
 export default SetBudgetModal;

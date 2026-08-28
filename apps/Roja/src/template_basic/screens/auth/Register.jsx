@@ -18,9 +18,11 @@ import { fontsFamily } from '../../../constants/fontsFamily';
 import api from '../../../service/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationPicker from './LocationPicker';
-import { privacyURL, termsURL } from '../../../service/environment';
+import { appName, privacyURL, termsURL } from '../../../service/environment';
 const { width, height } = Dimensions.get('window')
 import FontAwesome from "react-native-vector-icons/FontAwesome"
+import SubmitBtn from '../../component/SubmitBtn';
+import { useSelector } from 'react-redux';
 
 
 const Register = ({ navigation, route }) => {
@@ -36,6 +38,8 @@ const Register = ({ navigation, route }) => {
   const maxDate = new Date();
   const [isdateShow, setisDateShow] = useState(false);
   const [isLocation, setIsLoaction] = useState(false)
+  const { settingcms } = useSelector((state) => state.menuicons)
+  const company = settingcms?.company || appName
   maxDate.setFullYear(maxDate.getFullYear() - 18);
   const [dob, setDob] = useState(maxDate);
 
@@ -353,38 +357,38 @@ const Register = ({ navigation, route }) => {
                   {errors.phone && <Text style={[styles.errortext, { marginTop: 0 }]}>{errors.phone.message}</Text>}
                 </View>
 
-              <View style={{ flexDirection: 'row', alignItems:'center',justifyContent:'center'}}>
-                <View >
-                  <Checkbox.Android
-                    status={checked ? 'checked' : 'unchecked'}
-                    onPress={() => {
-                      if (!checked) {
-                        setChecked(true)
-                        handleInputChange('check', 'yes')
-                      } else {
-                        setChecked(false)
-                        handleInputChange('check', '')
-                      }
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                  <View >
+                    <Checkbox.Android
+                      status={checked ? 'checked' : 'unchecked'}
+                      onPress={() => {
+                        if (!checked) {
+                          setChecked(true)
+                          handleInputChange('check', 'yes')
+                        } else {
+                          setChecked(false)
+                          handleInputChange('check', '')
+                        }
 
                       }}
                       {...register("check")}
                       color={themeColors?.primarColor}          // Change checked color
                       uncheckedColor="gray" // Change unchecked color
 
-                  />
+                    />
+                  </View>
+                  <Pressable style={{ flex: 1 }} onPress={() => {
+                    if (!checked) {
+                      setChecked(true)
+                      handleInputChange('check', 'yes')
+                    } else {
+                      setChecked(false)
+                      handleInputChange('check', '')
+                    }
+                  }}>
+                    <Text style={[{ fontSize: getFontSize(14) }]}> By checking this box, you agree to receive text messages.</Text>
+                  </Pressable>
                 </View>
-                <Pressable style={{ flex: 1 }} onPress={() => {
-                  if (!checked) {
-                    setChecked(true)
-                    handleInputChange('check', 'yes')
-                  } else {
-                    setChecked(false)
-                    handleInputChange('check', '')
-                  }
-                }}>
-                  <Text style={[{ fontSize: getFontSize(14) }]}> By checking this box, you agree to receive text messages.</Text>
-                </Pressable>
-              </View>
 
                 {/* <TouchableOpacity
                   style={[styles.locationBtn, isLoading && { opacity: 0.7 }, { marginTop: 20 }]}
@@ -506,7 +510,7 @@ const Register = ({ navigation, route }) => {
                 {errors.zip_id && <Text style={styles.errortext}>{errors.zip_id.message}</Text>}
 
                 <View style={{ marginTop: 20 }}>
-                  <Text style={[styles.label, { fontWeight: 'normal', textAlign: 'justify' }]}>{content.registerPrivacyContent}</Text>
+                  <Text style={[styles.label, { fontWeight: 'normal', textAlign: 'justify' }]}>{`By submitting, you agree to receive messages from ${company}. Msg & Data rates may apply. Messages will be used for MFA authentication and account notices, frequency will vary with use. Reply STOP to opt-out or HELP for help`}</Text>
 
 
                 </View>
@@ -538,7 +542,7 @@ const Register = ({ navigation, route }) => {
 
                 </View>
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={[styles.btn, isLoading && styles.disabledButton, { marginTop: 20 }]}
                   onPress={handleSubmit(handleSignUp)}
                   disabled={isLoading}
@@ -548,15 +552,22 @@ const Register = ({ navigation, route }) => {
                   ) : (
                     <Text style={styles.btnText}>Sign Up</Text>
                   )}
-                </TouchableOpacity>
+                </TouchableOpacity> */}
+                <SubmitBtn
+                  text={isLoading ? 'Loading ...' : 'Sign Up'}
+                  disabled={isLoading}
+                  style={{marginTop:20}}
+                  disableGradient={isLoading}
+                  submit={handleSubmit(handleSignUp)}
+                />
               </View>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
-                <Text style={styles.linktext}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Already have an account? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
+                  <Text style={styles.linktext}>Sign In</Text>
+                </TouchableOpacity>
+              </View>
 
             </ScrollView>
             <Modal isVisible={isdateShow}>

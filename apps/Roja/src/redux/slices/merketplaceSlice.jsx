@@ -71,7 +71,8 @@ export const fetchMarketplaceHandPickOffer = createAsyncThunk(
         `dashboard/statements/${loginfo?.id}/marketplace_handpick_only`,
       );
 
-      return response.data?.records || [];
+
+      return response.data || [];
     } catch (error) {
       return rejectWithValue(
         error?.response?.data || 'Something went wrong',
@@ -85,6 +86,7 @@ const initialState = {
   marketplacedata: [],
   marketPlaceCategory: [],
   marketplaceFeature:[],
+  marketplaceFlag:'',
   marketPlaceHandpickOffer:[],
   loading: false,
   error: null,
@@ -157,7 +159,8 @@ const marketplaceSlice = createSlice({
       })
       .addCase(fetchMarketplaceHandPickOffer.fulfilled, (state, action) => {
         state.loading = false;
-        state.marketPlaceHandpickOffer = action.payload;
+        state.marketplaceFlag = action?.payload?.flag
+        state.marketPlaceHandpickOffer = action.payload?.records || [];
         state.error = null;
       })
       .addCase(fetchMarketplaceHandPickOffer.rejected, (state, action) => {

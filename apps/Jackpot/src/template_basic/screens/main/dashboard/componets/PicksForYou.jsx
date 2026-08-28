@@ -39,14 +39,31 @@ export default function PicksForYou(props) {
 
 
 
-  const financeOffer = useMemo(() => {
-    const openOffer = filterOffers.find((obj) => obj?.id === dashboardOfferId?.finance)
-    const handpick = filterHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.finance)
-    const finalOffer = mergeOffer(openOffer,handpick)
-    return finalOffer
+  // const financeOffer = useMemo(() => {
+  //   const openOffer = filterOffers.find((obj) => obj?.id === dashboardOfferId?.finance)
+  //   const handpick = filterHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.finance)
+  //   const finalOffer = mergeOffer(openOffer,handpick)
+  //   return finalOffer
 
-  }, [filterOffers, filterHandpickOffers])
+  // }, [filterOffers, filterHandpickOffers])
 
+const financeOffer = useMemo(() => {
+  const handpickOffer = filterHandpickOffers?.find(
+    obj => obj?.id === dashboardOfferId?.finance
+  );
+
+  if (handpickOffer) {
+    const finalOffer = mergeOffer(handpickOffer,[])
+    return finalOffer;
+  }
+
+  const openOffer = filterOffers?.find(
+    obj => obj?.id === dashboardOfferId?.finance
+  );
+   const finalOffer = mergeOffer(openOffer,[])
+
+  return finalOffer;
+}, [filterOffers, filterHandpickOffers]);
 
 
 

@@ -30,7 +30,7 @@ const Budget = ({ navigation, route }) => {
   const { budgetcategorydata, budgetcategoryloading } = useSelector((state) => state.budgetcategory);
   const [categoryGrp, setCategoryGrp] = useState([])
   const [budgetCategory, setbudgetCategory] = useState([])
-  const { firstTransDate, records,stloading } = useSelector((state) => state.statement);
+  const { firstTransDate, records, stloading } = useSelector((state) => state.statement);
   const [groupDateils, setGroupDetails] = useState('')
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
   const [grpType, setGrptye] = useState('')
@@ -298,7 +298,7 @@ const Budget = ({ navigation, route }) => {
     } catch (error) {
       console.log(error)
     } finally {
-      setIsCatLoading(false); 
+      setIsCatLoading(false);
       setIsloading(false)
     }
   };
@@ -1044,11 +1044,11 @@ const Budget = ({ navigation, route }) => {
                 >
                   {
                     searchroupTransaction ?
-                      <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15),fontFamily:fontsFamily.regularFont }}>
+                      <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15), fontFamily: fontsFamily.regularFont }}>
                         This group in the category is used in existing transactions. Would you like to move it to ‘Uncategorized’ or delete it?
                       </Text> :
 
-                      <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize:getFontSize(15),fontFamily:fontsFamily.regularFont }}>
+                      <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15), fontFamily: fontsFamily.regularFont }}>
                         Are you sure you want to delete this group?
                       </Text>
                   }
@@ -1105,8 +1105,7 @@ const styles = StyleSheet.create({
   },
   monthText: {
     fontSize: getFontSize(15),
-        fontFamily:fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     minWidth: 100,
     textAlign: 'center',
@@ -1122,8 +1121,7 @@ const styles = StyleSheet.create({
   },
   topAddButtonText: {
     fontSize: getFontSize(13),
-    fontFamily:fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: themeColors?.primarColor,
   },
   // Summary Card
@@ -1143,8 +1141,7 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: getFontSize(16),
-    fontWeight: '600',
-    fontFamily: fontsFamily?.regularFont,
+    fontFamily: fontsFamily?.semiboldFont,
     color: '#FFFFFF',
   },
   addBudgetButton: {
@@ -1158,8 +1155,7 @@ const styles = StyleSheet.create({
   },
   addBudgetButtonText: {
     fontSize: getFontSize(12),
-    fontWeight: '500',
-    fontFamily: fontsFamily?.regularFont,
+    fontFamily: fontsFamily?.mediumFont,
     color: '#FFFFFF',
   },
   summaryStats: {
@@ -1171,8 +1167,7 @@ const styles = StyleSheet.create({
   },
   summaryStatsValue: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   summaryStat: {
@@ -1181,15 +1176,13 @@ const styles = StyleSheet.create({
   },
   summaryStatLabel: {
     fontSize: getFontSize(12),
-        fontFamily:fontsFamily.regularFont,
+    fontFamily: fontsFamily.regularFont,
     color: '#eae6e6',
     marginBottom: 5,
-    fontWeight: '400'
   },
   summaryStatValue: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   summaryStatDivider: {
@@ -1212,14 +1205,12 @@ const styles = StyleSheet.create({
   },
   summaryProgressLabel: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
   },
   summaryProgressPercentage: {
     fontSize: getFontSize(13),
-        fontFamily:fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   summaryProgressTrack: {
@@ -1235,9 +1226,8 @@ const styles = StyleSheet.create({
   },
   summaryProgressFooterText: {
     fontSize: getFontSize(11),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
   },
   // Regular Progress Bar Styles
   progressHeader: {
@@ -1248,14 +1238,12 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#64748B',
-    fontWeight: '500',
   },
   progressPercentage: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   progressTrack: {
@@ -1278,9 +1266,8 @@ const styles = StyleSheet.create({
   },
   progressFooterText: {
     fontSize: getFontSize(11),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#64748B',
-    fontWeight: '500',
   },
   // Category Progress Bar Styles
   categoryProgressSection: {
@@ -1298,14 +1285,12 @@ const styles = StyleSheet.create({
   },
   categoryProgressLabel: {
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#64748B',
-    fontWeight: '500',
   },
   categoryProgressPercentage: {
     fontSize: getFontSize(12),
-        fontFamily:fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   categoryProgressTrack: {
@@ -1326,9 +1311,8 @@ const styles = StyleSheet.create({
   },
   categoryProgressFooterText: {
     fontSize: getFontSize(11),
-        fontFamily:fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#64748B',
-    fontWeight: '500',
   },
   overBudgetBadge: {
     flexDirection: 'row',
@@ -1341,9 +1325,8 @@ const styles = StyleSheet.create({
   },
   overBudgetText: {
     fontSize: getFontSize(10),
-    fontFamily:fontsFamily.regularFont,
+    fontFamily: fontsFamily.semiboldFont,
     color: '#DC2626',
-    fontWeight: '600',
   },
   overBudgetPercentage: {
     color: '#DC2626',
@@ -1365,8 +1348,7 @@ const styles = StyleSheet.create({
   },
   categoriesTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
   },
   addButtonContainer: {
@@ -1375,8 +1357,7 @@ const styles = StyleSheet.create({
 
   addMainButtonText: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#FFFFFF',
   },
   dropdownMenu: {
@@ -1403,8 +1384,7 @@ const styles = StyleSheet.create({
   },
   dropdownItemText: {
     fontSize: getFontSize(14),
-    fontFamily:fontsFamily.regularFont,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     color: '#0F172A',
   },
   dropdownDivider: {
@@ -1446,13 +1426,12 @@ const styles = StyleSheet.create({
   },
   originalTabText: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
   },
   originalActiveTabText: {
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
-    fontWeight: '700',
   },
   originalTabIndicator: {
     position: 'absolute',
@@ -1493,11 +1472,10 @@ const styles = StyleSheet.create({
   },
   horizontalTabText: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
   },
   activeHorizontalTabText: {
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
   },
   // Group Card
   groupCard: {
@@ -1530,8 +1508,7 @@ const styles = StyleSheet.create({
   },
   groupName: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 2,
   },
@@ -1574,8 +1551,7 @@ const styles = StyleSheet.create({
   },
   groupDropdownItemText: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     color: '#0F172A',
   },
   groupDropdownDivider: {
@@ -1608,15 +1584,13 @@ const styles = StyleSheet.create({
   },
   groupStatLabel: {
     fontSize: getFontSize(11),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#64748B',
-    fontWeight: '500',
     marginBottom: 2,
   },
   groupStatValue: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginTop: 5
   },
@@ -1655,8 +1629,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   countBadge: {
@@ -1667,8 +1640,7 @@ const styles = StyleSheet.create({
   },
   countBadgeText: {
     fontSize: getFontSize(10),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
   },
   categoryRightSection: {
@@ -1686,8 +1658,7 @@ const styles = StyleSheet.create({
   },
   budgetPillText: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#3F2B96',
   },
   headerSetBudgetButton: {
@@ -1703,8 +1674,7 @@ const styles = StyleSheet.create({
   },
   headerSetBudgetText: {
     fontSize: getFontSize(13),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#3F2B96',
   },
   emptyCategories: {
@@ -1719,8 +1689,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: getFontSize(16),
-    fontWeight: '600',
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   emptyDescription: {
@@ -1774,8 +1743,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
   },
   formField: {
@@ -1783,8 +1751,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: getFontSize(14),
-     fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 6,
   },
@@ -1814,8 +1781,7 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
     marginRight: 6,
   },
@@ -1874,8 +1840,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   // Enhanced Picker Styles
@@ -1904,8 +1869,7 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
   },
   pickerGroupContainer: {
@@ -1924,8 +1888,7 @@ const styles = StyleSheet.create({
   },
   pickerGroupTitle: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   pickerItem: {

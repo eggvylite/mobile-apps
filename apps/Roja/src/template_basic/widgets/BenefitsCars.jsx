@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import appLog from '../../constants/logger';
 import CommonIcon from '../../themechg_template/component/Commonicons';
+import { fontsFamily } from '../../constants/fontsFamily';
 
 
 const BenefitSectionCard = React.memo(({ icon, title, description, color, iconColor, family }) => (
@@ -41,6 +42,7 @@ const WageUserBenefitsCard = React.memo(({ data }) => (
 
 export default WageUserBenefitsCard;
 
+
 const styles = StyleSheet.create({
   // ─── Benefit Section Card ──────────────────────────
   benefitSectionCard: {
@@ -66,7 +68,7 @@ const styles = StyleSheet.create({
   },
   benefitSectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#111827',
     marginBottom: 2,
   },
@@ -89,7 +91,7 @@ const styles = StyleSheet.create({
   },
   wageBenefitsTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#111827',
     marginBottom: 16,
   },

@@ -926,7 +926,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                                     onPress={handleCheckWages}
                                     activeOpacity={0.8}
                                 >
-                                    <Icon name="pen" size={13} color="#FFFFFF" style={styles.buttonIcon} />
+
                                     <Text style={styles.primaryButtonText}>Continue Verification</Text>
                                 </TouchableOpacity>
 
@@ -955,7 +955,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                         }
 
                     </ScrollView>
-                 <AppCommonModal
+                    <AppCommonModal
                         visible={deteteModelOpen}
                         icon="trash-2"
                         title={deleteConnectBankPromtTitle}
@@ -983,7 +983,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                         cancelText="Cancel"
                         loading={deleteAccountLoading}
                         bankIcon={true}
-                          iconFamilty={'FontAwesome5'}
+                        iconFamilty={'FontAwesome5'}
                         iconName={'university'}
                         iconColor='#3F2B96'
                         onConfirm={connectMultiBankService}
@@ -1060,40 +1060,40 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                                 </Text>
                             </View>
                         </ScrollView>
-                       <AppCommonModal
-                        visible={deteteModelOpen}
-                        icon="trash-2"
-                        title={deleteConnectBankPromtTitle}
-                        message={deleteBankPromtAlertPromt}
-                        confirmText="Disconnect"
-                        cancelText="Cancel"
-                        loading={deleteAccountLoading}
-                        bankIcon={true}
-                        iconFamilty={'MaterialCommunityIcons'}
-                        iconName={'bank-off'}
-                        onConfirm={() => {
-                            deleteAccountService()
-                        }}
-                        onCancel={() => setDeleteModel(false)}
-                    />
+                        <AppCommonModal
+                            visible={deteteModelOpen}
+                            icon="trash-2"
+                            title={deleteConnectBankPromtTitle}
+                            message={deleteBankPromtAlertPromt}
+                            confirmText="Disconnect"
+                            cancelText="Cancel"
+                            loading={deleteAccountLoading}
+                            bankIcon={true}
+                            iconFamilty={'MaterialCommunityIcons'}
+                            iconName={'bank-off'}
+                            onConfirm={() => {
+                                deleteAccountService()
+                            }}
+                            onCancel={() => setDeleteModel(false)}
+                        />
 
 
-                    <AppCommonModal
-                        visible={openNewBankConnect}
-                        iconBackground={"#F1F5F9"}
-                        icon="credit-card"
-                        title={connectBankPromtTitle}
-                        message={connectNewBankAlertPromt}
-                        confirmText="Connect Bank"
-                        cancelText="Cancel"
-                        loading={deleteAccountLoading}
-                        bankIcon={true}
-                          iconFamilty={'FontAwesome5'}
-                        iconName={'university'}
-                        iconColor='#3F2B96'
-                        onConfirm={connectMultiBankService}
-                        onCancel={() => setNewBankConnect(false)}
-                    />
+                        <AppCommonModal
+                            visible={openNewBankConnect}
+                            iconBackground={"#F1F5F9"}
+                            icon="credit-card"
+                            title={connectBankPromtTitle}
+                            message={connectNewBankAlertPromt}
+                            confirmText="Connect Bank"
+                            cancelText="Cancel"
+                            loading={deleteAccountLoading}
+                            bankIcon={true}
+                            iconFamilty={'FontAwesome5'}
+                            iconName={'university'}
+                            iconColor='#3F2B96'
+                            onConfirm={connectMultiBankService}
+                            onCancel={() => setNewBankConnect(false)}
+                        />
                     </View>
                 );
             }
@@ -1215,40 +1215,40 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                                 </View>
                             </View>
                         </Modal>
-                    <AppCommonModal
-                        visible={deteteModelOpen}
-                        icon="trash-2"
-                        title={deleteConnectBankPromtTitle}
-                        message={deleteBankPromtAlertPromt}
-                        confirmText="Disconnect"
-                        cancelText="Cancel"
-                        loading={deleteAccountLoading}
-                        bankIcon={true}
-                        iconFamilty={'MaterialCommunityIcons'}
-                        iconName={'bank-off'}
-                        onConfirm={() => {
-                            deleteAccountService()
-                        }}
-                        onCancel={() => setDeleteModel(false)}
-                    />
+                        <AppCommonModal
+                            visible={deteteModelOpen}
+                            icon="trash-2"
+                            title={deleteConnectBankPromtTitle}
+                            message={deleteBankPromtAlertPromt}
+                            confirmText="Disconnect"
+                            cancelText="Cancel"
+                            loading={deleteAccountLoading}
+                            bankIcon={true}
+                            iconFamilty={'MaterialCommunityIcons'}
+                            iconName={'bank-off'}
+                            onConfirm={() => {
+                                deleteAccountService()
+                            }}
+                            onCancel={() => setDeleteModel(false)}
+                        />
 
 
-                    <AppCommonModal
-                        visible={openNewBankConnect}
-                        iconBackground={"#F1F5F9"}
-                        icon="credit-card"
-                        title={connectBankPromtTitle}
-                        message={connectNewBankAlertPromt}
-                        confirmText="Connect Bank"
-                        cancelText="Cancel"
-                        loading={deleteAccountLoading}
-                        bankIcon={true}
-                          iconFamilty={'FontAwesome5'}
-                        iconName={'university'}
-                        iconColor='#3F2B96'
-                        onConfirm={connectMultiBankService}
-                        onCancel={() => setNewBankConnect(false)}
-                    />
+                        <AppCommonModal
+                            visible={openNewBankConnect}
+                            iconBackground={"#F1F5F9"}
+                            icon="credit-card"
+                            title={connectBankPromtTitle}
+                            message={connectNewBankAlertPromt}
+                            confirmText="Connect Bank"
+                            cancelText="Cancel"
+                            loading={deleteAccountLoading}
+                            bankIcon={true}
+                            iconFamilty={'FontAwesome5'}
+                            iconName={'university'}
+                            iconColor='#3F2B96'
+                            onConfirm={connectMultiBankService}
+                            onCancel={() => setNewBankConnect(false)}
+                        />
                     </View>
                 )
             } else {
@@ -1449,40 +1449,40 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
 
 
                         </ScrollView>
-                       <AppCommonModal
-                        visible={deteteModelOpen}
-                        icon="trash-2"
-                        title={deleteConnectBankPromtTitle}
-                        message={deleteBankPromtAlertPromt}
-                        confirmText="Disconnect"
-                        cancelText="Cancel"
-                        loading={deleteAccountLoading}
-                        bankIcon={true}
-                        iconFamilty={'MaterialCommunityIcons'}
-                        iconName={'bank-off'}
-                        onConfirm={() => {
-                            deleteAccountService()
-                        }}
-                        onCancel={() => setDeleteModel(false)}
-                    />
+                        <AppCommonModal
+                            visible={deteteModelOpen}
+                            icon="trash-2"
+                            title={deleteConnectBankPromtTitle}
+                            message={deleteBankPromtAlertPromt}
+                            confirmText="Disconnect"
+                            cancelText="Cancel"
+                            loading={deleteAccountLoading}
+                            bankIcon={true}
+                            iconFamilty={'MaterialCommunityIcons'}
+                            iconName={'bank-off'}
+                            onConfirm={() => {
+                                deleteAccountService()
+                            }}
+                            onCancel={() => setDeleteModel(false)}
+                        />
 
 
-                    <AppCommonModal
-                        visible={openNewBankConnect}
-                        iconBackground={"#F1F5F9"}
-                        icon="credit-card"
-                        title={connectBankPromtTitle}
-                        message={connectNewBankAlertPromt}
-                        confirmText="Connect Bank"
-                        cancelText="Cancel"
-                        loading={deleteAccountLoading}
-                        bankIcon={true}
-                          iconFamilty={'FontAwesome5'}
-                        iconName={'university'}
-                        iconColor='#3F2B96'
-                        onConfirm={connectMultiBankService}
-                        onCancel={() => setNewBankConnect(false)}
-                    />
+                        <AppCommonModal
+                            visible={openNewBankConnect}
+                            iconBackground={"#F1F5F9"}
+                            icon="credit-card"
+                            title={connectBankPromtTitle}
+                            message={connectNewBankAlertPromt}
+                            confirmText="Connect Bank"
+                            cancelText="Cancel"
+                            loading={deleteAccountLoading}
+                            bankIcon={true}
+                            iconFamilty={'FontAwesome5'}
+                            iconName={'university'}
+                            iconColor='#3F2B96'
+                            onConfirm={connectMultiBankService}
+                            onCancel={() => setNewBankConnect(false)}
+                        />
                     </View>
                 )
             }
@@ -1493,6 +1493,8 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
 
 };
 
+
+
 const styles = StyleSheet.create({
     cardContainer: {
         width: '100%',
@@ -1501,16 +1503,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: Platform.OS === 'ios' ? 0 : 10,
     },
     card: {
-        width: '100%',
-        maxWidth: 409,
-        backgroundColor: '#FFFFFF',
+        margin: 10,
+        padding: 10,
         borderRadius: 15,
-        paddingHorizontal: 18,
-        marginHorizontal: 10,
         paddingTop: 20,
-        paddingBottom: 28,
+
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+
+
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     timerBanner: {
         backgroundColor: '#FFF4DF',
@@ -1523,7 +1529,6 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     timerText: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 13,
         color: '#AF5626',
@@ -1531,21 +1536,18 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     timerValue: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 18,
         marginTop: 5,
         color: '#AF5626',
     },
     title: {
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         fontSize: 20,
         color: '#1B1B1B',
         marginBottom: 12,
     },
     bodyText: {
-        fontWeight: '400',
         fontFamily: fontsFamily.regularFont,
         fontSize: 15,
         color: '#646464',
@@ -1583,7 +1585,6 @@ const styles = StyleSheet.create({
         paddingTop: 0,
     },
     stepMain: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 15,
         color: '#000000',
@@ -1592,17 +1593,16 @@ const styles = StyleSheet.create({
         color: '#000000',
     },
     stepSub: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 12,
         color: '#8F8F8F',
         marginTop: 5
     },
     primaryButton: {
-        width: '100%',
         padding: 18,
         backgroundColor: '#5A21F1',
         borderRadius: 5,
+        marginEnd:15,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1612,7 +1612,6 @@ const styles = StyleSheet.create({
         marginRight: 7,
     },
     primaryButtonText: {
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         fontSize: 14,
         color: '#FFFFFF',
@@ -1628,7 +1627,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#b0b0b0',
     },
     orText: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 15,
         color: '#000000',
@@ -1646,7 +1644,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     secondaryButtonText: {
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         fontSize: 14,
         color: '#1B1B1B',
@@ -1669,14 +1666,12 @@ const styles = StyleSheet.create({
     },
     inProgressTitle: {
         fontSize: 19,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#000000',
         lineHeight: 24,
     },
     inProgressSubtitle: {
         fontSize: 14,
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
         color: '#595959',
         lineHeight: 20,
@@ -1695,7 +1690,6 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 12,
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
         color: '#F57C00',
         marginLeft: 4,
@@ -1749,7 +1743,6 @@ const styles = StyleSheet.create({
     },
     statusBankName: {
         fontSize: 16,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
     },
@@ -1781,7 +1774,6 @@ const styles = StyleSheet.create({
     },
     statusStepTitle: {
         fontSize: 15,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
         marginBottom: 2,
@@ -1814,7 +1806,6 @@ const styles = StyleSheet.create({
     statusStepBadgeText: {
         fontSize: 10,
         color: '#F57C00',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
     },
     statusStepLine: {
@@ -1852,7 +1843,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     statusCloseBtnText: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 15,
         color: '#FFFFFF',
@@ -1882,7 +1872,6 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 18,
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         color: '#1B1B1B',
     },
@@ -1911,7 +1900,6 @@ const styles = StyleSheet.create({
         color: '#1B1B1B',
     },
     cycleInfoBold: {
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         color: '#5A21F1',
     },
@@ -1929,7 +1917,6 @@ const styles = StyleSheet.create({
     },
     suggestionLabelText: {
         fontSize: 14,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
     },
@@ -1954,7 +1941,6 @@ const styles = StyleSheet.create({
     },
     mainSuggestionDateText: {
         fontSize: 15,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
     },
@@ -2033,7 +2019,6 @@ const styles = StyleSheet.create({
     datePickerButtonText: {
         fontSize: 15,
         color: '#1B1B1B',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
     },
     selectedDateContainer: {
@@ -2048,7 +2033,6 @@ const styles = StyleSheet.create({
     selectedDateText: {
         fontSize: 14,
         color: '#1B1B1B',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
         marginLeft: 8,
     },
@@ -2065,7 +2049,6 @@ const styles = StyleSheet.create({
     },
     transactionHeaderText: {
         fontSize: 12,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#888',
     },
@@ -2099,7 +2082,6 @@ const styles = StyleSheet.create({
     transactionDesc: {
         fontSize: 13,
         color: '#333',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
     },
     transactionMeta: {
@@ -2128,13 +2110,11 @@ const styles = StyleSheet.create({
     transactionTypeText: {
         fontSize: 9,
         color: '#666',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
     },
     transactionAmount: {
         width: 80,
         fontSize: 13,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
         textAlign: 'right',
@@ -2175,7 +2155,6 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     submitBtnText: {
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         fontSize: 15,
         color: '#FFFFFF',
@@ -2206,7 +2185,6 @@ const styles = StyleSheet.create({
     },
     payDayItemDate: {
         fontSize: 15,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
     },
@@ -2218,7 +2196,6 @@ const styles = StyleSheet.create({
     },
     payDayItemAmount: {
         fontSize: 13,
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
         color: '#2FA948',
         marginTop: 2,
@@ -2248,7 +2225,6 @@ const styles = StyleSheet.create({
     },
     emptyStateText: {
         fontSize: 16,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#333',
         marginTop: 12,
@@ -2277,7 +2253,6 @@ const styles = StyleSheet.create({
     },
     datePickerTitle: {
         fontSize: 18,
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         color: '#1B1B1B',
     },
@@ -2293,7 +2268,6 @@ const styles = StyleSheet.create({
     },
     monthText: {
         fontSize: 16,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
     },
@@ -2305,7 +2279,6 @@ const styles = StyleSheet.create({
     },
     weekDayText: {
         fontSize: 12,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#888',
         width: 35,
@@ -2349,12 +2322,10 @@ const styles = StyleSheet.create({
     },
     calendarDayTextSelected: {
         color: '#FFFFFF',
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
     },
     calendarDayTextToday: {
         color: '#5A21F1',
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
     },
     calendarDayTextPast: {
@@ -2362,7 +2333,6 @@ const styles = StyleSheet.create({
     },
     calendarDayTextSuggested: {
         color: '#F57C00',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
     },
     suggestedDot: {
@@ -2390,7 +2360,6 @@ const styles = StyleSheet.create({
     selectedDateDisplayText: {
         fontSize: 14,
         color: '#1B1B1B',
-        fontWeight: '500',
         fontFamily: fontsFamily.mediumFont,
         marginLeft: 10,
     },
@@ -2413,13 +2382,11 @@ const styles = StyleSheet.create({
     },
     datePickerCancelText: {
         fontSize: 15,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#666',
     },
     datePickerConfirmText: {
         fontSize: 15,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#FFFFFF',
     },
@@ -2434,7 +2401,6 @@ const styles = StyleSheet.create({
     },
     lastPayDayLabel: {
         fontSize: 12,
-        fontWeight: '600',
         fontFamily: fontsFamily.semiboldFont,
         color: '#6B7280',
         marginBottom: 6,
@@ -2447,7 +2413,6 @@ const styles = StyleSheet.create({
     },
     lastPayDayDateText: {
         fontSize: 15,
-        fontWeight: '700',
         fontFamily: fontsFamily.boldFont,
         color: '#111827',
         marginLeft: 8,

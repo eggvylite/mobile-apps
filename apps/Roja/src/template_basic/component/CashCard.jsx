@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 import CommonFunction from '../../utill/CommonFunction';
 import { useDashboardUtils } from '../../hook/useDashboardUtils';
 import appLog from '../../constants/logger';
+import { fontsFamily } from '../../constants/fontsFamily';
 
 const { width, height } = Dimensions.get('window');
 const CashCard = ({ type, onClick, amount = 0, title }) => {
@@ -19,11 +20,11 @@ const CashCard = ({ type, onClick, amount = 0, title }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.card}
             >
-                <View style={[styles.leftContent,{marginStart:5}]}>
+                <View style={[styles.leftContent, { marginStart: 5 }]}>
                     {
                         title &&
                         <View style={{ alignItems: 'flex-start' }}>
-                            <View style={[styles.button,{marginBottom:10}]}>
+                            <View style={[styles.button, { marginBottom: 10 }]}>
                                 <Text style={[styles.buttonText]}>{title}</Text>
                             </View>
                         </View>
@@ -31,7 +32,7 @@ const CashCard = ({ type, onClick, amount = 0, title }) => {
 
                     <Text style={[styles.title,]}>
                         {type === 'subscribe' || type === 'advance' || type === 'getadvance' ? `${dashboardLabel?.labels?.[3]?.message}\n${dashboardLabel?.labels?.[4]?.message}` :
-                        type === 'nosuscribtion' ? dashboardLabel?.labels?.[1]?.message : type === 'bill' ?`${dashboardLabel?.labels?.[6]?.message}\n${dashboardLabel?.labels?.[7]?.message}`:''}
+                            type === 'nosuscribtion' ? dashboardLabel?.labels?.[1]?.message : type === 'bill' ? `${dashboardLabel?.labels?.[6]?.message}\n${dashboardLabel?.labels?.[7]?.message}` : ''}
                     </Text>
 
 
@@ -45,22 +46,22 @@ const CashCard = ({ type, onClick, amount = 0, title }) => {
                                     onClick()
                                 }}
                             >
-                                <Text style={styles.buttonText}>{type === 'nosuscribtion' ? dashboardLabel?.labels?.[2]?.message : type === 'advance' ? dashboardLabel?.labels?.[5]?.message :type === 'bill'?dashboardLabel?.labels?.[8]?.message: ''}</Text>
+                                <Text style={styles.buttonText}>{type === 'nosuscribtion' ? dashboardLabel?.labels?.[2]?.message : type === 'advance' ? dashboardLabel?.labels?.[5]?.message : type === 'bill' ? dashboardLabel?.labels?.[8]?.message : ''}</Text>
                             </TouchableOpacity> : <></>
                     }
 
                 </View>
 
-                <View style={{ justifyContent: 'center', marginEnd: Platform.OS === 'ios'? 40 :5}}>
+                <View style={{ justifyContent: 'center', marginEnd: Platform.OS === 'ios' ? 40 : 5 }}>
                     <View style={[styles.whiteCircle,]}>
                         <Text style={styles.label}>{type === 'bill' ? dashboardLabel?.labels[9]?.message : dashboardLabel?.labels[5]?.message ?? 'Get Advance'}</Text>
                         <Text style={styles.amount}>{storedata?.currency}
                             {CommonFunction.formatamount(amount ?? 0)}</Text>
-                            {
-                                type !== 'bill' &&
-                                 <Text style={styles.label}>{'Limit'} </Text>
-                            }
-                       
+                        {
+                            type !== 'bill' &&
+                            <Text style={styles.label}>{'Limit'} </Text>
+                        }
+
                     </View>
                     <Image
                         source={require('../../../assets/images/money-1.png')}
@@ -85,9 +86,11 @@ const CashCard = ({ type, onClick, amount = 0, title }) => {
 }
 export default CashCard
 
+
+
 const styles = StyleSheet.create({
     advanceCardContainer: {
-        width: Platform.OS === 'ios'? width * 1:width*0.9,
+        width: Platform.OS === 'ios' ? width * 1 : width * 0.9,
         alignSelf: 'center',
         marginVertical: 10,
     },
@@ -107,8 +110,8 @@ const styles = StyleSheet.create({
         zIndex: 2,
     },
     title: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 16,
-        fontWeight: '600',
         color: '#000000',
         lineHeight: 24,
         marginBottom: 12,
@@ -127,8 +130,8 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     buttonText: {
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 11,
-        fontWeight: '600',
         textAlign: 'center',
         color: '#000000',
     },
@@ -136,8 +139,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#5A21F1',
     },
     payButtonText: {
+        fontFamily: fontsFamily.boldFont,
         fontSize: 11,
-        fontWeight: '700',
         color: '#FFFFFF',
     },
 
@@ -156,13 +159,13 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     label: {
+        fontFamily: fontsFamily.boldFont,
         fontSize: 12,
-        fontWeight: '700',
         color: '#525252',
     },
     amount: {
+        fontFamily: fontsFamily.boldFont,
         fontSize: 20,
-        fontWeight: '700',
         color: '#7F75D9',
         lineHeight: 30,
         marginVertical: 1,

@@ -4,7 +4,7 @@ import {
   Text,
   View,
   TouchableOpacity,
-  SafeAreaView,
+
   StatusBar,
   FlatList,
   Dimensions,
@@ -17,6 +17,8 @@ import CloudImage from '../../../utill/CloudImage';
 import { getFontSize } from '../../../constants/Font';
 import { themeColors } from '../../Common';
 import { fontsFamily } from '../../../constants/fontsFamily';
+import appLog from '../../../constants/logger';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,16 +82,17 @@ const Intro = ({ navigation, route }) => {
   const renderItem = ({ item }) => (
     <View style={styles.slide}>
       <View style={styles.imageContainer}>
+
         <CloudImage
           style={styles.image}
           type='intro'
           page='login'
           cloudSource={item.logo} />
-        {/* <Image source={item.image} style={styles.image} resizeMode="contain" /> */}
+
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
+        <Text style={styles.title}>{item?.name}</Text>
+        <Text style={styles.description}>{item?.description}</Text>
       </View>
     </View>
   );
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     fontSize: getFontSize(16),
     color: '#666666',
     fontFamily: fontsFamily.boldFont,
-    fontWeight: '500',
+
   },
   slide: {
     width: width,
@@ -195,15 +198,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
     color: '#111827',
     textAlign: 'center',
     marginBottom: 12,
+    fontFamily: fontsFamily.mediumFont,
     lineHeight: 36,
   },
   description: {
-    fontSize: getFontSize(16),
+    fontSize: 16,
     fontFamily: fontsFamily.regularFont,
     color: '#000',
     textAlign: 'center',
@@ -242,7 +245,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: getFontSize(16),
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#FFFFFF',
   },
 });

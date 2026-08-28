@@ -57,8 +57,9 @@ import { imgApi } from '../../../service/environment';
 import { themeColors } from '../../Common';
 import { fetchmanualAccount } from '../../../redux/slices/manualaccountSlice';
 import { fetchFaq } from '../../../redux/slices/faqSlice';
-import { fetchWorkflowLabels, fetchWorkflowSettings,fetchWorkflowInfoLabels } from '../../../redux/slices/workflowlableSilce';
+import { fetchWorkflowLabels, fetchWorkflowSettings, fetchWorkflowInfoLabels } from '../../../redux/slices/workflowlableSilce';
 import { fetchScreenLabels } from '../../../redux/slices/applabelsSlice';
+import { fetchMarketplaceHandPickOffer } from '../../../redux/slices/merketplaceSlice';
 
 
 const Tab = createBottomTabNavigator();
@@ -113,10 +114,11 @@ export default function Main(props) {
     const { cusDetails, error } = useSelector((state) => state.customer);
     const { brandata, brandloading, branderror } = useSelector((state) => state.brandlogo);
     const { budgetcategorydata } = useSelector((state) => state.budgetcategory);
-    const { isMenu, toggleMenu,enableMenu, disableMenu } = useContext(BottomContext);
+    const { isMenu, toggleMenu, enableMenu, disableMenu } = useContext(BottomContext);
     const { dashboardmenudata, dashboardmenuloading, dashboardmenuerror } = useSelector((state) => state.dashboardmenu);
     const { notificationcustomdata, notificationcustomloading, notificationcustomerror } = useSelector((state) => state.notificationcustom);
     const { transdata, transpage, transtotalpage, transSize, timeline, transtotalitem, transloading, transerror, } = useSelector((state) => state.transaction);
+     const { marketplacedata, marketPlaceCategory, marketplaceFeature,marketplaceFlag } = useSelector((state) => state.marketplace);
     const { advhistory, advpage, advtotalPages, advloading, advtotalItems, advsize } = useSelector((state) => state.advancehistory);
     const { scoredata, scoreloading, scorerror } = useSelector((state) => state.creditScore);
     const { handpickdata, handpickloading, handpickerror } = useSelector((state) => state.handpicks);
@@ -201,15 +203,15 @@ export default function Main(props) {
     const getDetails = async () => {
         await AsyncStorage.setItem('main', 'mainscreen')
 
-        
+
 
         dispatch(fetchAuth())
         dispatch(fetchnamegetAccount())
 
-            dispatch(fetchScreenLabels())
+        dispatch(fetchScreenLabels())
 
-         dispatch(fetchadvanceActiveSubscription())
-            dispatch(fetchOutstanding())
+        dispatch(fetchadvanceActiveSubscription())
+        dispatch(fetchOutstanding())
         dispatch(fetchFaq())
 
 
@@ -229,6 +231,10 @@ export default function Main(props) {
         dispatch(fetchWorkflowLabels())
         dispatch(fetchWorkflowSettings())
         dispatch(fetchWorkflowInfoLabels())
+
+         if (!marketplaceFlag) {
+            dispatch(fetchMarketplaceHandPickOffer())
+        }
 
 
         dispatch(fetchBills())

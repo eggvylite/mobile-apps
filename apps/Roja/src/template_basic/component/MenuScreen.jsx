@@ -114,6 +114,16 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
                         {disabled ? DISABLED_FEATURE_MESSAGE : subvalue.description}
                       </Text>
                     </View>
+                    {
+                      disabled && 
+
+                       <Feather
+                              name={'lock' }
+                              size={18}
+                              color="#94A3B8"
+                            />
+                    }
+
                   </View>
                 </TouchableOpacity>
                 <View style={styles.divider} />
@@ -490,7 +500,7 @@ const styles = StyleSheet.create({
   },
   profileInitials: {
     fontSize: getFontSize(20),
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   userInfo: {
@@ -499,7 +509,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: getFontSize(18),
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont,
     color: "#FFFFFF",
     marginBottom: 2,
   },
@@ -571,8 +581,7 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   menuItemTitleActive: {
@@ -641,9 +650,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subMenuItemTitle: {
-    fontSize: getFontSize(14),
+    fontSize: 14,
     fontFamily: fontsFamily.regularFont,
-    fontWeight: '500',
     color: '#0F172A',
   },
   subMenuItemDangerText: {
@@ -670,12 +678,12 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   logoutTitle: {
-    fontSize: getFontSize(15),
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: fontsFamily.boldFont,
     color: '#DC2626',
   },
   logoutDescription: {
-    fontSize: getFontSize(12),
+    fontSize: 12,
     color: '#EF4444',
     marginTop: 2,
   },

@@ -71,7 +71,7 @@ const goalStyles = StyleSheet.create({
   },
   progressPercent: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: '600', no fontFamily
     color: '#0F172A',
   },
   progressBarBg: {
@@ -333,7 +333,7 @@ const goalStyles = StyleSheet.create({
     color: '#64748B',
   },
   activeTabText: {
-    fontFamily: fontsFamily.extraBoldFont || fontsFamily.boldFont, // use an ExtraBold/Black file if you have one, else fall back to boldFont
+    fontFamily:  fontsFamily.boldFont, // use an ExtraBold/Black file if you have one, else fall back to boldFont
     color: '#0F172A',
   },
   tabIndicator: {
@@ -410,14 +410,13 @@ const goalStyles = StyleSheet.create({
   },
   modalInfoLabel: {
     fontSize: 16,
+    fontFamily: fontsFamily.mediumFont, // was: fontWeight: '500', no fontFamily
     color: '#64748B',
-    fontWeight: '500',
   },
   modalInfoValue: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont, // was: regularFont + fontWeight:'500' (conflict)
     color: '#0F172A',
-    fontWeight: '500',
   },
   circularProgressContainer: {
     alignItems: 'center',
@@ -458,9 +457,8 @@ const goalStyles = StyleSheet.create({
   },
   percentageLabel: {
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont, // was: regularFont + fontWeight:'500' (conflict)
     color: '#64748B',
-    fontWeight: '500',
   },
   modernProgressContainer: {
     alignItems: 'center',
@@ -501,10 +499,9 @@ const goalStyles = StyleSheet.create({
   },
   modernMetricLabel: {
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont, // was: regularFont + fontWeight:'500' (conflict)
     color: '#64748B',
     marginBottom: 6,
-    fontWeight: '500',
   },
   modernMetricValue: {
     fontSize: getFontSize(14),
@@ -626,9 +623,8 @@ const goalStyles = StyleSheet.create({
   },
   modernCategoryText: {
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont, // was: regularFont + fontWeight:'500' (conflict)
     color: '#64748B',
-    fontWeight: '500',
   },
   transactionsCard: {
 
@@ -638,7 +634,7 @@ const goalStyles = StyleSheet.create({
   },
   transactionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: '600', no fontFamily
     color: '#0F172A',
     marginBottom: 12,
   },
@@ -673,8 +669,7 @@ const goalStyles = StyleSheet.create({
   },
   transactionType: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont, // was: regularFont + fontWeight:'500' (conflict)
     color: '#0F172A',
   },
   transactionAmount: {
@@ -753,7 +748,7 @@ const goalStyles = StyleSheet.create({
   fixedButtonText: {
     fontSize: 15,
     marginStart: 5,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont, // was: fontWeight: '700', no fontFamily
     color: '#FFFFFF',
     letterSpacing: 0.3,
   },
@@ -1015,7 +1010,7 @@ const goalStyles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont, // was: fontWeight: "700", no fontFamily
     color: "#000000",
     textAlign: "center",
     lineHeight: 32,
@@ -1056,7 +1051,7 @@ const goalStyles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#000000",
     textAlign: "center",
   },
@@ -1077,7 +1072,7 @@ const goalStyles = StyleSheet.create({
   },
   formLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#64748B",
     marginBottom: 8,
     marginLeft: 4,
@@ -1087,6 +1082,7 @@ const goalStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "#0F172A",
     borderWidth: 1,
     borderColor: "#E2E8F0",
@@ -1102,14 +1098,14 @@ const goalStyles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#64748B",
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#0F172A",
     paddingVertical: 16,
   },
@@ -1120,7 +1116,7 @@ const goalStyles = StyleSheet.create({
   },
   targetTypeTitle: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#64748B",
     marginBottom: 12,
     marginLeft: 4,
@@ -1153,7 +1149,7 @@ const goalStyles = StyleSheet.create({
   },
   targetTypeCardTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont, // was: fontWeight: "700", no fontFamily
     color: "#0F172A",
     marginBottom: 4,
   },
@@ -1162,6 +1158,7 @@ const goalStyles = StyleSheet.create({
   },
   targetTypeCardDesc: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "#64748B",
     lineHeight: 16,
   },
@@ -1183,8 +1180,8 @@ const goalStyles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
+    fontFamily: fontsFamily.mediumFont, // was: fontWeight: "500", no fontFamily
     color: "#0F172A",
-    fontWeight: "500",
   },
   calculatedCard: {
     marginTop: 16,
@@ -1194,17 +1191,19 @@ const goalStyles = StyleSheet.create({
   },
   calculatedLabel: {
     fontSize: 14,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "rgba(255,255,255,0.8)",
     marginBottom: 8,
   },
   calculatedAmount: {
     fontSize: 28,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont, // was: fontWeight: "700", no fontFamily
     color: "#FFFFFF",
     marginBottom: 4,
   },
   calculatedNote: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "rgba(255,255,255,0.8)",
     textAlign: "center",
   },
@@ -1216,17 +1215,19 @@ const goalStyles = StyleSheet.create({
   },
   estimatedLabel: {
     fontSize: 14,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "rgba(255,255,255,0.8)",
     marginBottom: 8,
   },
   estimatedDate: {
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont, // was: fontWeight: "700", no fontFamily
     color: "#FFFFFF",
     marginBottom: 4,
   },
   estimatedNote: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "rgba(255,255,255,0.8)",
     textAlign: "center",
   },
@@ -1267,12 +1268,13 @@ const goalStyles = StyleSheet.create({
   },
   formaccountName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#0F172A",
     marginBottom: 4,
   },
   formaccountBank: {
     fontSize: 13,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "#64748B",
   },
   formaccountRightSection: {
@@ -1282,7 +1284,7 @@ const goalStyles = StyleSheet.create({
   },
   formbalanceText: {
     fontSize: getFontSize(15),
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont, // was: fontWeight: "700", no fontFamily
     color: "#0F172A",
   },
   checkCircle: {
@@ -1315,7 +1317,7 @@ const goalStyles = StyleSheet.create({
   },
   addformaccountText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#0A84FF",
   },
   notesInput: {
@@ -1323,6 +1325,7 @@ const goalStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "#0F172A",
     borderWidth: 1,
     borderColor: "#E2E8F0",
@@ -1352,7 +1355,7 @@ const goalStyles = StyleSheet.create({
   },
   createButtonText: {
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#FFFFFF",
   },
   modalFormOverlay: {
@@ -1377,7 +1380,7 @@ const goalStyles = StyleSheet.create({
   },
   modalFormTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont,
     color: "#0F172A",
   },
   modalForm: {
@@ -1388,7 +1391,7 @@ const goalStyles = StyleSheet.create({
   },
   modalFormLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#64748B",
     marginBottom: 8,
   },
@@ -1397,14 +1400,12 @@ const goalStyles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont,
     color: "#0F172A",
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  // This is the "form" version of the amount container (used by the
-  // create-goal modal). Kept as the plain name since it's the one that
-  // was actually winning before (duplicate key overwrite). The goal-deposit
-  // modal version now lives at `goalModalAmountContainer` above.
+
   modalAmountContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -1416,14 +1417,14 @@ const goalStyles = StyleSheet.create({
   },
   modalCurrencySymbol: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#64748B",
     marginRight: 8,
   },
   modalAmountInput: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#0F172A",
     paddingVertical: 12,
   },
@@ -1449,12 +1450,12 @@ const goalStyles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#64748B",
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#FFFFFF",
   },
   datePickerContainer: {
@@ -1468,7 +1469,7 @@ const goalStyles = StyleSheet.create({
   },
   datePickerLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#64748B",
     marginBottom: 8,
     textAlign: "center",
@@ -1488,11 +1489,12 @@ const goalStyles = StyleSheet.create({
   },
   datePickerItemText: {
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: "#0F172A",
   },
   datePickerItemTextSelected: {
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
   },
   dateConfirmButton: {
     backgroundColor: "#0A84FF",
@@ -1504,7 +1506,7 @@ const goalStyles = StyleSheet.create({
   },
   dateConfirmButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont, // was: fontWeight: "600", no fontFamily
     color: "#FFFFFF",
   },
   formContainer: {

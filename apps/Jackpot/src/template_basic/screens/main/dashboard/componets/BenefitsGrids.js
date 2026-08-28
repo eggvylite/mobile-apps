@@ -30,33 +30,42 @@ export default function BenefitsGrids(props) {
     setActiveIndex(activeIndex);
   };
 
+
+
   const savingOffer = useMemo(() => {
-    const savinopenOffer = filterOffers.find(
-      obj => obj?.id === dashboardOfferId?.saving
+    const offerIds = [
+      dashboardOfferId?.saving,
+      dashboardOfferId?.travel,
+    ];
+
+    const handpickOffers = offerIds
+      .map(id =>
+        filterHandpickOffers?.find(obj => obj?.id === id)
+      )
+      .filter(Boolean);
+
+    const missingIds = offerIds.filter(
+      id => !handpickOffers.some(obj => obj?.id === id)
     );
 
-    const travelopenOffer = filterOffers.find(
-      obj => obj?.id === dashboardOfferId?.travel
-    );
+    const openOffers = missingIds
+      .map(id =>
+        filterOffers?.find(obj => obj?.id === id)
+      )
+      .filter(Boolean);
 
-    const savingHandpickOffers = filterHandpickOffers.find(
-      obj => obj?.id === dashboardOfferId?.saving
-    );
+    const allOffers = [...handpickOffers, ...openOffers];
 
-    const travelHandpickOffers = filterHandpickOffers.find(
-      obj => obj?.id === dashboardOfferId?.travel
-    );
 
-    const finalopenOffer = mergeOffer(savinopenOffer, travelopenOffer)
-    const finalhandpickOffer = mergeOffer(savingHandpickOffers, travelHandpickOffers)
-    const offeRec = {
-      features: [
-        ...(finalopenOffer?.features || []),
-        ...(finalhandpickOffer?.features || []),
-      ],
+    return {
+      features: allOffers.flatMap(obj =>
+        (obj?.features || []).map(feature => ({
+          id: obj.id,
+          feature,
+        }))
+      ),
     };
-    return offeRec
-  }, [filterOffers]);
+  }, [filterOffers, filterHandpickOffers]);
 
 
 

@@ -451,7 +451,7 @@ const AddGroupModal = ({ visible, onClose, gropdetails, onSave, type }) => {
                           ]}>
                           {isSelected && (
 
-                            <Icon name="check" size={20} color="#FFFFFF" style ={{marginEnd:5}} />
+                            <Icon name="check" size={20} color="#FFFFFF" style={{ marginEnd: 5 }} />
                           )}
                         </LinearGradient>
                       </TouchableOpacity>
@@ -533,8 +533,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: getFontSize(20),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
     marginBottom: 4,
   },
@@ -612,16 +611,14 @@ const styles = StyleSheet.create({
   },
   previewLabel: {
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: 'rgba(255,255,255,0.7)',
     marginBottom: 4,
     letterSpacing: 0.5,
   },
   previewName: {
     fontSize: getFontSize(20),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   tabContainer: {
@@ -651,8 +648,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
   },
   activeTabText: {
@@ -681,8 +677,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   searchResultsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: getFontSize(14),
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 16,
   },
@@ -704,8 +700,7 @@ const styles = StyleSheet.create({
   },
   iconCategoryTitle: {
     fontSize: getFontSize(14),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont, // was regularFont + fontWeight: '600'
     color: '#0F172A',
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -733,11 +728,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  // Color Styles
+
   colorSectionTitle: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 16,
   },
@@ -763,7 +757,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-
   },
   gradientCircleSelected: {
     borderWidth: 3,
@@ -773,8 +766,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
-    justifyContent:'center',
-    alignItems:'center'
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bottomPadding: {
     height: 20,
@@ -787,7 +780,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
     gap: 12,
     backgroundColor: '#FFFFFF',
-    marginBottom:10
+    marginBottom: 10,
   },
   cancelButton: {
     flex: 1,
@@ -799,30 +792,22 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: getFontSize(16),
-    fontWeight: '600',
-    fontFamily: fontsFamily.regularFont,
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
   },
   saveButton: {
     flex: 1,
-    borderRadius: 16,
-
+    borderRadius: 10,
   },
   saveButtonGradient: {
     justifyContent: 'center',
     alignItems: 'center',
     height: 50,
     borderRadius: 10,
-
-    // paddingVertical: 14,
-    // alignItems: 'center',
-    // justifyContent: 'center',
-
   },
   saveButtonText: {
     fontSize: getFontSize(16),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
 });

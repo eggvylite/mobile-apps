@@ -25,6 +25,7 @@ import { fetchCategory } from '../../../../redux/slices/categorySlice';
 import { fetchBudgetcategory } from '../../../../redux/slices/budgetcategorySlice';
 import { fetchElgibleoffers } from '../../../../redux/slices/elgibleofferSlice';
 import { fetchOffers } from '../../../../redux/slices/offerSlice';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -298,6 +299,9 @@ export default function Account() {
   );
 }
 
+
+// import { fontsFamily } from '../../../constants/fontsFamily';
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -328,8 +332,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   topBarTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 18,
-    fontWeight: '600',
     color: '#0F172A',
     marginLeft: 4,
   },
@@ -356,8 +360,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   chirpHeaderText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 16,
-    fontWeight: '600',
     color: '#0F172A',
     flex: 1,
   },
@@ -368,13 +372,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   chirpHeaderBadgeText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
   },
   chirpBankName: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 14,
-    fontWeight: '500',
     color: '#0F172A',
     marginBottom: 12,
     paddingLeft: 4,
@@ -413,8 +417,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chirpAccountType: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0F172A',
   },
   chirpRoutingText: {
@@ -430,8 +434,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   chirpPrimaryBadgeText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 10,
-    fontWeight: '500',
     color: '#2A1B6D',
   },
   chirpAccountRight: {
@@ -469,8 +473,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   selectedAccountTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0F172A',
     marginBottom: 12,
   },
@@ -489,8 +493,8 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   selectedAccountValue: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
-    fontWeight: '500',
     color: '#0F172A',
   },
   bottomPadding: {
@@ -539,9 +543,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bottomTabLabel: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 11,
     color: '#94A3B8',
-    fontWeight: '500',
     marginTop: 2,
   },
   bottomTabLabelActive: {
@@ -572,8 +576,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 20,
-    fontWeight: '700',
     color: '#0F172A',
   },
   modalClose: {
@@ -611,8 +615,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButtonText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
-    fontWeight: '600',
     color: '#64748B',
   },
   confirmButton: {
@@ -627,8 +631,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   confirmButtonText: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 15,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
 });

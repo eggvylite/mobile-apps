@@ -22,6 +22,7 @@ import { useDashboardUtils } from '../../../../hook/useDashboardUtils';
 import CommonFunction from '../../../../utill/CommonFunction';
 import { fetchadvanceOnedetails } from '../../../../redux/slices/advenceSlice';
 import appLog from '../../../../constants/logger';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 
 const { width } = Dimensions.get('window');
 
@@ -66,7 +67,7 @@ export default function AdvanceDetailsScreen() {
         <SkeletonPlaceholder backgroundColor="#E2E8F0" highlightColor="#F8FAFC" >
           <View>
             {/* Transaction Details Skeleton */}
-            <View style={[styles.detailsSection, { borderColor: '#ffff',boderRadius:16 }]}>
+            <View style={[styles.detailsSection, { borderColor: '#ffff', boderRadius: 16 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
                 <View style={{ width: 28, height: 28, borderRadius: 8 }} />
                 <View style={{ width: 150, height: 20, marginLeft: 12, borderRadius: 4 }} />
@@ -141,7 +142,7 @@ export default function AdvanceDetailsScreen() {
         <Text style={styles.detailLabel}>{label}</Text>
       </View>
       <View>
-      <Text style={styles.detailValue}>{value || 'N/A'}</Text>
+        <Text style={styles.detailValue}>{value || 'N/A'}</Text>
       </View>
     </View>
   );
@@ -210,13 +211,13 @@ export default function AdvanceDetailsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left','right','top']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar title="Advance Details" showBack={true} onBackPress={() => navigation.goBack()} />
 
       <Animated.ScrollView
-        style={[styles.scrollView, ]}
+        style={[styles.scrollView,]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -232,7 +233,7 @@ export default function AdvanceDetailsScreen() {
           <View style={styles.detailsGrid}>
             <DetailRow label="Advance ID" value={onTransactiondetails?.data?.advance_id} icon="hash" />
 
-                      {onTransactiondetails?.data?.payment_method === 'Instant' && (
+            {onTransactiondetails?.data?.payment_method === 'Instant' && (
               <DetailRow
                 label="Instant Charge"
                 value={`${storedata?.currency}${CommonFunction.formatamount(onTransactiondetails?.data?.instant_fund_charge)}`}
@@ -242,7 +243,7 @@ export default function AdvanceDetailsScreen() {
 
             <DetailRow
               label="Disbursement"
-              value={`${storedata?.currency}${CommonFunction.formatamount(onTransactiondetails?.data?.transaction_amount )}`}
+              value={`${storedata?.currency}${CommonFunction.formatamount(onTransactiondetails?.data?.transaction_amount)}`}
               icon="dollar-sign"
             />
 
@@ -264,17 +265,17 @@ export default function AdvanceDetailsScreen() {
                 </View>
                 <Text style={styles.detailLabel}>Txn. ID</Text>
               </View>
-              <View style={{ flex:1, alignItems: 'flex-end'}}>
-                <View style={{flexDirection:'row',gap:8}}>
-                <Text style={styles.detailValue} numberOfLines={showFullTransactionId ? 2: 1}>{truncateTransactionId(onTransactiondetails?.data?.disburse_id)}</Text>
-                <TouchableOpacity style={{justifyContent:'center'}} onPress={() => setShowFullTransactionId(!showFullTransactionId)}>
-                  <Feather name={showFullTransactionId ? "eye" : "eye-off"} size={14} color="#64748B" />
-                </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Text style={styles.detailValue} numberOfLines={showFullTransactionId ? 2 : 1}>{truncateTransactionId(onTransactiondetails?.data?.disburse_id)}</Text>
+                  <TouchableOpacity style={{ justifyContent: 'center' }} onPress={() => setShowFullTransactionId(!showFullTransactionId)}>
+                    <Feather name={showFullTransactionId ? "eye" : "eye-off"} size={14} color="#64748B" />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
 
-            <DetailRow label="Status" value={onTransactiondetails?.data?.payment_status } icon="check-circle" isLast={true} />
+            <DetailRow label="Status" value={onTransactiondetails?.data?.payment_status} icon="check-circle" isLast={true} />
           </View>
         </View>
 
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: 16,
     color: '#94A3B8',
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
   },
   headerCard: {
     borderRadius: 20,
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
   headerBankText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.9)',
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     flex: 1,
   },
   headerManualBadge: {
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
   headerManualText: {
     fontSize: 10,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -377,12 +378,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
     marginBottom: 4,
   },
   headerDate: {
     fontSize: 13,
+    fontFamily: fontsFamily.regularFont,
     color: 'rgba(255,255,255,0.7)',
   },
   headerAmountSection: {
@@ -393,7 +395,7 @@ const styles = StyleSheet.create({
   },
   headerAmount: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
   headerStatusBadge: {
@@ -413,7 +415,7 @@ const styles = StyleSheet.create({
   headerStatusText: {
     fontSize: 12,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
   },
   detailsSection: {
     backgroundColor: '#FFFFFF',
@@ -439,7 +441,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     flex: 1,
   },
@@ -454,7 +456,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   detailRowLeft: {
-    flex:1,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -470,12 +472,12 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
   },
   detailValue: {
     fontSize: 13,
     color: '#0F172A',
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     flexShrink: 1,
     textAlign: 'right',
   },
@@ -491,7 +493,7 @@ const styles = StyleSheet.create({
   noRecordText: {
     fontSize: 14,
     color: '#94A3B8',
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
   },
   // Compact Transaction Card
   compactTransactionCard: {
@@ -526,12 +528,13 @@ const styles = StyleSheet.create({
   },
   compactCardTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 2,
   },
   compactCardDate: {
     fontSize: 11,
+    fontFamily: fontsFamily.regularFont,
     color: '#94A3B8',
   },
   compactCardRight: {
@@ -540,12 +543,12 @@ const styles = StyleSheet.create({
   },
   compactCardAmount: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     marginBottom: 2,
   },
   compactCardBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
   },
   compactCardFooter: {
     borderTopWidth: 1,
@@ -560,11 +563,12 @@ const styles = StyleSheet.create({
   compactCardFooterLabel: {
     fontSize: 11,
     color: '#64748B',
+    fontFamily: fontsFamily.regularFont,
     marginRight: 4,
   },
   compactCardFooterValue: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     color: '#0F172A',
   },
 });

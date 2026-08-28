@@ -8,6 +8,7 @@ import CommonFunction from '../../utill/CommonFunction';
 import { getFontSize } from '../../constants/Font';
 import { fontsFamily } from '../../constants/fontsFamily';
 import { themeColors } from '../Common';
+import { useDashboardUtils } from '../../hook/useDashboardUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const RecentTransaction = (props) => {
     const [recentTransaction, setRecentTransaction] = useState([])
     const [accId, setaccId] = useState('')
     const [defbankid, setDefbankid] = useState('')
+    const  {formatDate,formatTime} = useDashboardUtils()
 
 
     useEffect(() => {
@@ -79,7 +81,7 @@ const RecentTransaction = (props) => {
                 </View>
                 <View style={styles.transactionInfo}>
                     <Text style={styles.transactionDesc} numberOfLines={1}>{item.category}</Text>
-                    <Text style={styles.transactionDate}>{changeformat(item.transacted_at)}</Text>
+                    <Text style={styles.transactionDate}>{formatDate(item.transacted_at)}</Text>
                 </View>
                 <Text style={[styles.transactionAmount, isCredit ? styles.creditAmount : styles.debitAmount]}>
                     {storedata?.currency}{CommonFunction.formatamount(item?.amount || 0)}
@@ -94,11 +96,7 @@ const RecentTransaction = (props) => {
                 <View style={{ flex: 1 }}>
                     <Text style={styles.title}>Recent Transactions</Text>
                 </View>
-                {/* <TouchableOpacity onPress={()=>{
-                    props?.navigation.navigate('Statement')
-                }}>
-                <Text style={[styles.title,{fontSize:getFontSize(14),color:themeColors.primarColor}]}>View More</Text>
-                </TouchableOpacity> */}
+
                 <TouchableOpacity
                     style={styles.topAddButton}
                     onPress={() => {
@@ -139,7 +137,7 @@ const styles = StyleSheet.create({
     },
     topAddButtonText: {
         fontSize: getFontSize(13),
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: themeColors?.primarColor,
     },
     header: {
@@ -149,8 +147,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: getFontSize(16),
-        fontFamily: fontsFamily.regularFont,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#1B1B1B',
     },
     listContent: {
@@ -177,9 +174,8 @@ const styles = StyleSheet.create({
     },
     transactionDesc: {
         fontSize: getFontSize(13),
-        fontFamily: fontsFamily.regularFont,
+        fontFamily: fontsFamily.mediumFont,
         color: '#1B1B1B',
-        fontWeight: '500',
     },
     transactionDate: {
         fontSize: getFontSize(11),
@@ -189,8 +185,8 @@ const styles = StyleSheet.create({
     },
     transactionAmount: {
         fontSize: getFontSize(14),
-        fontFamily: fontsFamily.regularFont,
-        fontWeight: '600',
+
+        fontFamily: fontsFamily.semiboldFont,
     },
     creditAmount: {
         color: '#4CAF50',

@@ -34,13 +34,13 @@ const PromptModel = ({ visible, onClose, content, onSubmit, loading, head, subhe
                         </TouchableOpacity>
                     </View>
                     <View style={{ marginTop: 5 }}>
-                        <Text style={[styles.modalTitle, { fontSize: getFontSize(16), fontWeight: '600', }]}>
+                        <Text style={[styles.modalTitle, { fontSize: getFontSize(15), fontWeight: '600', }]}>
                             {subhead}
                         </Text>
                     </View>
 
                     <View style={{ marginTop: 10 }}>
-                        <Text style={[styles.modalTitle, { fontSize: getFontSize(14), fontWeight: 'semibold',color:'rgba(112, 114, 116, 0.87)' ,lineHeight:22}]}>
+                        <Text style={[styles.modalTitle, { fontSize: getFontSize(14),color:'rgba(112, 114, 116, 0.87)' ,lineHeight:22,fontFamily:fontsFamily.regularFont}]}>
                             {content}
                         </Text>
                     </View>
@@ -65,10 +65,15 @@ const PromptModel = ({ visible, onClose, content, onSubmit, loading, head, subhe
                            <Text style={[styles.cancelButtonText, { color: themeColors.bgbtn }]}>No</Text>
                         </TouchableOpacity>
                         <View style={{marginStart:10}}>
-                            <SubmitBtn style={{ height: 50,width:180 }} text={'Yes'} submit={()=>{
+                            {
+                                loading ? <SubmitBtn style={{ height: 50,width:180 }} text={'Loading...'} submit={()=>{
+
+                            }}  />: <SubmitBtn style={{ height: 50,width:180 }} text={'Yes'} submit={()=>{
                                 onSubmit()
                                 onClose()
                             }}  />
+                            }
+
                         </View>
 
                     </View>
@@ -108,11 +113,15 @@ const styles = StyleSheet.create({
         borderBottomColor: '#E2E8F0',
     },
     modalTitle: {
-        fontSize: getFontSize(18),
-        fontFamily: fontsFamily.regularFont,
-        fontWeight: '700',
+        fontSize: getFontSize(16),
+        fontFamily: fontsFamily.semiboldFont,
+
         color: '#0F172A',
     },
+    cancelButtonText:{
+        fontFamily:fontsFamily.semiboldFont,
+        color:'#0000'
+    }
 
 });
 

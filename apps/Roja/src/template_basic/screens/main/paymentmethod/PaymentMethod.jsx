@@ -31,6 +31,7 @@ import { getLoginInfo } from '../../../../service/storage';
 import { Divider } from 'react-native-paper';
 import appLog from '../../../../constants/logger';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 const { width, height } = Dimensions.get('window');
 
 
@@ -78,7 +79,7 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
                         <Text style={styles.methodIconText}>{(method.name || 'C')[0]}</Text>
                     </LinearGradient>
                     <View>
-                        <Text style={styles.methodNumber}>•••• {method.number || method.last4}</Text>
+                        <Text style={styles.methodNumber}>•••• {method.number}</Text>
                         <Text style={styles.methodType}>{method.name}</Text>
                     </View>
                 </View>
@@ -124,32 +125,32 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
 });
 
 
- const PaymentMethodSkeleton = () => (
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            <SkeletonPlaceholder>
-                {/* Selected Card Skeleton */}
-                <SkeletonPlaceholder.Item marginBottom={8} width={120} height={15} borderRadius={4} />
-                <SkeletonPlaceholder.Item width="100%" height={150} borderRadius={16} marginBottom={20} />
+const PaymentMethodSkeleton = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <SkeletonPlaceholder>
+            {/* Selected Card Skeleton */}
+            <SkeletonPlaceholder.Item marginBottom={8} width={120} height={15} borderRadius={4} />
+            <SkeletonPlaceholder.Item width="100%" height={150} borderRadius={16} marginBottom={20} />
 
-                {/* Section Title Skeleton */}
-                <SkeletonPlaceholder.Item marginBottom={12} width={150} height={20} borderRadius={4} />
+            {/* Section Title Skeleton */}
+            <SkeletonPlaceholder.Item marginBottom={12} width={150} height={20} borderRadius={4} />
 
-                {/* List Items Skeleton */}
-                {[1, 2, 3].map((item) => (
-                    <SkeletonPlaceholder.Item key={item} marginBottom={10} borderRadius={14} height={90} width="100%" />
-                ))}
+            {/* List Items Skeleton */}
+            {[1, 2, 3].map((item) => (
+                <SkeletonPlaceholder.Item key={item} marginBottom={10} borderRadius={14} height={90} width="100%" />
+            ))}
 
-                {/* Add Card Button Skeleton */}
-                <SkeletonPlaceholder.Item width="100%" height={55} borderRadius={14} borderStyle="dashed" borderWidth={2} marginTop={10} />
-            </SkeletonPlaceholder>
-        </ScrollView>
-    );
+            {/* Add Card Button Skeleton */}
+            <SkeletonPlaceholder.Item width="100%" height={55} borderRadius={14} borderStyle="dashed" borderWidth={2} marginTop={10} />
+        </SkeletonPlaceholder>
+    </ScrollView>
+);
 
 
 export default function PaymentMethod({ route }) {
     const navigation = useNavigation();
     const dispatch = useDispatch();
-    const { provider ,name } = route?.params || {};
+    const { provider, name } = route?.params || {};
 
 
     const [selectedMethod, setSelectedMethod] = useState(null);
@@ -391,108 +392,108 @@ export default function PaymentMethod({ route }) {
             <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
             <TopBar
-                title= {name?name:'Manage Payment Cards'}
+                title={name ? name : 'Manage Payment Cards'}
                 showBack={true}
                 onBackPress={() => navigation.goBack()}
                 showAdvance={false}
             />
 
-         {
-             paymentloading ? (
-                <PaymentMethodSkeleton />
+            {
+                paymentloading ? (
+                    <PaymentMethodSkeleton />
                 ) : (
-                   <Animated.ScrollView
-                                style={[styles.scrollView]}
-                                showsVerticalScrollIndicator={false}
-                                contentContainerStyle={styles.scrollContent}
-                            >
-                                
-                                {providerDisplayName && 
-                                (
-                                    <View style={styles.providerInfo}>
-                                        <View style={styles.providerInfoIcon}>
-                                            <Feather name="check-circle" size={16} color="#10B981" />
-                                        </View>
-                                        <Text style={styles.providerInfoText}>
-                                            Managing cards for: <Text style={styles.providerInfoHighlight}>{providerDisplayName}</Text>
-                                        </Text>
+                    <Animated.ScrollView
+                        style={[styles.scrollView]}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+
+                        {providerDisplayName &&
+                            (
+                                <View style={styles.providerInfo}>
+                                    <View style={styles.providerInfoIcon}>
+                                        <Feather name="check-circle" size={16} color="#10B981" />
                                     </View>
-                                )
-                                }
+                                    <Text style={styles.providerInfoText}>
+                                        Managing cards for: <Text style={styles.providerInfoHighlight}>{providerDisplayName}</Text>
+                                    </Text>
+                                </View>
+                            )
+                        }
 
-                                {selectedCard && (
-                                    <View style={styles.cardContainer}>
-                                        <Text style={styles.sectionLabel}>Selected Card</Text>
-                                        <View style={{ height: 150 }}>
-                                            <LinearGradient
-                                                colors={cardColors}
-                                                style={styles.card}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 1 }}
-                                            >
-                                                <View style={{ padding: 10 }}>
-                                                    <View style={styles.cardShine} />
-                                                    <View style={styles.cardShine2} />
+                        {selectedCard && (
+                            <View style={styles.cardContainer}>
+                                <Text style={styles.sectionLabel}>Selected Card</Text>
+                                <View style={{ height: 150 }}>
+                                    <LinearGradient
+                                        colors={cardColors}
+                                        style={styles.card}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <View style={{ padding: 10 }}>
+                                            <View style={styles.cardShine} />
+                                            <View style={styles.cardShine2} />
 
-                                                    <View style={styles.cardHeader}>
-                                                        <View style={styles.cardChip}>
-                                                            <View style={styles.chipLine} />
-                                                            <View style={[styles.chipLine, { width: 20 }]} />
-                                                        </View>
-
-                                                    </View>
-
-                                                    <Text style={styles.cardNumber}>{selectedCard?.number || '**** **** **** ****'}</Text>
-
-                                                    <View style={styles.cardFooter}>
-                                                        <View>
-                                                            <Text style={styles.cardLabel}>Card Holder</Text>
-                                                            <Text style={styles.cardValue}>{selectedCard?.name || 'JOHN DOE'}</Text>
-                                                        </View>
-                                                        <View>
-                                                            <Text style={styles.cardLabel}>Expires</Text>
-                                                            <Text style={styles.cardValue}>{selectedCard?.ExpMonth + '/' + selectedCard?.ExpYear || 'MM/YY'}</Text>
-                                                        </View>
-                                                    </View>
-
-                                                    {selectedCard?.default === 'yes' && (
-                                                        <View style={styles.cardBadge}>
-                                                            <Text style={styles.cardBadgeText}>Default</Text>
-                                                        </View>
-                                                    )}
+                                            <View style={styles.cardHeader}>
+                                                <View style={styles.cardChip}>
+                                                    <View style={styles.chipLine} />
+                                                    <View style={[styles.chipLine, { width: 20 }]} />
                                                 </View>
-                                            </LinearGradient>
+
+                                            </View>
+
+                                            <Text style={styles.cardNumber}> **** **** {selectedCard?.number || '**** ****'}</Text>
+
+                                            <View style={styles.cardFooter}>
+                                                <View>
+                                                    <Text style={styles.cardLabel}>Card Holder</Text>
+                                                    <Text style={styles.cardValue}>{selectedCard?.name || 'JOHN DOE'}</Text>
+                                                </View>
+                                                <View>
+                                                    <Text style={styles.cardLabel}>Expires</Text>
+                                                    <Text style={styles.cardValue}>{selectedCard?.ExpMonth + '/' + selectedCard?.ExpYear || 'MM/YY'}</Text>
+                                                </View>
+                                            </View>
+
+                                            {selectedCard?.default === 'yes' && (
+                                                <View style={styles.cardBadge}>
+                                                    <Text style={styles.cardBadgeText}>Default</Text>
+                                                </View>
+                                            )}
                                         </View>
-                                    </View>
-                                )}
+                                    </LinearGradient>
+                                </View>
+                            </View>
+                        )}
 
-                                <Text style={styles.sectionTitle}>All Cards ({cards.length})</Text>
+                        <Text style={styles.sectionTitle}>All Cards ({cards.length})</Text>
 
-                                
-                                {0 < cards?.length && cards.map((method) => (
-                                    <PaymentCardRow
-                                        key={method.pm_id}
-                                        method={method}
-                                        isSelected={selectedMethod === method.pm_id}
-                                        onSelect={handleSelectMethod}
-                                        onSetDefault={handleSetDefault}
-                                        onDeletePress={openConfirmModal}
-                                    />
-                                ))}
 
-                                <TouchableOpacity
-                                    style={styles.addCardButton}
-                                    onPress={openAddCardModal}
-                                    activeOpacity={0.7}
-                                >
-                                    <Feather name="plus-circle" size={20} color="#3c3cd6" />
-                                    <Text style={styles.addCardText}>Add New Card</Text>
-                                </TouchableOpacity>
+                        {0 < cards?.length && cards.map((method) => (
+                            <PaymentCardRow
+                                key={method.pm_id}
+                                method={method}
+                                isSelected={selectedMethod === method.pm_id}
+                                onSelect={handleSelectMethod}
+                                onSetDefault={handleSetDefault}
+                                onDeletePress={openConfirmModal}
+                            />
+                        ))}
 
-                                <View style={styles.bottomPadding} />
-                            </Animated.ScrollView>
+                        <TouchableOpacity
+                            style={styles.addCardButton}
+                            onPress={openAddCardModal}
+                            activeOpacity={0.7}
+                        >
+                            <Feather name="plus-circle" size={20} color="#3c3cd6" />
+                            <Text style={styles.addCardText}>Add New Card</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.bottomPadding} />
+                    </Animated.ScrollView>
                 )
-         }
+            }
 
             <Modal visible={showConfirmModal} transparent animationType="slide" onRequestClose={closeConfirmModal}>
                 <View style={styles.modalOverlay}>
@@ -654,7 +655,7 @@ export default function PaymentMethod({ route }) {
 
                     <Animated.View
                         style={[
-                            styles.modalContainer, {height: '75%',},
+                            styles.modalContainer, { height: '75%', },
                             {
                                 transform: [
                                     { translateY: slideAnim },
@@ -885,12 +886,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    providerInfoText: { fontSize: 13, fontWeight: '500', color: '#065F46', flex: 1 },
-    providerInfoHighlight: { fontWeight: '700', color: '#047857' },
+    providerInfoText: { fontSize: 13, fontFamily: fontsFamily.mediumFont, color: '#065F46', flex: 1 },
+    providerInfoHighlight: { fontFamily: fontsFamily.boldFont, color: '#047857' },
     sectionLabel: {
         fontSize: 13,
         color: '#94A3B8',
-        fontWeight: '500',
+        fontFamily: fontsFamily.mediumFont,
         marginBottom: 8,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -925,11 +926,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     chipLine: { height: 2, backgroundColor: 'rgba(255, 255, 255, 0.6)', marginVertical: 2, borderRadius: 1 },
-    cardType: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', letterSpacing: 0.5, marginTop: 10 },
-    cardNumber: { color: '#FFFFFF', fontSize: 20, fontWeight: '600', letterSpacing: 3, marginBottom: 20 },
+    cardType: { color: '#FFFFFF', fontSize: 14, fontFamily: fontsFamily.semiboldFont, letterSpacing: 0.5, marginTop: 10 },
+    cardNumber: { color: '#FFFFFF', fontSize: 20, fontFamily: fontsFamily.semiboldFont, letterSpacing: 3, marginBottom: 20 },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
-    cardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 },
-    cardValue: { color: '#FFFFFF', fontSize: 14, fontWeight: '500', marginTop: 2 },
+    cardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, fontFamily: fontsFamily.regularFont, textTransform: 'uppercase', letterSpacing: 1 },
+    cardValue: { color: '#FFFFFF', fontSize: 14, fontFamily: fontsFamily.mediumFont, marginTop: 2 },
     cardBadge: {
         position: 'absolute',
         top: 23,
@@ -939,8 +940,8 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 5
     },
-    cardBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
-    sectionTitle: { fontSize: 16, fontWeight: '600', color: '#0F172A', marginBottom: 12 },
+    cardBadgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: fontsFamily.semiboldFont },
+    sectionTitle: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: '#0F172A', marginBottom: 12 },
     methodCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 14,
@@ -953,9 +954,9 @@ const styles = StyleSheet.create({
     methodContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 },
     methodLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     methodIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    methodIconText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-    methodNumber: { fontSize: 14, fontWeight: '500', color: '#0F172A' },
-    methodType: { fontSize: 12, color: '#94A3B8' },
+    methodIconText: { fontSize: 16, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
+    methodNumber: { fontSize: 15, fontFamily: fontsFamily.mediumFont, color: '#0F172A' },
+    methodType: { fontSize: 12, fontFamily: fontsFamily.regularFont, color: '#94A3B8' ,marginTop:5},
     methodRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     defaultBadge: {
         flexDirection: 'row',
@@ -966,7 +967,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         gap: 3,
     },
-    defaultText: { fontSize: 10, fontWeight: '600', color: '#10B981' },
+    defaultText: { fontSize: 10, fontFamily: fontsFamily.semiboldFont, color: '#10B981' },
     methodRadio: {
         width: 22,
         height: 22,
@@ -996,7 +997,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#EEF2FF',
         gap: 6,
     },
-    setDefaultText: { fontSize: 12, fontWeight: '500', color: '#3c3cd6' },
+    setDefaultText: { fontSize: 12, fontFamily: fontsFamily.mediumFont, color: '#3c3cd6' },
     deleteCardButton: {
         flex: 1,
         flexDirection: 'row',
@@ -1008,7 +1009,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     deleteCardButtonDisabled: { backgroundColor: '#F1F5F9' },
-    deleteCardText: { fontSize: 12, fontWeight: '500', color: '#EF4444' },
+    deleteCardText: { fontSize: 12, fontFamily: fontsFamily.mediumFont, color: '#EF4444' },
     deleteCardTextDisabled: { color: '#94A3B8' },
     addCardButton: {
         flexDirection: 'row',
@@ -1022,7 +1023,7 @@ const styles = StyleSheet.create({
         gap: 8,
         marginBottom: 20,
     },
-    addCardText: { fontSize: 15, fontWeight: '600', color: '#3c3cd6' },
+    addCardText: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: '#3c3cd6' },
     bottomPadding: { height: 20 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject },
@@ -1035,7 +1036,7 @@ const styles = StyleSheet.create({
         height: '65%',
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
+    modalTitle: { fontSize: 20, fontFamily: fontsFamily.boldFont, color: '#0F172A' },
     modalClose: { padding: 4 },
     warningIconContainer: { alignItems: 'center', marginBottom: 16 },
     warningIcon: {
@@ -1047,8 +1048,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     warningMessage: { alignItems: 'center', marginBottom: 20 },
-    warningTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 8 },
-    warningSubtitle: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 },
+    warningTitle: { fontSize: 18, fontFamily: fontsFamily.boldFont, color: '#0F172A', marginBottom: 8 },
+    warningSubtitle: { fontSize: 14, fontFamily: fontsFamily.regularFont, color: '#64748B', textAlign: 'center', lineHeight: 20 },
     previewCard: { borderRadius: 16, marginBottom: 20, position: 'relative', overflow: 'hidden' },
     previewCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     previewCardChip: {
@@ -1059,28 +1060,28 @@ const styles = StyleSheet.create({
         padding: 4,
         justifyContent: 'center',
     },
-    previewCardType: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-    previewCardNumber: { color: '#FFFFFF', fontSize: 18, fontWeight: '600', letterSpacing: 2, marginBottom: 16 },
+    previewCardType: { color: '#FFFFFF', fontSize: 14, fontFamily: fontsFamily.semiboldFont },
+    previewCardNumber: { color: '#FFFFFF', fontSize: 18, fontFamily: fontsFamily.semiboldFont, letterSpacing: 2, marginBottom: 16 },
     previewCardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
-    previewCardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 },
-    previewCardValue: { color: '#FFFFFF', fontSize: 14, fontWeight: '500', marginTop: 2 },
+    previewCardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, fontFamily: fontsFamily.regularFont, textTransform: 'uppercase', letterSpacing: 1 },
+    previewCardValue: { color: '#FFFFFF', fontSize: 14, fontFamily: fontsFamily.mediumFont, marginTop: 2 },
     modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
 
     // Sheet Styles
     sheetContent: { flex: 1 },
     sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sheetTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
-    sheetSubtitle: { fontSize: 15, color: '#64748B', lineHeight: 22, marginBottom: 24, marginTop: 5 },
+    sheetTitle: { fontSize: 20, fontFamily: fontsFamily.boldFont, color: '#0F172A' },
+    sheetSubtitle: { fontSize: 15, fontFamily: fontsFamily.regularFont, color: '#64748B', lineHeight: 22, marginBottom: 24, marginTop: 5 },
     sheetCardPreview: {},
     miniCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, gap: 16 },
-    miniCardText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
-    miniCardSubtext: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '500' },
+    miniCardText: { color: '#FFF', fontSize: 18, fontFamily: fontsFamily.boldFont },
+    miniCardSubtext: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontFamily: fontsFamily.mediumFont },
     sheetActions: { flexDirection: 'row', gap: 12 },
     sheetCancelButton: { flex: 1, height: 56, borderRadius: 14, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-    sheetCancelText: { fontSize: 16, fontWeight: '600', color: '#64748B' },
+    sheetCancelText: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: '#64748B' },
     sheetConfirmButton: { flex: 1, height: 56, borderRadius: 14, overflow: 'hidden' },
     sheetConfirmGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    sheetConfirmText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+    sheetConfirmText: { fontSize: 16, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
 
     cancelButton: {
         flex: 1,
@@ -1090,29 +1091,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    cancelButtonText: { fontSize: 15, fontWeight: '600', color: '#64748B' },
+    cancelButtonText: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: '#64748B' },
     deleteButton: { flex: 1, borderRadius: 14, overflow: 'hidden', height: 40 },
     deleteGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 40, gap: 8 },
-    deleteButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+    deleteButtonText: { fontSize: 15, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
 
     // Form Styles
     formContainer: { gap: 4 },
     formGroup: { marginBottom: 16 },
-    formLabel: { fontSize: 13, fontWeight: '600', color: '#0F172A', marginBottom: 6 },
+    formLabel: { fontSize: 13, fontFamily: fontsFamily.semiboldFont, color: '#0F172A', marginBottom: 6 },
     formInput: {
         backgroundColor: '#F8FAFC',
         borderRadius: 12,
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 15,
+        fontFamily: fontsFamily.regularFont,
         color: '#0F172A',
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
     formInputError: { borderColor: '#EF4444' },
-    errorText: { color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: '500' },
+    errorText: { color: '#EF4444', fontSize: 12, marginTop: 4, fontFamily: fontsFamily.mediumFont },
     formRow: { flexDirection: 'row' },
     addCardSubmitButton: { borderRadius: 12, overflow: 'hidden', marginTop: 8 },
     addCardSubmitGradient: { height: 50, alignItems: 'center', justifyContent: 'center' },
-    addCardSubmitText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+    addCardSubmitText: { fontSize: 16, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
 });

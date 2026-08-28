@@ -4,6 +4,7 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Icon from 'react-native-vector-icons/Feather';
 import CommonIcon from '../../common_component/Commonicons';
 import { appName } from '../../service/environment';
+import { fontsFamily } from '../../constants/fontsFamily';
 
 
 const AccountManagementOption = React.memo(
@@ -60,6 +61,7 @@ const AccountManagementCard = React.memo(({ onConnectAnother, onDeleteAccount, s
 
 export default AccountManagementCard;
 
+
 const styles = StyleSheet.create({
   // ─── Account Management Card ──────────────────────
   accountManagementCard: {
@@ -73,7 +75,7 @@ const styles = StyleSheet.create({
   },
   accountManagementTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#111827',
     marginBottom: 4,
   },
@@ -111,7 +113,7 @@ const styles = StyleSheet.create({
   },
   accountManagementOptionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#111827',
     marginBottom: 2,
   },
@@ -151,12 +153,12 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   connectBankPillText: {
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 12,
     color: '#000',
   },
   connectBankTitle: {
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     fontSize: 22,
     color: '#000',
     lineHeight: 28,
@@ -169,7 +171,7 @@ const styles = StyleSheet.create({
   },
   connectBankDescription: {
     flex: 1,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 12,
     color: '#535353',
     lineHeight: 21,
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
   },
   connectBankBenefitsTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#111827',
     marginBottom: 12,
   },
@@ -229,7 +231,7 @@ const styles = StyleSheet.create({
   },
   connectBankPricingTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#111827',
     marginBottom: 8,
   },
@@ -239,11 +241,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   connectBankPricingHighlight: {
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#3F2B96',
   },
   connectBankPricingImportant: {
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#DC2626',
   },
 });

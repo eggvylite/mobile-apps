@@ -346,33 +346,7 @@ export default function AddmanualAccount(props) {
                                             )}
                                         </View>
 
-                                        {/* <View style={{ marginTop: 40 }}>
-                                            {
 
-
-                                                <TouchableOpacity
-                                                    style={[styles.newbgbtn]}
-                                                    onPress={handleSubmit(submit)}
-                                                >
-                                                    <Text
-                                                        style={styles.newbtnText}
-                                                    >
-                                                        Submit
-                                                    </Text>
-                                                    {
-                                                load &&
-                                                <View style={{ flex: 0.8, start: 10 }}>
-                                                    <LoaderKit
-                                                        style={{ height: 20, width: 20, }}
-                                                        name={'BallPulse'}
-                                                        color={themeColors.btn_text_color}
-                                                    />
-                                                </View>
-                                            }
-                                                </TouchableOpacity>
-                                            }
-
-                                        </View> */}
                                         <TouchableOpacity
                                             disabled={load}
                                             style={[styles.newbgbtn, { marginTop: 40, flexDirection: 'row' }]}

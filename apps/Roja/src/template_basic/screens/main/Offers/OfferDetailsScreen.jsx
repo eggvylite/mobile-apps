@@ -30,6 +30,8 @@ import { themeColors } from '../../../Common';
 import moment from 'moment';
 import CommonIcon from '../../../../common_component/Commonicons';
 import CloudImage from '../../../../utill/CloudImage';
+import api from '../../../../service/api';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 
 const { width, height } = Dimensions.get('window');
 
@@ -55,12 +57,33 @@ export default function OfferDetailsScreen() {
   const productData = route.params?.product || {};
   const { storedata } = useSelector((state) => state.auth);
   const { marketplaceFeature } = useSelector((state) => state.marketplace);
+  const { defbank, bankerror, bankloading } = useSelector((state) => state.bank);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
   const disclaimerRef = useRef(null);
 
 
+  useEffect(() => {
+        impressionClickCount()
+
+  }, [productData])
+
+  const impressionClickCount = async () => {
+    try {
+      const data = {
+        customer_id: storedata?.id,
+        product_id: productData?.id
+      }
+      const response = await api.post('offer_eligibility/updateProductclickCount', data)
+    } catch (e) {
+      console.log(e)
+    } finally {
+
+    }
+
+
+  }
 
   function findFeature(id) {
     const featureData = marketplaceFeature?.find((item) => item?._id === id);
@@ -91,19 +114,18 @@ export default function OfferDetailsScreen() {
 
     setTimeout(() => {
       try {
-        // Map features to summary products. If features exist, they represent the enrollment details.
+
         const addonProducts = (productData.features || []).map((f, index) => {
           const featureDetail = marketplaceFeature?.find(mf => mf._id === f.value);
           return {
             id: f.value,
             title: f.label,
             price: 0.00,
-            type: index === 0 ? 'main' : 'addon', // First feature becomes the primary card
+            type: index === 0 ? 'main' : 'addon',
             details: featureDetail
           };
         });
 
-        // Use features list if available, otherwise fallback to the parent product itself
         const selectedProducts = addonProducts.length > 0
           ? addonProducts
           : [{
@@ -120,7 +142,7 @@ export default function OfferDetailsScreen() {
         });
       } catch (error) {
         console.log('Navigation error:', error);
-        Alert.alert('Error', 'Could not proceed. Please try again.');
+
         navigation.navigate('Offers');
       }
       setIsLoading(false);
@@ -333,7 +355,7 @@ const styles = StyleSheet.create({
   },
   notificationBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
 
@@ -370,12 +392,13 @@ const styles = StyleSheet.create({
   },
   mainProductTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
     marginBottom: 2,
   },
   mainProductSubtitle: {
     fontSize: 12,
+    fontFamily: fontsFamily.regularFont,
     color: '#64748B',
     marginBottom: 4,
   },
@@ -385,11 +408,12 @@ const styles = StyleSheet.create({
   },
   mainProductPrice: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#5A21F1',
   },
   mainProductPriceLabel: {
     fontSize: 10,
+    fontFamily: fontsFamily.regularFont,
     color: '#64748B',
   },
 
@@ -404,13 +428,14 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 13,
+    fontFamily: fontsFamily.regularFont,
     color: '#475569',
     lineHeight: 20,
   },
 
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#0F172A',
   },
 
@@ -457,7 +482,7 @@ const styles = StyleSheet.create({
   },
   addOnTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
   },
   addOnTitleSelected: {
@@ -476,15 +501,16 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 11,
+    fontFamily: fontsFamily.regularFont,
     color: '#4B5563',
     lineHeight: 18,
   },
   disclaimerHighlight: {
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#5A21F1',
   },
   disclaimerLink: {
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#7C3AED',
     textDecorationLine: 'underline',
   },
@@ -550,7 +576,7 @@ const styles = StyleSheet.create({
   },
   buyText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
   },
 });

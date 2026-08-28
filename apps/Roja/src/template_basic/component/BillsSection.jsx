@@ -141,7 +141,6 @@ export default function BillsSection({ bills }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   wrapper: {
     margin: 10,
@@ -149,8 +148,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#1b1b1b',
     marginBottom: 10,
   },
@@ -177,7 +175,7 @@ const styles = StyleSheet.create({
   },
   billTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
     color: "#111827",
   },
   badge: {
@@ -197,7 +195,8 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: "600",
+
+    fontFamily: fontsFamily.semiboldFont,
   },
   subtitle: {
     fontSize: 12,
@@ -207,7 +206,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 20,
-    fontWeight: "700",
+    fontFamily: fontsFamily.boldFont,
     color: "#111827",
     marginTop: 4,
   },

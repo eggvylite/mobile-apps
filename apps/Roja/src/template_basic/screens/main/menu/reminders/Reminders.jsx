@@ -13,6 +13,7 @@ import SubmitBtn from '../../../../component/SubmitBtn';
 import { linkTransaction } from '../../../../../constants/Reminderapi';
 import { WORKFLOW_CONSTANT } from '../../../../../constants/workflowConstents';
 import WorkflowScreen from '../../../../widgets/WorkflowScreen';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 
 
 const { width } = Dimensions.get('window');
@@ -361,6 +362,9 @@ const Reminders = () => {
   )
 }
 export default Reminders
+
+
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -395,9 +399,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toastText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 14,
     color: '#065F46',
-    fontWeight: '500',
     flex: 1,
   },
   // Search Bar
@@ -443,8 +447,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A1B6D',
   },
   filterChipText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
-    fontWeight: '500',
     color: '#64748B',
   },
   filterChipTextActive: {
@@ -463,11 +467,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   resultsText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
     color: '#94A3B8',
-    fontWeight: '500',
   },
-  // Reminder Card - Improved Spacing
+
   reminderCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -494,8 +498,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reminderTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 16,
-    fontWeight: '600',
     color: '#0F172A',
     marginBottom: 2,
   },
@@ -517,8 +521,8 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   statusText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
-    fontWeight: '600',
   },
   reminderCardFooter: {
     flexDirection: 'row',
@@ -535,9 +539,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   reminderInfoText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '500',
   },
   accountText: {
     fontSize: 11,
@@ -551,8 +555,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 18,
-    fontWeight: '600',
     color: '#0F172A',
     marginTop: 8,
   },
@@ -602,8 +606,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   filterTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 18,
-    fontWeight: '600',
     color: '#0F172A',
   },
   filterOptions: {
@@ -624,12 +628,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   filterOptionText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 16,
     color: '#0F172A',
-    fontWeight: '500',
   },
   filterOptionTextActive: {
+    fontFamily: fontsFamily.semiboldFont,
     color: '#2A1B6D',
-    fontWeight: '600',
   },
 });

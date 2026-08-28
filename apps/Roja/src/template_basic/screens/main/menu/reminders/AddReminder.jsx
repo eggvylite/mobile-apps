@@ -13,6 +13,7 @@ import { themeColors } from '../../../../Common';
 import SubmitBtn from '../../../../component/SubmitBtn';
 import { getFontSize } from '../../../../../constants/Font';
 import { deftransactionimg } from '../../../../../constants/content';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 
 
 export default function AddReminder() {
@@ -114,7 +115,7 @@ export default function AddReminder() {
             style={{ height: 25, width: 80, borderRadius: 10 }}
             iconName={'link'}
             submit={() => {
-                navigateReminderForm(item)
+              navigateReminderForm(item)
             }}
             textStyle={{ fontSize: getFontSize(14) }}
             text={'Link'} />
@@ -125,7 +126,7 @@ export default function AddReminder() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
@@ -200,6 +201,9 @@ export default function AddReminder() {
   );
 }
 
+
+// import { fontsFamily } from '../../../constants/fontsFamily';
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -225,8 +229,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerTitle: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 20,
-    fontWeight: '700',
     color: '#0F172A',
     marginBottom: 4,
   },
@@ -261,9 +265,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   resultsText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
     color: '#94A3B8',
-    fontWeight: '500',
   },
   // Transaction Card - Clean Layout
   transactionCard: {
@@ -302,8 +306,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   transactionTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0F172A',
   },
   transactionCategory: {
@@ -312,8 +316,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   transactionAmount: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 16,
-    fontWeight: '700',
     color: '#0F172A',
     marginLeft: 8,
   },
@@ -345,8 +349,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   linkButtonText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
-    fontWeight: '600',
     color: '#FFFFFF',
   },
   // Manual Button
@@ -364,7 +368,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     overflow: 'hidden',
-    marginTop: 20,
+    marginVertical: 10,
     borderStyle: 'dashed',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -384,8 +388,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   manualTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0F172A',
   },
   manualSubtitle: {
@@ -400,8 +404,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 18,
-    fontWeight: '600',
     color: '#0F172A',
     marginTop: 8,
   },

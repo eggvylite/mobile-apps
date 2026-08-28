@@ -11,20 +11,21 @@ import api from "../service/api";
 import { CommonActions } from '@react-navigation/native';
 import { privacyURL, termsURL } from "../service/environment";
 import { themeColors } from "../template_basic/Common";
+import useGeneralLabelsHook from "./Labels/useGenerallablehoo";
 
 const ALWAYS_ENABLED_IDS = [
- '67482369b2253a1fd8a5b6af', // Profile
-  '69818d5ca5e73b56342f5f2b', // App Settings
-  '6748267bb2253a1fd8a5b83f', // Logout
-
-  '674823adb2253a1fd8a5b6e7', // Change PIN
-  '67482411b2253a1fd8a5b73b', // Privacy Policy
-  '67482434b2253a1fd8a5b7b4', // Terms & Conditions
-  '67482474b2253a1fd8a5b7f1', // FAQ
-  "6a79bed040e8d43219b12033"
+    '67482369b2253a1fd8a5b6af', // Profile
+    '69818d5ca5e73b56342f5f2b', // App Settings
+    '6748267bb2253a1fd8a5b83f', // Logout
+    '67f3a555169d7f5660ca89d5',  // Delete Account
+    '674823adb2253a1fd8a5b6e7', // Change PIN
+    '67482411b2253a1fd8a5b73b', // Privacy Policy
+    '67482434b2253a1fd8a5b7b4', // Terms & Conditions
+    '67482474b2253a1fd8a5b7f1', // FAQ
+    "6a79bed040e8d43219b12033"
 ];
 
-const DISABLED_FEATURE_MESSAGE = 'Subscribe to unlock this feature';
+
 
 export const useMenuLogic = (visible, onClose, onGetStatement, navigation, formatDate, formatTime, workflow) => {
     const { width: SCREEN_WIDTH } = useWindowDimensions();
@@ -32,6 +33,8 @@ export const useMenuLogic = (visible, onClose, onGetStatement, navigation, forma
     const [expandedSections, setExpandedSections] = useState({});
     const [activeItem, setActiveItem] = useState(null);
     const [isBiomatric, setIsbiomatric] = useState(false);
+    const { unlockFeature } = useGeneralLabelsHook()
+    const DISABLED_FEATURE_MESSAGE = unlockFeature
 
     const { storedata } = useSelector((state) => state.auth);
     const { cusDetails } = useSelector((state) => state.customer);

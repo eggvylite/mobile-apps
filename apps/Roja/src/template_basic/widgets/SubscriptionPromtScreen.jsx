@@ -6,6 +6,7 @@ import {
 
     Text,
     TouchableOpacity,
+    Platform,
 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +18,7 @@ import { useSelector } from 'react-redux';
 import useGeneralLabelsHook from '../../hook/Labels/useGenerallablehoo';
 import CommonIcon from '../../themechg_template/component/Commonicons';
 import { appName } from '../../service/environment';
+import { fontsFamily } from '../../constants/fontsFamily';
 
 
 const QUALIFIED_CARD_CONTENT = {
@@ -113,14 +115,14 @@ const BenefitSectionCard = ({ icon, title, description, color, iconColor, family
 const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, subscriptionInformation }) => (
     <View style={styles.qualifiedCard}>
 
-        <View style={{ width: "100%" }}>
+        <View style={{ width: "100%", padding: Platform.OS === 'android' ? 10 : 0 }}>
             <LinearGradient
                 colors={['#E8F5E9', '#E3F2FD', '#F3E5F5']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.qualifiedHeaderCard}
             >
-                <View style={[styles.qualifiedHeaderContent,{right:10}]}>
+                <View style={[styles.qualifiedHeaderContent, { right: 10 }]}>
                     <Text style={styles.qualifiedHeaderTitle}>{onSubscribe?.title}</Text>
 
                     <View style={[styles.qualifiedHeaderAmountContainer]}>
@@ -178,7 +180,7 @@ const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, s
                     <Text style={styles.qualifiedPricingTitle}>{QUALIFIED_CARD_CONTENT.pricing.title}</Text>
                 </View>
                 <Text style={styles.qualifiedPricingDescription}>
-                     {appName} is a subscription service with a <Text style={styles.qualifiedPricingHighlight}>{QUALIFIED_CARD_CONTENT.pricing.highlight}</Text>.
+                    {appName} is a subscription service with a <Text style={styles.qualifiedPricingHighlight}>{QUALIFIED_CARD_CONTENT.pricing.highlight}</Text>.
                     <Text style={styles.qualifiedPricingImportant}> {QUALIFIED_CARD_CONTENT.pricing.important}</Text>
                     —it is the cost of accessing your {appName} membership and financial tools, including Earned Wage Access when you qualify.
                 </Text>
@@ -223,27 +225,29 @@ const SubscriptionPromtScreen = ({ subscriptionLabelData }) => {
                 <View style={styles.bottomPadding} />
             </ScrollView>
             <View style={styles.fixedBottomContainer}>
-                    <TouchableOpacity
-                        style={styles.fixedBottomButton}
-                        activeOpacity={0.8}
-                        onPress={handleSubscribe}
+                <TouchableOpacity
+                    style={styles.fixedBottomButton}
+                    activeOpacity={0.8}
+                    onPress={handleSubscribe}
+                >
+                    <LinearGradient
+                        colors={['#3F2B96', '#2633a7']}
+                        style={styles.fixedBottomGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
                     >
-                        <LinearGradient
-                            colors={['#3F2B96', '#2633a7']}
-                            style={styles.fixedBottomGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                        >
-                            <FontAwesome5 name="crown" size={18} color="#FFFFFF" />
-                            <Text style={styles.fixedBottomButtonText}>{QUALIFIED_CARD_CONTENT.buttonText}</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </View>
+                        <FontAwesome5 name="crown" size={18} color="#FFFFFF" />
+                        <Text style={styles.fixedBottomButtonText}>{QUALIFIED_CARD_CONTENT.buttonText}</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
 
 
         </View>
     );
 };
+
+
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAFC' },
@@ -289,7 +293,7 @@ const styles = StyleSheet.create({
     },
     benefitSectionTitle: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 2,
     },
@@ -326,12 +330,12 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     connectBankPillText: {
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 12,
         color: '#000',
     },
     connectBankTitle: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         fontSize: 22,
         color: '#000',
         lineHeight: 28,
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
     },
     connectBankDescription: {
         flex: 1,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 12,
         color: '#535353',
         lineHeight: 21,
@@ -392,7 +396,7 @@ const styles = StyleSheet.create({
     },
     connectBankBenefitsTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#111827',
         marginBottom: 12,
     },
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
     },
     connectBankPricingTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 8,
     },
@@ -414,11 +418,11 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     connectBankPricingHighlight: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     connectBankPricingImportant: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#DC2626',
     },
 
@@ -453,12 +457,10 @@ const styles = StyleSheet.create({
     qualifiedHeaderContent: {
         alignItems: 'center',
         padding: 16,
-
-
     },
     qualifiedHeaderTitle: {
         fontSize: 20,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#1A1A1A',
         textAlign: 'center',
         marginBottom: 4,
@@ -469,7 +471,7 @@ const styles = StyleSheet.create({
     },
     qualifiedHeaderAmountValue: {
         fontSize: 48,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     qualifiedHeaderBadge: {
@@ -484,15 +486,13 @@ const styles = StyleSheet.create({
     },
     qualifiedHeaderBadgeText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: fontsFamily.mediumFont,
         color: '#1A1A1A',
     },
     qualifiedHeaderSubText: {
         fontSize: 12,
         color: 'rgba(26, 26, 26, 0.7)',
         textAlign: 'center',
-
-
     },
 
     // ─── Available Amount Note ──────────────────────────
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     },
     qualifiedBenefitsTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 12,
     },
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     },
     qualifiedPricingTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 0,
     },
@@ -554,17 +554,16 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     qualifiedPricingHighlight: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     qualifiedPricingImportant: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#DC2626',
     },
 
     // ─── Fixed Bottom Container ──────────────────────────
     fixedBottomContainer: {
-
         paddingHorizontal: 16,
         paddingBottom: 10,
         backgroundColor: 'transparent',
@@ -589,12 +588,11 @@ const styles = StyleSheet.create({
     },
     fixedBottomButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     connectBtnDisabled: {
         opacity: 0.7,
     },
 });
-
 export default SubscriptionPromtScreen;

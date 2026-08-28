@@ -29,7 +29,7 @@ api.interceptors.request.use(
 
         if (__DEV__) {
             appLog.info("========================================");
-            appLog.info(`🚀 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+            // appLog.info(`🚀 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
             // appLog.debug("Headers:", config.headers);
             // appLog.debug("Request:", config.data);
         }

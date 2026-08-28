@@ -79,6 +79,23 @@ export const apiformatDate = (date) => {
     return df
 }
 
+export const mergeOffer=(openOffer,handpickOffer)=>{
+   return {
+      features: [
+        ...(openOffer?.features || []).map(feature => ({
+          id: openOffer.id,
+          feature,
+        })),
+        ...(handpickOffer?.features || []).map(feature => ({
+          id: handpickOffer.id,
+          feature,
+        })),
+      ],
+    };
+
+
+}
+
 export const dropdownacc = (defaccount = []) => {
   return defaccount.map(value => {
     let number = '';

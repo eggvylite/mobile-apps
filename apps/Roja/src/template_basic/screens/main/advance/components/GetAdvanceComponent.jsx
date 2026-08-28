@@ -7,6 +7,9 @@ import { useSelector } from 'react-redux';
 import useFeatureFlow from '../../../../../hook/useFeatureGate';
 import { WORKFLOW_CONSTANT } from '../../../../../constants/workflowConstents';
 import { FLOW_STATE } from '../../../../../hook/workFlowhook';
+import { usegetAdvancepartialFlow } from '../../../../../hook/getAdvancepartialhook';
+import useGeneralLabelsHook from '../../../../../hook/Labels/useGenerallablehoo';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,7 +23,8 @@ const GetAdvanceComponent = ({
 }) => {
   const { dashboardLabel } = useSelector((state) => state.labels || {});
   const { state: instantState, message: instantMessage } = useFeatureFlow(WORKFLOW_CONSTANT.INSTANT_FOUNDING);
-
+  const { isAdvanceLimitExceeded } = usegetAdvancepartialFlow()
+  const { advanceLimitSHowMessage } = useGeneralLabelsHook()
 
 
   return (
@@ -111,11 +115,11 @@ const GetAdvanceComponent = ({
                 <View style={[styles.optionIcon, { backgroundColor: '#EEF2FF' }]}>
                   <Feather name="zap" size={20} color="#3F2B96" />
                 </View>
-                <View style ={{flex:1}}>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.optionTitle}>Instant Funding</Text>
-                  <Text style={[styles.optionFee,{marginTop:5}]}>
-                  {instantMessage}
-                </Text>
+                  <Text style={[styles.optionFee, { marginTop: 5 }]}>
+                    {instantMessage}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -149,31 +153,57 @@ const GetAdvanceComponent = ({
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.getAdvanceButton}
-        onPress={handleGetAdvance}
-        disabled={isLoading}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={['#3F2B96', '#2633a7']}
-          style={styles.getAdvanceGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+      {
+        isAdvanceLimitExceeded ? <TouchableOpacity
+          style={styles.getAdvanceButton}
+          onPress={handleGetAdvance}
+          disabled={isLoading}
+          activeOpacity={0.8}
         >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <View style={styles.loadingSpinner} />
-              <Text style={styles.getAdvanceText}>Processing...</Text>
+          <LinearGradient
+            colors={['#3F2B96', '#2633a7']}
+            style={styles.getAdvanceGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <View style={styles.loadingSpinner} />
+                <Text style={styles.getAdvanceText}>Processing...</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.getAdvanceText}>Get Advance</Text>
+                <Feather name="arrow-right" size={20} color="#FFFFFF" />
+              </>
+            )}
+          </LinearGradient>
+        </TouchableOpacity> : <View
+          style={[
+            styles.optionCard,
+
+          ]}
+
+          activeOpacity={0.8}
+        >
+          <View style={styles.optionHeader}>
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIcon, { backgroundColor: '#f7f0ff' }]}>
+                <Feather name="info" size={20} color="#7b70c2" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionDescription, { paddingLeft: 10, lineHeight: 22 }]}>
+                  {advanceLimitSHowMessage}
+                </Text>
+              </View>
             </View>
-          ) : (
-            <>
-              <Text style={styles.getAdvanceText}>Get Advance</Text>
-              <Feather name="arrow-right" size={20} color="#FFFFFF" />
-            </>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
+
+          </View>
+
+        </View>
+      }
+
+
     </>
   );
 };
@@ -204,8 +234,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   title: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 16,
-    fontWeight: '600',
     color: '#000000',
     lineHeight: 24,
     marginBottom: 12,
@@ -224,8 +254,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   buttonText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
-    fontWeight: '600',
     textAlign: 'center',
     color: '#000000',
   },
@@ -233,8 +263,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#5A21F1',
   },
   payButtonText: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 11,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
 
@@ -253,13 +283,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   label: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 12,
-    fontWeight: '700',
     color: '#525252',
   },
   amount: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 20,
-    fontWeight: '700',
     color: '#7F75D9',
     lineHeight: 30,
     marginVertical: 1,
@@ -319,8 +349,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
-    fontWeight: '600',
     color: '#0F172A',
   },
   optionFee: {
@@ -359,8 +389,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   getAdvanceText: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
   loadingContainer: {
@@ -377,8 +407,8 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
   },
   optionsTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 16,
-    fontWeight: '600',
     color: '#0F172A',
     marginBottom: 12,
   },

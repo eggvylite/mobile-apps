@@ -19,6 +19,7 @@ import CloudImage from '../../utill/CloudImage';
 import appLog from '../../constants/logger';
 import CommonIcon from '../../themechg_template/component/Commonicons';
 import { appName } from '../../service/environment';
+import { fontsFamily } from '../../constants/fontsFamily';
 
 const CONNECT_BANK_CONTENT = {
     pill: 'Unlock more with ' + appName,
@@ -208,6 +209,7 @@ const ConnectBankWidgetScreen = ({ connectBankData, onConnectBank }) => {
     );
 };
 
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAFC' },
     scrollContent: { paddingBottom: 80 },
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
     },
     benefitSectionTitle: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 2,
     },
@@ -289,12 +291,12 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     connectBankPillText: {
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 12,
         color: '#000',
     },
     connectBankTitle: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         fontSize: 22,
         color: '#000',
         lineHeight: 28,
@@ -307,7 +309,7 @@ const styles = StyleSheet.create({
     },
     connectBankDescription: {
         flex: 1,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         fontSize: 12,
         color: '#535353',
         lineHeight: 21,
@@ -356,7 +358,7 @@ const styles = StyleSheet.create({
     },
     connectBankBenefitsTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#111827',
         marginBottom: 12,
     },
@@ -368,7 +370,7 @@ const styles = StyleSheet.create({
     },
     connectBankPricingTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 8,
     },
@@ -378,11 +380,11 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     connectBankPricingHighlight: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     connectBankPricingImportant: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#DC2626',
     },
 
@@ -422,7 +424,7 @@ const styles = StyleSheet.create({
     },
     qualifiedHeaderTitle: {
         fontSize: 20,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: 'rgba(255,255,255,0.9)',
         textAlign: 'center',
         marginBottom: 4,
@@ -433,7 +435,7 @@ const styles = StyleSheet.create({
     },
     qualifiedHeaderAmountValue: {
         fontSize: 48,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     qualifiedHeaderBadge: {
@@ -448,7 +450,7 @@ const styles = StyleSheet.create({
     },
     qualifiedHeaderBadgeText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: fontsFamily.mediumFont,
         color: '#FFFFFF',
     },
     qualifiedHeaderSubText: {
@@ -493,7 +495,7 @@ const styles = StyleSheet.create({
     },
     qualifiedBenefitsTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 12,
     },
@@ -506,7 +508,7 @@ const styles = StyleSheet.create({
     },
     qualifiedPricingTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
         marginBottom: 0,
     },
@@ -516,11 +518,11 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     qualifiedPricingHighlight: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     qualifiedPricingImportant: {
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#DC2626',
     },
 
@@ -550,7 +552,7 @@ const styles = StyleSheet.create({
     },
     fixedBottomButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     connectBtnDisabled: {

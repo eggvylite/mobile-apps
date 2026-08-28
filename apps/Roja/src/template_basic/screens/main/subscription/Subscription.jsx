@@ -24,6 +24,7 @@ import api from '../../../../service/api';
 import { SubscriptionDetailsSkeleton } from './component/SubscriptionLoader';
 import AppCommonModal from '../../../../common_component/AppCommonModel';
 import useGeneralLabelsHook from '../../../../hook/Labels/useGenerallablehoo';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 const { width } = Dimensions.get('window');
 
 export default function Subscription() {
@@ -473,7 +474,6 @@ export default function Subscription() {
 }
 
 
-
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     },
     heroTitle: {
         fontSize: 24,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#0F172A',
         textAlign: 'center',
         marginBottom: 8,
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     },
     heroHighlight: {
         color: '#3F2B96',
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
     },
     heroDescription: {
         fontSize: 14,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     },
     planName: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
         marginBottom: 4,
     },
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     },
     planPrice: {
         fontSize: 36,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     planPeriod: {
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
         marginBottom: 16,
     },
@@ -630,12 +630,12 @@ const styles = StyleSheet.create({
     },
     detailValue: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     detailHighlight: {
         color: '#3F2B96',
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
     },
     detailCheck: {
         width: 24,
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     },
     subscribeButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     loadingContainer: {
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 4,
-        height: 100
+        height: 100,
     },
     successGradient: {
         flexDirection: 'row',
@@ -711,14 +711,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         height: 80,
         gap: 12,
-        borderRadius: 12
+        borderRadius: 12,
     },
     successTextContainer: {
         flex: 1,
     },
     successTitle: {
         fontSize: 14,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     successSubtitle: {
@@ -745,14 +745,14 @@ const styles = StyleSheet.create({
     },
     activePlanBadgeText: {
         fontSize: 11,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#FFFFFF',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     activePlanName: {
         fontSize: 22,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
         marginBottom: 4,
     },
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
     },
     activePlanPrice: {
         fontSize: 34,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     activePlanPeriod: {
@@ -788,7 +788,6 @@ const styles = StyleSheet.create({
     },
     activePlanApprovedText: {
         fontSize: 13,
-        fontWeight: '500',
         color: '#FFFFFF',
     },
     // Status Badge
@@ -805,7 +804,7 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#10B981',
     },
     // Limits Row
@@ -820,12 +819,11 @@ const styles = StyleSheet.create({
     limitLabel: {
         fontSize: 12,
         color: '#94A3B8',
-        fontWeight: '500',
         marginBottom: 4,
     },
     limitValue: {
         fontSize: 22,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     limitValueHigh: {
@@ -870,7 +868,7 @@ const styles = StyleSheet.create({
     },
     manageTitle: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     manageDescription: {
@@ -891,7 +889,7 @@ const styles = StyleSheet.create({
     },
     unsubscribeText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#FFFFFF',
     },
     bottomPadding: {
@@ -925,7 +923,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#0F172A',
     },
     modalClose: {
@@ -949,7 +947,7 @@ const styles = StyleSheet.create({
     },
     modalSummaryValue: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     modalSection: {
@@ -957,7 +955,7 @@ const styles = StyleSheet.create({
     },
     modalSectionTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
         marginBottom: 12,
     },
@@ -993,7 +991,7 @@ const styles = StyleSheet.create({
     },
     paymentMethodCardType: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     paymentMethodCardDetails: {
@@ -1035,7 +1033,7 @@ const styles = StyleSheet.create({
     },
     addCardTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     addCardClose: {
@@ -1049,7 +1047,6 @@ const styles = StyleSheet.create({
     },
     formLabel: {
         fontSize: 13,
-        fontWeight: '500',
         color: '#0F172A',
     },
     formInput: {
@@ -1076,7 +1073,6 @@ const styles = StyleSheet.create({
     clearCardText: {
         fontSize: 13,
         color: '#DC2626',
-        fontWeight: '500',
     },
     // Funding Options
     fundingOptions: {
@@ -1110,7 +1106,7 @@ const styles = StyleSheet.create({
     },
     fundingOptionName: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     fundingOptionFee: {
@@ -1142,12 +1138,12 @@ const styles = StyleSheet.create({
     },
     modalTotalLabel: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     modalTotalValue: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#3F2B96',
     },
     // Pay Button
@@ -1173,7 +1169,7 @@ const styles = StyleSheet.create({
     },
     payButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     paymentRequiredText: {
@@ -1181,7 +1177,6 @@ const styles = StyleSheet.create({
         color: '#5A21F1',
         textAlign: 'center',
         marginBottom: 12,
-        fontWeight: '500',
     },
     modalFooterText: {
         fontSize: 12,
@@ -1216,7 +1211,7 @@ const styles = StyleSheet.create({
     },
     successModalTitle: {
         fontSize: 22,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#0F172A',
         marginBottom: 8,
         textAlign: 'center',
@@ -1239,7 +1234,7 @@ const styles = StyleSheet.create({
     },
     successModalButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#FFFFFF',
     },
     confirmModalOverlay: {
@@ -1268,7 +1263,7 @@ const styles = StyleSheet.create({
     },
     confirmTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#0F172A',
         marginBottom: 8,
         textAlign: 'center',
@@ -1300,12 +1295,12 @@ const styles = StyleSheet.create({
     },
     cancelButtonText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#475569',
     },
     confirmButtonText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#FFFFFF',
     },
     historySection: {
@@ -1338,7 +1333,7 @@ const styles = StyleSheet.create({
     },
     historyType: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     historyDate: {
@@ -1350,7 +1345,7 @@ const styles = StyleSheet.create({
     },
     historyAmount: {
         fontSize: 15,
-        fontWeight: '700',
+        fontFamily: fontsFamily.boldFont,
         color: '#0F172A',
     },
     historyStatus: {
@@ -1362,13 +1357,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         gap: 12,
-    },
-    historySection: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
     },
     historyHeader: {
         flexDirection: 'row',
@@ -1394,7 +1382,7 @@ const styles = StyleSheet.create({
     },
     historyTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: fontsFamily.semiboldFont,
         color: '#0F172A',
     },
     viewAllButton: {

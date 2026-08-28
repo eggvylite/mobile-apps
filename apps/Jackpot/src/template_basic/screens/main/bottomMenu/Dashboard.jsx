@@ -34,6 +34,7 @@ import { fetchWorkflowInfoLabels } from '../../../../redux/slices/workflowlableS
 import useFeatureWorkInfoLabel from '../../../../hook/useFeatureInfoWorkLablehook';
 import { fetchHandpickCheck } from '../../../../redux/slices/handpicheckSlice';
 import useGeneralLabelsHook from '../../../../hook/Labels/useGenerallablehoo';
+import { fetchInsights } from '../../../../redux/slices/insightSlice';
 
 
 
@@ -53,8 +54,8 @@ const Dashboard = (props) => {
     const { stloading, stateMentError } = useSelector((state) => state.statement);
     const { getaccounterror, getaccountloading } = useSelector((state) => state.getaccount);
     const { dashboardmenudata, dashboardmenuloading, dashboardmenuerror } = useSelector((state) => state.dashboardmenu);
-    const {handpickcheckdata} = useSelector((state) => state.handpicheck);
-    const { marketplacedata, marketPlaceCategory, marketplaceFeature,marketPlaceHandpickOffer,marketplaceFlag } = useSelector((state) => state.marketplace);
+    const { handpickcheckdata } = useSelector((state) => state.handpicheck);
+    const { marketplacedata, marketPlaceCategory, marketplaceFeature, marketPlaceHandpickOffer, marketplaceFlag } = useSelector((state) => state.marketplace);
     const dispatch = useDispatch();
     const [bankResFreshLoading, setBankResFreshLoading] = useState(false)
     const featureStatus = useDashBordFeatureFlow();
@@ -70,11 +71,11 @@ const Dashboard = (props) => {
     } = useConnectBank({ navigation, screen: "Dashboard" });
 
 
-    useEffect(()=>{
-      if(defbank && marketplaceFlag !== 'Everyone' ) {
-        dispatch(fetchHandpickCheck({ code: defbank?.chirp_request }))
-      }
-    },[marketplaceFlag,defbank])
+    useEffect(() => {
+        if (defbank && marketplaceFlag !== 'Everyone') {
+            dispatch(fetchHandpickCheck({ code: defbank?.chirp_request }))
+        }
+    }, [marketplaceFlag, defbank])
 
 
 
@@ -138,6 +139,7 @@ const Dashboard = (props) => {
                 dispatch(fetchAuth());
                 dispatch(fetchgetAccount());
                 dispatch(fetchAccount());
+                dispatch(fetchInsights({ code: defbank?.chirp_request }))
                 setBankResFreshLoading(false)
 
             }

@@ -1,4 +1,3 @@
-// src/components/dashboard/PicksForYou.js
 import React, { useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
@@ -16,6 +15,7 @@ import { themeColors } from '../../../../Common';
 import useMarketplaceHook from '../../../../../hook/useOffersHook';
 import { getFontSize } from '../../../../../constants/Font';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
+import { mergeOffer } from '../../../../../utill/Utills';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.9;
@@ -32,19 +32,38 @@ export default function PicksForYou(props) {
 
   const { marketPlaceLabel } = useSelector((state) => state.labels || {});
   const { marketplaceFeature, marketPlaceHandpickOffer } = useSelector((state) => state.marketplace);
-  const { filterOffers, filterCategory } = useMarketplaceHook();
+  const { filterOffers, filterCategory, filterHandpickOffers, dashboardOfferId } = useMarketplaceHook();
 
 
 
-  const shuffleArray = useMemo(() => {
-    return [...marketPlaceHandpickOffer].sort(() => Math.random() - 0.5);
-  }, [marketPlaceHandpickOffer])
 
 
-  const financeOffer = useMemo(() => {
-    return filterOffers.find((obj) => obj?.id === '6a58fd36c6bb0bf9122bc75a')
 
-  }, [filterOffers])
+  // const financeOffer = useMemo(() => {
+  //   const openOffer = filterOffers.find((obj) => obj?.id === dashboardOfferId?.finance)
+  //   const handpick = filterHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.finance)
+  //   const finalOffer = mergeOffer(openOffer,handpick)
+  //   return finalOffer
+
+  // }, [filterOffers, filterHandpickOffers])
+
+const financeOffer = useMemo(() => {
+  const handpickOffer = filterHandpickOffers?.find(
+    obj => obj?.id === dashboardOfferId?.finance
+  );
+
+  if (handpickOffer) {
+    const finalOffer = mergeOffer(handpickOffer,[])
+    return finalOffer;
+  }
+
+  const openOffer = filterOffers?.find(
+    obj => obj?.id === dashboardOfferId?.finance
+  );
+   const finalOffer = mergeOffer(openOffer,[])
+
+  return finalOffer;
+}, [filterOffers, filterHandpickOffers]);
 
 
 
@@ -84,84 +103,88 @@ export default function PicksForYou(props) {
     </View>
   );
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>{marketPlaceLabel?.labels?.[1]?.message}</Text>
+  if (financeOffer) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.sectionTitle}>{marketPlaceLabel?.labels?.[1]?.message}</Text>
 
-      <View style={styles.cardsWrapper}>
-        <Animated.ScrollView
-          ref={scrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardsContainer}
-          onScroll={handleScroll}
-          onMomentumScrollEnd={handleScrollEnd}
-          scrollEventThrottle={16}
-          decelerationRate="fast"
-          snapToInterval={CARD_WIDTH + CARD_GAP}
-        >
-          {
-            financeOffer && 0 < financeOffer?.features?.length &&
-            financeOffer?.features.map((card, index) => {
+        <View style={styles.cardsWrapper}>
+          <Animated.ScrollView
+            ref={scrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.cardsContainer}
+            onScroll={handleScroll}
+            onMomentumScrollEnd={handleScrollEnd}
+            scrollEventThrottle={16}
+            decelerationRate="fast"
+            snapToInterval={CARD_WIDTH + CARD_GAP}
+          >
+            {
+              financeOffer && 0 < financeOffer?.features?.length &&
+              financeOffer?.features.map((card, index) => {
 
-              const details = marketplaceFeature.find((obj) => obj?._id === card.value)
-              const accent = details.card_bg
+                const details = marketplaceFeature.find((obj) => obj?._id === card?.feature.value)
+                const offer = filterOffers.find((obj) => obj?.id === card?.id)
+                const accent = details.card_bg
 
 
-              return (
-                <TouchableOpacity key={card.id ?? index} style={styles.card} onPress={() => {
-                  props?.navigation?.navigate('OfferDetailScreen', { product: financeOffer })
-                }}>
-                  {renderBackgroundShape(accent)}
-                  <View style={styles.cardContent}>
-                    <View style={styles.textColumn}>
-                      <Text style={styles.cardTitle} numberOfLines={1}>
-                        {details?.title || ''}
-                      </Text>
-                      <Text style={styles.cardDescription} numberOfLines={2}>
-                        {details?.short_description || ''}
-                      </Text>
+                return (
+                  <TouchableOpacity key={index} style={styles.card} onPress={() => {
+                    props?.navigation?.navigate('OfferDetailScreen', { product: offer })
+                  }}>
+                    {renderBackgroundShape(accent)}
+                    <View style={styles.cardContent}>
+                      <View style={styles.textColumn}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {details?.title || ''}
+                        </Text>
+                        <Text style={styles.cardDescription} numberOfLines={2}>
+                          {details?.short_description || ''}
+                        </Text>
+                      </View>
+
+                      <View style={styles.imageColumn}>
+                        <CloudImage
+                          style={styles.cardImageContent}
+                          page="product"
+                          cloudSource={details?.temp_image}
+                        />
+                      </View>
                     </View>
+                  </TouchableOpacity>
+                );
+              })
+            }
 
-                    <View style={styles.imageColumn}>
-                      <CloudImage
-                        style={styles.cardImageContent}
-                        page="product"
-                        cloudSource={details?.temp_image}
-                      />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          }
+          </Animated.ScrollView>
+        </View>
 
-        </Animated.ScrollView>
+        <View style={styles.indicatorContainer}>
+          {financeOffer && 1 < financeOffer?.features?.length &&
+            financeOffer?.features?.map((_, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => scrollToIndex(index)}
+                style={styles.dotTouchable}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.dotIndicator,
+                  activeIndex === index && styles.dotIndicatorActive,
+                ]} />
+              </TouchableOpacity>
+            ))}
+        </View>
       </View>
+    );
+  }
 
-      <View style={styles.indicatorContainer}>
-        {financeOffer && 1 < financeOffer?.features?.length &&
-          financeOffer?.features?.map((_, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => scrollToIndex(index)}
-              style={styles.dotTouchable}
-              activeOpacity={0.7}
-            >
-              <View style={[
-                styles.dotIndicator,
-                activeIndex === index && styles.dotIndicatorActive,
-              ]} />
-            </TouchableOpacity>
-          ))}
-      </View>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
   container: {
-margin:10
+    margin: 10
 
   },
   sectionTitle: {
@@ -170,7 +193,7 @@ margin:10
     fontWeight: '600',
     color: '#1b1b1b',
     marginBottom: 16,
-    fontFamily: 'System',
+
   },
   cardsWrapper: {
     width: '100%',

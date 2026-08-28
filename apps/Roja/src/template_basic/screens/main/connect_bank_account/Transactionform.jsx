@@ -153,14 +153,7 @@ const Transactionform = ({ navigation, route }) => {
 
       const account = await createTransaction(transactionForm, route?.params?.screen, dispatch);
 
-      Alert.alert(
-        'Success',
-        account.data.message,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (route?.params?.screen !== 'budget') {
+       if (route?.params?.screen !== 'budget') {
                  const data = {
                 bankaccount: transactionForm?.bankaccount,
                 account_guid: transactionForm.account_guid,
@@ -177,10 +170,36 @@ const Transactionform = ({ navigation, route }) => {
                 navigation.goBack()
               }
 
-            },
-          },
-        ]
-      );
+          
+
+      // Alert.alert(
+      //   'Success',
+      //   account.data.message,
+      //   [
+      //     {
+      //       text: 'OK',
+      //       onPress: () => {
+      //         if (route?.params?.screen !== 'budget') {
+      //            const data = {
+      //           bankaccount: transactionForm?.bankaccount,
+      //           account_guid: transactionForm.account_guid,
+      //           account_id: transactionForm.account_id,
+      //           type: transactionForm.type,
+      //           accountname: transactionForm?.institution_code,
+      //           transaction_source: transactionForm?.transaction_source
+      //       }
+
+      //           navigation.replace('Statement', data)
+      //         } else if (route?.params?.screen === 'budget') {
+      //           navigation.replace('Budget')
+      //         } else {
+      //           navigation.goBack()
+      //         }
+
+      //       },
+      //     },
+      //   ]
+      // );
     } catch (error) {
       console.log(error);
 
@@ -536,6 +555,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 50,
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: '#0F172A',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -552,7 +572,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
     marginBottom: 6,
   },
@@ -572,6 +592,7 @@ const styles = StyleSheet.create({
   },
   selectFieldText: {
     fontSize: 15,
+    fontFamily: fontsFamily.regularFont,
     color: '#0F172A',
   },
   submitButton: {
@@ -594,7 +615,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -624,22 +645,16 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#64748B',
     marginRight: 6,
   },
   amountInput: {
     flex: 1,
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont, // was missing
     color: '#0F172A',
     padding: 0,
   },
-
-
-
-
-
-
 });
-
 export default Transactionform;

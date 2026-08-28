@@ -13,6 +13,7 @@ import { generateReports, getavgMonthlydailybalance } from '../../constants/cont
 import { apiformatDate, formatDate } from '../../utill/Utills';
 import moment from 'moment';
 import timezone from 'moment-timezone'
+import { fontsFamily } from '../../constants/fontsFamily';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.66;
@@ -349,6 +350,7 @@ const AccountCards = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -364,7 +366,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#666',
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
   },
   errorContainer: {
     flex: 1,
@@ -388,7 +390,7 @@ const styles = StyleSheet.create({
   retryText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
   },
   emptyContainer: {
     flex: 1,
@@ -398,7 +400,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#666',
     marginTop: 10,
   },
@@ -463,7 +465,7 @@ const styles = StyleSheet.create({
     width: 178,
     color: 'white',
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
   },
   cardAccountSmall: {
     position: 'absolute',
@@ -471,16 +473,16 @@ const styles = StyleSheet.create({
     top: 40,
     width: 178,
     color: '#ebe8e8',
-    fontSize: 10,
-    fontWeight: '500',
+    fontSize: 12,
+    fontFamily: fontsFamily.mediumFont,
   },
   cardBalanceSmall: {
     position: 'absolute',
     left: 10,
     top: 60,
     color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontFamily: fontsFamily.boldFont,
   },
   cardHolderSmall: {
     position: 'absolute',
@@ -507,7 +509,7 @@ const styles = StyleSheet.create({
   cardButtonText: {
     color: 'white',
     fontSize: 10,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
   },
   carouselIndicators: {
     flexDirection: 'row',
@@ -561,7 +563,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: fontsFamily.boldFont,
   },
   detailedCardWrapper: {
     flex: 1,
@@ -599,12 +601,12 @@ const styles = StyleSheet.create({
   bankLogoText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontFamily: fontsFamily.boldFont,
   },
   cardTitle: {
     color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: fontsFamily.boldFont,
   },
   cardAccount: {
     color: 'rgba(255,255,255,0.7)',
@@ -614,7 +616,7 @@ const styles = StyleSheet.create({
   cardBalance: {
     color: 'white',
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: fontsFamily.boldFont,
     marginBottom: 15,
   },
   divider: {
@@ -647,7 +649,7 @@ const styles = StyleSheet.create({
   cardValue: {
     color: 'white',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontFamily: fontsFamily.boldFont,
   },
   section: {
     marginBottom: 25,
@@ -655,7 +657,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: fontsFamily.boldFont,
     marginBottom: 15,
   },
   infoGrid: {
@@ -678,7 +680,7 @@ const styles = StyleSheet.create({
   infoValue: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
   },
   transactionItem: {
     flexDirection: 'row',
@@ -709,7 +711,8 @@ const styles = StyleSheet.create({
   transactionDesc: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '500',
+
+    fontFamily: fontsFamily.mediumFont,
   },
   transactionDate: {
     color: 'rgba(255,255,255,0.5)',
@@ -722,7 +725,8 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: 14,
-    fontWeight: 'bold',
+
+    fontFamily: fontsFamily.boldFont,
   },
   positiveAmount: {
     color: '#4CAF50',

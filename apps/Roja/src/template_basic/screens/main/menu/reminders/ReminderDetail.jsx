@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, StatusBar, Animated, Dimensions, Alert } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
@@ -17,6 +17,8 @@ import PromptModel from '../../../../component/PromptModel';
 import GradientCard from '../../../../component/GradientCard';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
 import { getFontSize } from '../../../../../constants/Font';
+import appLog from '../../../../../constants/logger';
+import { BottomContext } from '../../../../../context/BottomContext';
 
 const { width } = Dimensions.get('window');
 
@@ -35,6 +37,7 @@ export default function ReminderDetail({ }) {
   const [loading, setloading] = useState(false)
   const [isCancel, setIsCancel] = useState(false)
   const [isDelete, setIsDelete] = useState(false)
+  const { enableMenu, disableMenu } = useContext(BottomContext);
   const cancelContent = 'Ending this reminder will only mark it as completed. It will not delete the reminder or its associated history'
   const deleteContent = "Once it's deleted, you won't be able to recover it"
 
@@ -56,6 +59,7 @@ export default function ReminderDetail({ }) {
     const billone = billdata?.find((item) => item?._id === reminder?.bill_id || item?._id === reminder?._id)
     console.log(billone)
     setDetails(billone)
+    disableMenu()
   }, [billdata, reminder])
 
   useEffect(() => {
@@ -121,8 +125,11 @@ export default function ReminderDetail({ }) {
     try {
       const billDelete = await deleteBill(details, dispatch)
       navigation.replace('Reminders')
+      CommonFunction.message(billDelete?.data?.message ?? '')
+      setIsDelete(false)
     } catch (error) {
-      console.log(error)
+      setIsDelete(false)
+      CommonFunction.message(error?.response?.data?.message ?? '')
     } finally {
       setloading(false)
     }
@@ -133,8 +140,13 @@ export default function ReminderDetail({ }) {
     setloading(true)
     try {
       const cancel = await cancelBill(details, dispatch)
+      setIsCancel(false)
+
+      CommonFunction.message(cancel?.data?.message ?? '')
     } catch (error) {
-      console.log(error)
+      CommonFunction.message(error?.response?.data?.message ?? '')
+      setIsCancel(false)
+
     } finally {
       setloading(false)
     }
@@ -153,7 +165,7 @@ export default function ReminderDetail({ }) {
   );
 
   const PaymentHistoryItem = ({ item }) => {
-    console.log(item)
+
     const accountDetails = item?.account_id
     var number = ''
     if (accountDetails?.account_number) {
@@ -261,7 +273,7 @@ export default function ReminderDetail({ }) {
 
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
@@ -270,7 +282,10 @@ export default function ReminderDetail({ }) {
         edit={reminder?.status === 'Active' && paidBill.length === 0 ? () => {
           editReminder()
         } : ''}
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => {
+          enableMenu()
+          navigation.goBack()
+        }}
       />
 
       <Animated.ScrollView
@@ -391,7 +406,7 @@ export default function ReminderDetail({ }) {
 
           <View style={styles.detailsGrid}>
             <DetailRow label="Name" value={reminder?.name} icon="file-text" />
-            <DetailRow label="Amount"  value={`${storedata?.currency || ''}${CommonFunction.formatamount(reminder?.amount || 0)}`} icon="dollar-sign" />
+            <DetailRow label="Amount" value={`${storedata?.currency || ''}${CommonFunction.formatamount(reminder?.amount || 0)}`} icon="dollar-sign" />
             <DetailRow label="Category" value={details?.category_id?.category} icon="tag" />
             <DetailRow label="Type" value={details?.type} icon="file" />
             <DetailRow label="Start Date" value={formatDate(details?.startdate)} icon="calendar" />
@@ -491,8 +506,7 @@ export default function ReminderDetail({ }) {
         subhead={isCancel ? 'Are you sure you want to cancel this reminder?' : 'Are you sure you want to delete this reminder?'}
         content={isCancel ? cancelContent : deleteContent}
         onClose={() => {
-          setIsCancel(false)
-          setIsDelete(false)
+
         }}
         onSubmit={() => {
           isCancel ? handleCancel() : handleDelete()
@@ -503,6 +517,7 @@ export default function ReminderDetail({ }) {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -536,9 +551,9 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   headerBankText: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: getFontSize(13),
     color: '#fff',
-    fontWeight: '500',
   },
   headerManualBadge: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -559,14 +574,14 @@ const styles = StyleSheet.create({
 
   },
   headerTitle: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 22,
-    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   headerDate: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 13,
-    fontWeight: '600',
     color: '#FFFFFF',
   },
   // Amount Section
@@ -579,8 +594,8 @@ const styles = StyleSheet.create({
     marginBottom: 0
   },
   headerAmount: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: getFontSize(18),
-    fontWeight: '700',
     color: '#FFFFFF',
   },
   headerStatusBadge: {
@@ -599,9 +614,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#22C55E',
   },
   headerStatusText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 12,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   // Mark as Paid Button
   markPaidButton: {
@@ -618,8 +633,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   markPaidText: {
+    fontFamily: fontsFamily.boldFont,
     fontSize: 14,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
   // Details Section
@@ -647,8 +662,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitle: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
-    fontWeight: '600',
     color: '#0F172A',
     flex: 1,
   },
@@ -666,8 +681,8 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   statusBadgeText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
-    fontWeight: '600',
     color: '#10B981',
   },
   detailsGrid: {
@@ -695,14 +710,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   detailLabel: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '500',
   },
   detailValue: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 13,
     color: '#0F172A',
-    fontWeight: '500',
   },
   // History Section
   historySection: {
@@ -721,8 +736,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   paymentHistoryTitle: {
+    fontFamily: fontsFamily.mediumFont,
     fontSize: 14,
-    fontWeight: '500',
     color: '#0F172A',
   },
   paymentHistoryDate: {
@@ -735,8 +750,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   paymentHistoryAmount: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0F172A',
   },
   paymentStatusBadge: {
@@ -753,8 +768,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   paymentStatusText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 10,
-    fontWeight: '600',
     color: '#10B981',
   },
   bottomPadding: {
@@ -762,10 +777,10 @@ const styles = StyleSheet.create({
   },
   // Fixed Action Buttons
   fixedActionContainer: {
-    top: 20,
+
     marginStart: 15,
     marginEnd: 15,
-    marginBottom: 0,
+    marginBottom: 10,
     flexDirection: 'row',
 
   },
@@ -778,8 +793,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButtonText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
-    fontWeight: '600',
     color: '#fff',
   },
   deleteButton: {
@@ -796,8 +811,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   deleteButtonText: {
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 15,
-    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

@@ -32,23 +32,11 @@ import CommonFunction from '../../../../utill/CommonFunction';
 import CloudImage from '../../../../utill/CloudImage';
 import { downloadFile } from '../../../../utill/downloadFile';
 import { content } from '../../../../constants/content';
+import { fontsFamily } from '../../../../constants/fontsFamily';
 
 const { width } = Dimensions.get('window');
 
-/* -------------------------------------------------------------------------
- * Native savings table (purple header / green "You Pay" & "Savings" cols /
- * horizontal-scroll arrow + progress bar) — matches the "Sample Savings"
- * block in the purchase-summary screenshot.
- *
- * FIX: column widths are now computed dynamically from the actual header
- * + cell content for THIS table, instead of a single hardcoded 5-column
- * width map. That hardcoded map assumed every table was exactly
- * [name, avg, youPay, saved, percent] at fixed pixel widths, which is why
- * longer real-world labels ("Hydrochlorot Tab 25mg", "Cyclobenzapr Tab
- * 10mg", "Vitamin D Cap 50000...") were getting clipped with "..." even
- * though the row itself could still be scrolled horizontally — scrolling
- * moves the whole row, it doesn't reveal more of a single truncated cell.
- * ---------------------------------------------------------------------- */
+
 const CustomNativeTable = ({ headers, rows }) => {
   const [scrollState, setScrollState] = useState({
     isAtStart: true,
@@ -56,8 +44,7 @@ const CustomNativeTable = ({ headers, rows }) => {
     progress: 0,
   });
 
-  // Estimate a column's width from the longest header/cell text it holds,
-  // clamped to a sane min/max so no column collapses or blows out.
+
   const CHAR_WIDTH = 7.2; // approx px per character at fontSize 11
   const MIN_COL_WIDTH = 70;
   const MAX_COL_WIDTH = 170;
@@ -241,9 +228,6 @@ const getPreambleText = (html) => {
     .trim();
 };
 
-/* -------------------------------------------------------------------------
- * Robust HTML Parsing for Multiple Tables and Mixed Content
- * ---------------------------------------------------------------------- */
 
 const parseAllContent = (html) => {
   if (!html) return [];
@@ -441,7 +425,6 @@ export default function OfferSummaryScreen() {
     productData: null,
   };
 
-  // appLog.error(productData);
 
   const sortedProducts = [...selectedProducts].sort((a, b) => {
     if (a.type === 'main') return -1;
@@ -471,7 +454,7 @@ export default function OfferSummaryScreen() {
   const handleBackPress = () => navigation.goBack();
 
   const shareOrder = () => {
-    const productName = productData?.name || mainProduct?.title || 'Virtual Telehealth ++';
+    const productName = productData?.name || mainProduct?.title || '';
     Share.share({
       message: `I just enrolled in ${productName} with ${addOnProducts.length} add-ons for $${totalAmount}! 🏥💊`,
     });
@@ -544,7 +527,7 @@ export default function OfferSummaryScreen() {
     } finally {
       setDownloading(false);
     }
-    
+
   };
 
   const handleShareTerms = async () => {
@@ -582,7 +565,6 @@ export default function OfferSummaryScreen() {
       note: dynamicFeature?.insurance_instructions,
       activation_details: dynamicFeature?.activation_details
 
-      // Sample savings tables and other properties are now parsed from HTML if present
     };
 
     if (!details.title) return null;
@@ -618,7 +600,7 @@ export default function OfferSummaryScreen() {
 
             </View>
           }
-          {details.benefits_list?.length > 0 && (
+          {details?.benefits_list?.length > 0 && (
             <View style={styles.infoBlock}>
               <Text style={[styles.infoBlockTitle, { fontSize: 16, marginBottom: 8, marginTop: 20 }]}>Key Benefits</Text>
               {details.benefits_list.map((benefit, idx) => (
@@ -753,7 +735,6 @@ export default function OfferSummaryScreen() {
 
   }, [productData?.tcfile])
 
-  console.log(pdfFile)
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
@@ -833,7 +814,7 @@ export default function OfferSummaryScreen() {
 
 
         {
-          productData && productData?.tcfile !== 'null' && <View style={styles.termsLinkWrapper}>
+          productData && productData?.tcfile !== 'null' && productData?.tcfile !== undefined && <View style={styles.termsLinkWrapper}>
             <TouchableOpacity
               style={styles.termsLinkContainer}
               onPress={() => setTermsModalVisible(true)}
@@ -941,9 +922,9 @@ const styles = StyleSheet.create({
     borderColor: '#22C55E',
   },
   successImage: { width: 40, height: 40 },
-  successTitle: { fontWeight: '600', fontSize: 20, color: '#1B1B1B', marginBottom: 4 },
+  successTitle: { fontFamily: fontsFamily.semiboldFont, fontSize: 20, color: '#1B1B1B', marginBottom: 4 },
   successSubtitle: {
-    fontWeight: '400',
+    fontFamily: fontsFamily.regularFont,
     fontSize: 14,
     color: '#676767',
     textAlign: 'center',
@@ -961,8 +942,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   successStat: { flex: 1, alignItems: 'center' },
-  successStatValue: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  successStatLabel: { fontSize: 10, color: '#64748B', marginTop: 2 },
+  successStatValue: { fontSize: 18, fontFamily: fontsFamily.boldFont, color: '#0F172A' },
+  successStatLabel: { fontSize: 10, fontFamily: fontsFamily.regularFont, color: '#64748B', marginTop: 2 },
   successStatDivider: { width: 1, height: 30, backgroundColor: '#E2E8F0' },
 
   // Sticky Tabs
@@ -988,7 +969,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   filterTagActive: { backgroundColor: '#3F2B96' },
-  filterTagText: { fontSize: 13, fontWeight: '500', color: '#475569' },
+  filterTagText: { fontSize: 13, fontFamily: fontsFamily.mediumFont, color: '#475569' },
   filterTagTextActive: { color: '#FFFFFF' },
   activeIndicator: {
     width: 16,
@@ -1017,17 +998,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  benefitCardTitle: { fontWeight: '700', fontSize: 24, color: '#1B1B1B', lineHeight: 30 },
+  benefitCardTitle: { fontFamily: fontsFamily.boldFont, fontSize: 24, color: '#1B1B1B', lineHeight: 30 },
   benefitCardBody: { paddingHorizontal: 20, paddingVertical: 16 },
-  benefitCardDescription: { fontSize: 14, color: '#475569', lineHeight: 22, marginBottom: 14 },
+  benefitCardDescription: { fontSize: 14, fontFamily: fontsFamily.regularFont, color: '#475569', lineHeight: 22, marginBottom: 14 },
 
   infoBlock: { marginBottom: 14 },
-  infoBlockTitle: { fontWeight: '700', fontSize: 15, color: '#1B1B1B', marginBottom: 6 },
-  infoBlockText: { fontSize: 13, color: '#475569', lineHeight: 20 },
+  infoBlockTitle: { fontFamily: fontsFamily.boldFont, fontSize: 15, color: '#1B1B1B', marginBottom: 6 },
+  infoBlockText: { fontSize: 13, fontFamily: fontsFamily.regularFont, color: '#475569', lineHeight: 20 },
 
   careItem: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 2, paddingLeft: 4 },
   careDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#5A21F1', marginTop: 6, marginRight: 8, flexShrink: 0 },
-  careItemText: { fontSize: 12, color: '#475569', lineHeight: 18, flex: 1 },
+  careItemText: { fontSize: 12, fontFamily: fontsFamily.regularFont, color: '#475569', lineHeight: 18, flex: 1 },
 
   contactRow: {
     flexDirection: 'row',
@@ -1037,7 +1018,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  contactText: { fontSize: 14, color: '#5A21F1', fontWeight: '500' },
+  contactText: { fontSize: 14, color: '#5A21F1', fontFamily: fontsFamily.mediumFont },
 
   // Promo Code Styles
   promoSection: {
@@ -1049,7 +1030,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   promoSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  promoSectionTitle: { fontSize: 15, fontWeight: '600', color: '#0F172A' },
+  promoSectionTitle: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: '#0F172A' },
   promoCodeCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1061,7 +1042,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   promoCodeCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  promoCodeCardTitle: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  promoCodeCardTitle: { fontSize: 12, color: '#64748B', fontFamily: fontsFamily.mediumFont },
   promoCodeCardCode: {
     fontSize: 14,
     fontWeight: '700',
@@ -1081,7 +1062,7 @@ const styles = StyleSheet.create({
     borderColor: '#C7D2FE',
   },
   promoCodeCopied: { backgroundColor: '#DCFCE7', borderColor: '#86EFAC' },
-  promoCodeCopyText: { fontSize: 12, fontWeight: '600', color: '#5A21F1' },
+  promoCodeCopyText: { fontSize: 12, fontFamily: fontsFamily.semiboldFont, color: '#5A21F1' },
   promoCodeCopiedText: { color: '#22C55E' },
   promoFooter: {
     flexDirection: 'row',
@@ -1092,8 +1073,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
-  promoFooterText: { fontSize: 11, color: '#6B7280', fontWeight: '400' },
-  promoNote: { fontSize: 12, color: '#64748B', lineHeight: 18, marginTop: 4, marginBottom: 10 },
+  promoFooterText: { fontSize: 11, color: '#6B7280', fontFamily: fontsFamily.regularFont },
+  promoNote: { fontSize: 12, fontFamily: fontsFamily.regularFont, color: '#64748B', lineHeight: 18, marginTop: 4, marginBottom: 10 },
 
   // Table Styles
   tableContainer: {
@@ -1119,7 +1100,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderBottomWidth: 0,
   },
-  tableHeaderText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  tableHeaderText: { fontSize: 11, fontFamily: fontsFamily.boldFont, color: '#FFFFFF', letterSpacing: 0.3 },
   tableHeaderLeft: { textAlign: 'left', paddingLeft: 4 },
   tableHeaderCenter: { textAlign: 'center' },
   tableHeaderRight: { textAlign: 'right', paddingRight: 4 },
@@ -1132,13 +1113,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
   },
-  tableCell: { fontSize: 11, color: '#334155' },
-  tableCellLeft: { textAlign: 'left', paddingLeft: 4, fontWeight: '500' },
+  tableCell: { fontSize: 11, fontFamily: fontsFamily.regularFont, color: '#334155' },
+  tableCellLeft: { textAlign: 'left', paddingLeft: 4, fontFamily: fontsFamily.mediumFont },
   tableCellCenter: { textAlign: 'center' },
   tableCellRight: { textAlign: 'right', paddingRight: 4 },
-  youPayText: { color: '#0F172A', fontWeight: '600' },
-  savingsAmountText: { color: '#22C55E', fontWeight: '600' },
-  savingsPercent: { color: '#22C55E', fontWeight: '700', fontSize: 12 },
+  youPayText: { color: '#0F172A', fontFamily: fontsFamily.semiboldFont },
+  savingsAmountText: { color: '#22C55E', fontFamily: fontsFamily.semiboldFont },
+  savingsPercent: { color: '#22C55E', fontFamily: fontsFamily.boldFont, fontSize: 12 },
 
   // Scroll Indicators
   scrollIndicator: {
@@ -1178,7 +1159,7 @@ const styles = StyleSheet.create({
   scrollProgressFill: { height: '100%', backgroundColor: '#3F2B96', borderRadius: 2 },
 
   savingsSection: { marginTop: 12, marginBottom: 12 },
-  savingsSectionTitle: { fontWeight: '700', fontSize: 15, color: '#1B1B1B', marginBottom: 8 },
+  savingsSectionTitle: { fontFamily: fontsFamily.boldFont, fontSize: 15, color: '#1B1B1B', marginBottom: 8 },
 
   noteText: {
     fontSize: 12,
@@ -1200,7 +1181,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FCD34D',
   },
-  disclaimerText: { fontSize: 12, color: '#92400E', lineHeight: 18, fontWeight: '500' },
+  disclaimerText: { fontSize: 12, color: '#92400E', lineHeight: 18, fontFamily: fontsFamily.mediumFont },
 
   disclosureContainer: {
     marginTop: 12,
@@ -1210,8 +1191,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FCD34D',
   },
-  disclosureTitle: { fontSize: 13, fontWeight: '700', color: '#92400E', marginBottom: 4 },
-  disclosureText: { fontSize: 12, color: '#78350F', lineHeight: 18 },
+  disclosureTitle: { fontSize: 13, fontFamily: fontsFamily.boldFont, color: '#92400E', marginBottom: 4 },
+  disclosureText: { fontSize: 12, fontFamily: fontsFamily.regularFont, color: '#78350F', lineHeight: 18 },
 
   ctaButton: {
     marginTop: 16,
@@ -1224,11 +1205,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   ctaGradient: { height: 50, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { fontWeight: '600', fontSize: 16, color: '#FFFFFF' },
+  ctaText: { fontFamily: fontsFamily.semiboldFont, fontSize: 16, color: '#FFFFFF' },
 
   termsLinkWrapper: { marginHorizontal: 16, marginTop: 8, marginBottom: 4 },
   termsLinkContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 6 },
-  termsLinkText: { fontSize: 14, fontWeight: '500', color: '#5A21F1', textDecorationLine: 'underline' },
+  termsLinkText: { fontSize: 14, fontFamily: fontsFamily.mediumFont, color: '#5A21F1', textDecorationLine: 'underline' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContainer: {
@@ -1248,7 +1229,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  modalTitle: { fontSize: 18, fontFamily: fontsFamily.boldFont, color: '#0F172A' },
   modalHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   modalHeaderButton: { padding: 4 },
   modalCloseButton: { padding: 4 },
@@ -1260,9 +1241,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   modalContentContainer: { paddingBottom: 16 },
-  modalText: { fontSize: 13, lineHeight: 22, color: '#334155', fontWeight: '400' },
+  modalText: { fontSize: 13, lineHeight: 22, color: '#334155', fontFamily: fontsFamily.regularFont },
   modalFooterButton: { marginHorizontal: 20, borderRadius: 10, overflow: 'hidden', marginBottom: 10 },
   modalFooterGradient: { alignItems: 'center', justifyContent: 'center', height: 50, },
-  modalFooterText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  modalFooterText: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: '#FFFFFF' },
   bottomPadding: { height: 20 },
 });

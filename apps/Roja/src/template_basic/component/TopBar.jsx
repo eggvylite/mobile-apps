@@ -186,7 +186,12 @@ const TopBar = memo(({
               onPress={() => navigation.navigate('EWADetailScreen')}
               activeOpacity={0.7}
             >
-              <View style={styles.ewaContainer}>
+              {
+                storedata?.plan === 'Yes' ? 
+                  <View style={styles.ewaContent}>
+                  <FontAwesome name="info-circle" size={22} color="#5A21F1" />
+                </View> :
+                    <View style={styles.ewaContainer}>
                 <Animated.View
                   style={[
                     styles.ewaWave,
@@ -218,6 +223,8 @@ const TopBar = memo(({
                   <FontAwesome name="info-circle" size={22} color="#5A21F1" />
                 </View>
               </View>
+              }
+          
             </TouchableOpacity>
           )}
 

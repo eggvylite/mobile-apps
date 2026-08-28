@@ -128,7 +128,7 @@ export default function SelectPaymentMethod({ route }) {
       const amountToAdvance = route.params?.advance_amount || activeSub?.plan_cash_upto;
       const successAmount =
         route.params?.payment_mode === 'Instant_funding'
-          ? amountToAdvance - (activeSub?.plan_instant_funding_price || 0)
+          ? amountToAdvance - (route?.params?.instant_funding_price || 0)
           : amountToAdvance;
       const payload = {
         advance_amount: amountToAdvance,
@@ -138,6 +138,7 @@ export default function SelectPaymentMethod({ route }) {
         platform: CommonFunction.getOS(),
         ipaddress: await CommonFunction.getipaddress(),
         pm: selectedMethod,
+        instant_fund_charge: route?.params?.instant_funding_price ?? 0
       };
 
       api.post('advances/' + storedata.id, payload)
@@ -373,11 +374,14 @@ export default function SelectPaymentMethod({ route }) {
               {storedata?.currency}{CommonFunction.formatamount(route.params?.advance_amount || activeSub?.plan_cash_upto)}
             </Text>
           </View>
+          {
+            appLog.error(route.params)
+          }
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Convenience Fee</Text>
             <Text style={[styles.summaryValue, { color: route.params?.payment_mode === 'Instant_funding' ? '#EF4444' : '#10B981' }]}>
               {route.params?.payment_mode === 'Instant_funding'
-                ? `${storedata?.currency}${CommonFunction.formatamount(activeSub?.plan_instant_funding_price)}`
+                ? `${storedata?.currency}${CommonFunction.formatamount(route?.params?.instant_funding_price ?? 0)}`
                 : `${storedata?.currency}0.00`}
             </Text>
           </View>

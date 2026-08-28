@@ -40,15 +40,14 @@ export default function RecommendedSection(props) {
   const scrollViewRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
-  const { filterOffers, filterCategory } = useMarketplaceHook();
+  const { filterOffers, filterCategory,dashboardOfferId } = useMarketplaceHook();
   const { offerRec, offerssdata, advanceOffer } = useDashboardOffers();
   const { marketPlaceLabel } = useSelector((state) => state.labels || {});
   const { userId, setUserId, userName, setUserName } = useUser();
+  const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
   const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
 
-  // Only render as many cards as we actually have offers for, and keep the
-  // dot indicators in sync with that same sliced list (previously the dots
-  // mapped over the full advanceOffer array while only 4 cards rendered).
+
   const visibleOffers = (advanceOffer || []).slice(0, 4);
 
   const handleScroll = Animated.event(
@@ -127,12 +126,10 @@ export default function RecommendedSection(props) {
       : description;
   };
 
-  const services1 = useMemo(() => {
-    return filterCategory.filter((obj) => obj?._id !== 'All')
-  }, [filterCategory])
+
 
   const services = useMemo(() => {
-    return filterOffers.find((obj) => obj?.id === '6a58fac671bb94adadcd8350')
+    return filterOffers.find((obj) => obj?.id === dashboardOfferId?.roadside)
   }, [filterOffers])
 
 
@@ -164,6 +161,7 @@ export default function RecommendedSection(props) {
               const palette = categoryDetails?.card_bg
               const progressWidth = cards[index].progressWidth ?? 0;
 
+
               return (
                 <TouchableOpacity
                   key={index}
@@ -189,7 +187,7 @@ export default function RecommendedSection(props) {
 
                   <View style={[styles.textContent, { marginTop: 15 }]}>
                     <Text style={styles.cardTitle} numberOfLines={1}>
-                      {categoryDetails.title}
+                      {categoryDetails?.title || ''}
                     </Text>
 
                     <Text style={styles.cardDescription} numberOfLines={3}>
@@ -214,7 +212,7 @@ export default function RecommendedSection(props) {
                         {progressWidth ? `${progressWidth}% Chance` : ''}
                       </Text>
                       <Text style={styles.label} numberOfLines={1}>
-                        {cards[index].amount}
+                        {0 < categoryDetails?.price ? `${storedata?.currency}${CommonFunction.formatamount(categoryDetails?.price)}`: categoryDetails?.pricing_type}
                       </Text>
                     </View>
                   </View>
@@ -250,8 +248,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#1b1b1b',
     marginBottom: 16,
   },
@@ -302,23 +299,20 @@ const styles = StyleSheet.create({
     right: 10,
     shadowColor: '#000',
   },
-  // Text now flows naturally below the icon row instead of being pinned
-  // to hardcoded top offsets, so longer API strings push the progress
-  // section down rather than overlapping it.
+
   textContent: {
     paddingHorizontal: 9,
     marginTop: 10,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0f0f0f',
     lineHeight: 18,
   },
   cardDescription: {
     fontSize: getFontSize(10),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     color: '#474747',
     lineHeight: 15,
     marginTop: 4,
@@ -348,7 +342,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 8,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#5b5b5b',
     maxWidth: '48%',
   },

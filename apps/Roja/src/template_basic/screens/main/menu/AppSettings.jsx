@@ -291,6 +291,7 @@ export default function AppSettings() {
   );
 }
 
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -333,8 +334,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: getFontSize(14),
-    fontFamily:fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#0F172A',
   },
   sectionContent: {
@@ -365,15 +365,13 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: getFontSize(14),
-    fontFamily:fontsFamily.regularFont,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     color: '#0F172A',
   },
   versionText: {
     fontSize: getFontSize(14),
-    fontFamily:fontsFamily.regularFont,
+    fontFamily: fontsFamily.mediumFont,
     color: '#94A3B8',
-    fontWeight: '500',
   },
   // Logout Button
   logoutButton: {
@@ -390,8 +388,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: getFontSize(15),
-    fontFamily:fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     color: '#DC2626',
   },
   bottomPadding: {

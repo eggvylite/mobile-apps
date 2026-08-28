@@ -26,7 +26,7 @@ import appLog from '../../constants/logger';
 import { fetchNotication } from '../../redux/slices/notificationSlice';
 import api from '../../service/api';
 import CommonFunction from '../../utill/CommonFunction';
-
+import moment from 'moment';
 
 const NotificationDestailsScreen = () => {
   const navigation = useNavigation();
@@ -88,7 +88,7 @@ const NotificationDestailsScreen = () => {
     api.post('customer/deletepush', payLoad).then((response) => {
       setSelectedIds([]);
       setIsConfirmModalOpen(false);
-       dispatch(fetchNotication(100));
+      dispatch(fetchNotication(100));
       setLoading(false)
       CommonFunction.message(response?.data?.message || 'Notification deleted successfully')
     }).catch((err) => {
@@ -98,325 +98,330 @@ const NotificationDestailsScreen = () => {
   }
 
 
-    async function readNotificationService() {
-        if (!storedata?.id) return false;
-        api.get('customer/read/' + storedata?.id).then((response) => {
-            appLog.info(response?.data)
-            }).catch((error)=>{
-            appLog.error(error.response.data)
-        })
-        }
+  async function readNotificationService() {
+    if (!storedata?.id) return false;
+    api.get('customer/read/' + storedata?.id).then((response) => {
+      appLog.info(response?.data)
+    }).catch((error) => {
+      appLog.error(error.response.data)
+    })
+  }
 
-    const handleDeleteSelected = () => {
-        if (selectedIds.length === 0) return;
-        setIsConfirmModalOpen(true)
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    setIsConfirmModalOpen(true)
 
-    };
+  };
 
-    const getCategoryConfig = (item) => {
+  const getCategoryConfig = (item) => {
 
-        let category = item.category?.toLowerCase();
+    let category = item.category?.toLowerCase();
+    if (!category) {
+      const title = item.title?.toLowerCase() || '';
+      if (title.includes('advance') || title.includes('wage')) category = 'advance';
+      else if (title.includes('subscription')) category = 'subscription';
+      else if (title.includes('budget') || title.includes('goal')) category = 'budget';
+      else category = 'general';
+    }
 
-        appLog.error(category)
-        if (!category) {
-            const title = item.title?.toLowerCase() || '';
-            if (title.includes('advance') || title.includes('wage')) category = 'advance';
-            else if (title.includes('subscription')) category = 'subscription';
-            else if (title.includes('budget') || title.includes('goal')) category = 'budget';
-            else category = 'general';
-        }
-
-        switch (category) {
-            case 'advance':
-                return { icon: 'zap', color: '#10B981', bg: '#D1FAE5' };
-            case 'subscription':
-                return { icon: 'refresh-cw', color: '#3B82F6', bg: '#DBEAFE' };
-            case 'budget':
-                return { icon: 'pie-chart', color: '#F59E0B', bg: '#FEF3C7' };
-            default:
-                return { icon: 'bell', color: '#5A21F1', bg: '#EDE9FE' };
-        }
-    };
-
-    const formatDate = (dateString) => {
-        const today = new Date();
-        const date = new Date(dateString);
-        const diffTime = Math.abs(today - date);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays <= 7) return `${diffDays} days ago`;
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+    switch (category) {
+      case 'advance':
+        return { icon: 'zap', color: '#10B981', bg: '#D1FAE5' };
+      case 'subscription':
+        return { icon: 'refresh-cw', color: '#3B82F6', bg: '#DBEAFE' };
+      case 'budget':
+        return { icon: 'pie-chart', color: '#F59E0B', bg: '#FEF3C7' };
+      default:
+        return { icon: 'bell', color: '#5A21F1', bg: '#EDE9FE' };
+    }
+  };
 
 
-    const renderNotificationItem = ({ item }) => {
-        const isSelected = selectedIds.includes(item.id);
-        const config = getCategoryConfig(item);
 
-        return (
-            <TouchableOpacity
-                style={[
-                    styles.notificationCard,
-                    isSelected && styles.selectedCard,
-                ]}
-                onPress={() => {
-                    if (isSelectionMode) {
-                        toggleSelect(item.id);
-                    } else {
-                        handleNotificationPress(item.id);
-                    }
-                }}
-                onLongPress={() => {
-                    setIsSelectionMode(true);
-                    toggleSelect(item.id);
-                }}
-                activeOpacity={0.7}
-            >
-                {isSelectionMode && (
-                    <View style={styles.checkboxContainer}>
-                        <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                            {isSelected && <Feather name="check" size={14} color="#FFFFFF" />}
-                        </View>
-                    </View>
-                )}
+  const formatDate = (dateString) => {
+    const date = moment(dateString);
 
-                <View style={[styles.notificationContent, isSelectionMode && styles.contentWithCheckbox]}>
+    if (date.isSame(moment(), 'day')) return 'Today';
+    if (date.isSame(moment().subtract(1, 'day'), 'day')) return 'Yesterday';
 
-                    <View style={[styles.iconContainer, { backgroundColor: config.bg }]}>
-                        <Feather name={config.icon} size={20} color={config.color} />
-                    </View>
+    const days = moment().diff(date, 'days');
 
-                    <View style={styles.notificationTextContainer}>
-                        <View style={styles.notificationHeader}>
-                            <Text style={[styles.notificationTitle]}>
-                                {item.title}
-                            </Text>
-                            <Text style={styles.notificationTime}>{item.time}</Text>
-                        </View>
-                        <Text style={[styles.notificationDescription]}>
-                            {item.body || item.description}
-                        </Text>
-                        <View style={styles.notificationFooter}>
-                            <Text style={styles.notificationDate}>
-                                {formatDate(item.createdAt || item.date)}
-                            </Text>
+    if (days > 1 && days <= 7) {
+      return `${days} days ago`;
+    }
+    const format = storedata?.format || 'MMM D, YYYY';
 
-                        </View>
-                    </View>
-                </View>
-            </TouchableOpacity>
-        );
-    };
+    return date.format(format);
+  };
 
-    const renderEmptyState = () => (
-        <View style={styles.emptyState}>
-            <LinearGradient
-                colors={['#EDE9FE', '#DDD6FE']}
-                style={styles.emptyIconContainer}
-            >
-                <Feather name="bell-off" size={48} color="#5A21F1" />
-            </LinearGradient>
-            <Text style={styles.emptyTitle}>All Caught Up!</Text>
-            <Text style={styles.emptyDescription}>
-                You have no notifications. Check back later for updates.
-            </Text>
-        </View>
-    );
 
-    const NotificationSkeleton = () => (
-        <View style={styles.listContainer}>
-            <SkeletonPlaceholder backgroundColor="#E2E8F0" highlightColor="#F8FAFC">
-                <View style={styles.listContent}>
-                    {[1, 2, 3, 4, 5, 6].map((item) => (
-                        <View key={item} style={[styles.notificationCard, { marginBottom: 10 }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                                <View style={{ width: 40, height: 40, borderRadius: 12 }} />
-                                <View style={{ flex: 1, marginLeft: 12 }}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                        <View style={{ width: '60%', height: 16, borderRadius: 4 }} />
-                                        <View style={{ width: 40, height: 12, borderRadius: 4 }} />
-                                    </View>
-                                    <View style={{ width: '90%', height: 14, borderRadius: 4, marginTop: 8 }} />
-                                    <View style={{ width: '40%', height: 12, borderRadius: 4, marginTop: 8 }} />
-                                </View>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            </SkeletonPlaceholder>
-        </View>
-    );
+
+  const renderNotificationItem = ({ item }) => {
+    const isSelected = selectedIds.includes(item.id);
+    const config = getCategoryConfig(item);
 
     return (
-        <SafeAreaView style={styles.container} edges={['left', 'right', 'top']} >
-            <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <TouchableOpacity
+        style={[
+          styles.notificationCard,
+          isSelected && styles.selectedCard,
+        ]}
+        onPress={() => {
+          if (isSelectionMode) {
+            toggleSelect(item.id);
+          } else {
+            handleNotificationPress(item.id);
+          }
+        }}
+        onLongPress={() => {
+          setIsSelectionMode(true);
+          toggleSelect(item.id);
+        }}
+        activeOpacity={0.7}
+      >
+        {isSelectionMode && (
+          <View style={styles.checkboxContainer}>
+            <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+              {isSelected && <Feather name="check" size={14} color="#FFFFFF" />}
+            </View>
+          </View>
+        )}
 
-            <TopBar title="Notification" showBack={true} onBackPress={handleBackPress} />
+        <View style={[styles.notificationContent, isSelectionMode && styles.contentWithCheckbox]}>
 
-            <View style={styles.headerActions}>
-                <View style={styles.headerTop}>
-                    <View style={styles.filterContainer}>
-                        <View style={[styles.filterBtn, styles.filterBtnActive]}>
-                            <Text style={[styles.filterText, styles.filterTextActive]}>
-                                All Notifications
-                            </Text>
-                        </View>
-                    </View>
+          <View style={[styles.iconContainer, { backgroundColor: config.bg }]}>
+            <Feather name={config.icon} size={20} color={config.color} />
+          </View>
 
-                    <View style={styles.headerRight}>
-                        {notificationdata?.records?.length > 0 && !isSelectionMode && (
-                            <TouchableOpacity style={styles.selectBtn} onPress={() => setIsSelectionMode(true)}>
-                                <Feather name="check-square" size={18} color="#5A21F1" />
-                                <Text style={styles.selectBtnText}>Select</Text>
-                            </TouchableOpacity>
-                        )}
-                        {isSelectionMode && (
-                            <TouchableOpacity style={styles.selectBtn} onPress={() => {
-                                setIsSelectionMode(false);
-                                setSelectedIds([]);
-                            }}>
-                                <Feather name="x" size={18} color="#64748B" />
-                                <Text style={[styles.selectBtnText, { color: '#64748B' }]}>Cancel</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </View>
+          <View style={styles.notificationTextContainer}>
+            <View style={styles.notificationHeader}>
+              <Text style={[styles.notificationTitle]}>
+                {item.title}
+              </Text>
+              <Text style={styles.notificationTime}>{item.time}</Text>
+            </View>
+            <Text style={[styles.notificationDescription]}>
+              {item.body || item.description}
+            </Text>
+            <View style={styles.notificationFooter}>
+              <Text style={styles.notificationDate}>
+                {formatDate(item.createdAt)}
+              </Text>
 
             </View>
-
-            <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
-                {notificationloading ? (
-                    <NotificationSkeleton />
-                ) : notificationdata?.records?.length > 0 ? (
-                    <FlatList
-                        data={notificationdata?.records}
-                        renderItem={renderNotificationItem}
-                        keyExtractor={(item) => item.id}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.listContent}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={handleRefresh}
-                                colors={['#5A21F1']}
-                                tintColor="#5A21F1"
-                            />
-                        }
-                    />
-                ) : (
-                    renderEmptyState()
-                )}
-            </Animated.View>
-
-
-
-
-            {isSelectionMode && selectedIds.length > 0 && (
-                <View style={styles.bottomActions}>
-                    <TouchableOpacity
-                        style={[styles.bottomActionBtn, styles.bottomActionBtnRed]}
-                        onPress={handleDeleteSelected}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={['#EF4444', '#DC2626']}
-                            style={styles.bottomActionGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                        >
-                            <Feather name="trash-2" size={18} color="#FFFFFF" />
-                            <Text style={styles.bottomActionText}>Delete ({selectedIds.length})</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </View>
-            )}
-
-
-
-
-            <Modal
-                visible={isConfirmModalOpen}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsConfirmModalOpen(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <TouchableOpacity
-                        style={styles.modalBackdrop}
-                        activeOpacity={1}
-                        onPress={() => setIsConfirmModalOpen(false)}
-                    />
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Delete Selected</Text>
-                            <TouchableOpacity
-                                onPress={() => setIsConfirmModalOpen(false)}
-                                style={styles.modalClose}
-                            >
-                                <Feather name="x" size={24} color="#64748B" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.warningIconContainer}>
-                            <View style={styles.warningIcon}>
-                                <Feather name="alert-circle" size={40} color="#DC2626" />
-                            </View>
-                        </View>
-
-                        <Text style={styles.warningSubtitle}>
-                            Are you sure you want to delete {selectedIds.length} notification{selectedIds.length > 1 ? 's' : ''}?
-                        </Text>
-
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.cancelButton}
-                                onPress={() => setIsConfirmModalOpen(false)}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            {
-                                loading ? <View
-                                    style={[styles.confirmButton, { height: 40 }]}
-
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient
-                                        colors={['#EF4444', '#DC2626']}
-                                        style={[styles.confirmGradient, { height: 40, paddingVertical: 0, flexDirection: 'row', alignItems: 'center' }]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                    >
-
-                                        <Text style={styles.confirmButtonText}>Loading...</Text>
-                                    </LinearGradient>
-                                </View> : <TouchableOpacity
-                                    style={[styles.confirmButton, { height: 40 }]}
-                                    onPress={() => deleteNotificationService()}
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient
-                                        colors={['#EF4444', '#DC2626']}
-                                        style={[styles.confirmGradient, { height: 40, paddingVertical: 0 }]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                    >
-
-                                        <Text style={styles.confirmButtonText}>Delete</Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            }
-
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-
-        </SafeAreaView>
+          </View>
+        </View>
+      </TouchableOpacity>
     );
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <LinearGradient
+        colors={['#EDE9FE', '#DDD6FE']}
+        style={styles.emptyIconContainer}
+      >
+        <Feather name="bell-off" size={48} color="#5A21F1" />
+      </LinearGradient>
+      <Text style={styles.emptyTitle}>All Caught Up!</Text>
+      <Text style={styles.emptyDescription}>
+        You have no notifications. Check back later for updates.
+      </Text>
+    </View>
+  );
+
+  const NotificationSkeleton = () => (
+    <View style={styles.listContainer}>
+      <SkeletonPlaceholder backgroundColor="#E2E8F0" highlightColor="#F8FAFC">
+        <View style={styles.listContent}>
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <View key={item} style={[styles.notificationCard, { marginBottom: 10 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <View style={{ width: 40, height: 40, borderRadius: 12 }} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <View style={{ width: '60%', height: 16, borderRadius: 4 }} />
+                    <View style={{ width: 40, height: 12, borderRadius: 4 }} />
+                  </View>
+                  <View style={{ width: '90%', height: 14, borderRadius: 4, marginTop: 8 }} />
+                  <View style={{ width: '40%', height: 12, borderRadius: 4, marginTop: 8 }} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      </SkeletonPlaceholder>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']} >
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+
+      <TopBar title="Notification" showBack={true} onBackPress={handleBackPress} />
+
+      <View style={styles.headerActions}>
+        <View style={styles.headerTop}>
+          <View style={styles.filterContainer}>
+            <View style={[styles.filterBtn, styles.filterBtnActive]}>
+              <Text style={[styles.filterText, styles.filterTextActive]}>
+                All Notifications
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.headerRight}>
+            {notificationdata?.records?.length > 0 && !isSelectionMode && (
+              <TouchableOpacity style={styles.selectBtn} onPress={() => setIsSelectionMode(true)}>
+                <Feather name="check-square" size={18} color="#5A21F1" />
+                <Text style={styles.selectBtnText}>Select</Text>
+              </TouchableOpacity>
+            )}
+            {isSelectionMode && (
+              <TouchableOpacity style={styles.selectBtn} onPress={() => {
+                setIsSelectionMode(false);
+                setSelectedIds([]);
+              }}>
+                <Feather name="x" size={18} color="#64748B" />
+                <Text style={[styles.selectBtnText, { color: '#64748B' }]}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+      </View>
+
+      <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
+        {notificationloading ? (
+          <NotificationSkeleton />
+        ) : notificationdata?.records?.length > 0 ? (
+          <FlatList
+            data={notificationdata?.records}
+            renderItem={renderNotificationItem}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={['#5A21F1']}
+                tintColor="#5A21F1"
+              />
+            }
+          />
+        ) : (
+          renderEmptyState()
+        )}
+      </Animated.View>
+
+
+
+
+      {isSelectionMode && selectedIds.length > 0 && (
+        <View style={styles.bottomActions}>
+          <TouchableOpacity
+            style={[styles.bottomActionBtn, styles.bottomActionBtnRed]}
+            onPress={handleDeleteSelected}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#EF4444', '#DC2626']}
+              style={styles.bottomActionGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Feather name="trash-2" size={18} color="#FFFFFF" />
+              <Text style={styles.bottomActionText}>Delete ({selectedIds.length})</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+
+
+
+
+      <Modal
+        visible={isConfirmModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsConfirmModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsConfirmModalOpen(false)}
+          />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Delete Selected</Text>
+              <TouchableOpacity
+                onPress={() => setIsConfirmModalOpen(false)}
+                style={styles.modalClose}
+              >
+                <Feather name="x" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.warningIconContainer}>
+              <View style={styles.warningIcon}>
+                <Feather name="alert-circle" size={40} color="#DC2626" />
+              </View>
+            </View>
+
+            <Text style={styles.warningSubtitle}>
+              Are you sure you want to delete {selectedIds.length} notification{selectedIds.length > 1 ? 's' : ''}?
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setIsConfirmModalOpen(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              {
+                loading ? <View
+                  style={[styles.confirmButton, { height: 40 }]}
+
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#EF4444', '#DC2626']}
+                    style={[styles.confirmGradient, { height: 40, paddingVertical: 0, flexDirection: 'row', alignItems: 'center' }]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+
+                    <Text style={styles.confirmButtonText}>Loading...</Text>
+                  </LinearGradient>
+                </View> : <TouchableOpacity
+                  style={[styles.confirmButton, { height: 40 }]}
+                  onPress={() => deleteNotificationService()}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#EF4444', '#DC2626']}
+                    style={[styles.confirmGradient, { height: 40, paddingVertical: 0 }]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+
+                    <Text style={styles.confirmButtonText}>Delete</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              }
+
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({

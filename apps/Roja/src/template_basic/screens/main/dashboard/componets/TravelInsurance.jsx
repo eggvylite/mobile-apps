@@ -80,17 +80,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     padding: 20,
     fontSize: getFontSize(21),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     color: '#000000',
   },
   cardDescription: {
     padding: 20,
     paddingTop: 0,
     bottom: 8,
-    fontSize: getFontSize(15),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '500',
+    fontSize: 15,
+    fontFamily: fontsFamily.mediumFont,
     color: '#a4a4a4',
 
   },
@@ -113,7 +111,7 @@ const styles = StyleSheet.create({
   buyButtonText: {
     color: 'white',
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fontsFamily.boldFont,
     lineHeight: 19,
   },
   waveBackground: {
@@ -151,7 +149,7 @@ const styles = StyleSheet.create({
     top: 324.81,
     width: 67,
     fontSize: 8,
-    fontWeight: '500',
+    fontFamily: fontsFamily.mediumFont,
     color: 'white',
   },
 });

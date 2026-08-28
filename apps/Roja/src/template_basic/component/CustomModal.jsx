@@ -1,9 +1,11 @@
 import React from 'react';
-import {StyleSheet, View,Text,Modal,TouchableOpacity,Pressable,useWindowDimensions} from 'react-native';
+import { StyleSheet, View, Text, Modal, TouchableOpacity, Pressable, useWindowDimensions } from 'react-native';
 import { useSelector } from 'react-redux';
 import { themeColors } from '../Common';
+import { fontsFamily } from '../../constants/fontsFamily';
+import { getFontSize } from '../../constants/Font';
 
-const CustomModal = ({visible,onClose,alertTitle, children,actionText,onAction,cancelText,onCancel, icon = "🔔",}) => {
+const CustomModal = ({ visible, onClose, alertTitle, children, actionText, onAction, cancelText, onCancel, icon = "🔔", }) => {
   const { width, height } = useWindowDimensions();
   const isSmall = width < 360;
   const isLarge = width >= 768;
@@ -15,7 +17,7 @@ const CustomModal = ({visible,onClose,alertTitle, children,actionText,onAction,c
   };
 
   const isLandscape = width > height;
-  const modalWidth = isLarge  ? 420 : isLandscape ? width * 0.6: width * 0.9;
+  const modalWidth = isLarge ? 420 : isLandscape ? width * 0.6 : width * 0.9;
 
   return (
     <Modal
@@ -55,9 +57,9 @@ const CustomModal = ({visible,onClose,alertTitle, children,actionText,onAction,c
             <Text style={{ fontSize: scale(34) }}>{icon}</Text>
           </View>
 
-            {
-              onClose &&
-              <TouchableOpacity
+          {
+            onClose &&
+            <TouchableOpacity
               style={[
                 styles.closeBtn,
                 {
@@ -81,8 +83,8 @@ const CustomModal = ({visible,onClose,alertTitle, children,actionText,onAction,c
                 ✕
               </Text>
             </TouchableOpacity>
-            }
-         
+          }
+
 
 
           <View style={styles.content}>
@@ -121,8 +123,8 @@ const CustomModal = ({visible,onClose,alertTitle, children,actionText,onAction,c
                         borderRadius: scale(20),
                       },
                     ]}
-                    onPress={ ()=>{
-                      if(onCancel) {
+                    onPress={() => {
+                      if (onCancel) {
                         onCancel()
                       } else {
                         onClose()
@@ -213,9 +215,11 @@ const styles = StyleSheet.create({
   },
 
   mainTitle: {
-    fontWeight: '800',
+    fontSize: getFontSize(18),
+    fontFamily: fontsFamily.boldFont,
     textAlign: 'center',
     marginBottom: 10,
+    color: '#0F172A',
   },
 
   bodyContent: {
@@ -239,12 +243,14 @@ const styles = StyleSheet.create({
   },
 
   actionText: {
+    fontSize: getFontSize(15),
+    fontFamily: fontsFamily.boldFont,
     color: '#FFFFFF',
-    fontWeight: '700',
   },
 
   secondaryActionText: {
+    fontSize: getFontSize(15),
+    fontFamily: fontsFamily.boldFont,
     color: '#64748B',
-    fontWeight: '700',
   },
 });

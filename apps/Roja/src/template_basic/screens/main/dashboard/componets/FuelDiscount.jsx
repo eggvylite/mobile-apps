@@ -14,6 +14,7 @@ import { useSelector } from 'react-redux';
 import CloudImage from '../../../../../utill/CloudImage';
 import CommonIcon from '../../../../../common_component/Commonicons';
 import CategoryDetail from '../../budget/CategoryDetail';
+import { fontsFamily } from '../../../../../constants/fontsFamily';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -78,7 +79,7 @@ export default function FuelDiscount(props) {
                      style={styles.cardImage1}
                       page='product'
                       cloudSource={details?.temp_image} />
-     
+
                     </View>
 
                     <View style={[styles.arrowIcon, styles.arrowIcon1]}>
@@ -100,28 +101,28 @@ export default function FuelDiscount(props) {
 
 
 
-        {/* <TouchableOpacity 
+        {/* <TouchableOpacity
           style={[styles.dealCard, styles.dealCard1]}
           onPress={() => handleDealPress(1)}
           activeOpacity={0.9}
         >
           <View style={styles.cardBackground} />
-          
+
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderBg1} />
             <View style={styles.cardImageWrapper1}>
-              <Image 
+              <Image
                 source={require('../../../../../../assets/images/Industry-fuel-station.png')}
                 style={styles.cardImage1}
                 resizeMode="cover"
               />
             </View>
-            
+
             <View style={[styles.arrowIcon, styles.arrowIcon1]}>
               <Feather name="arrow-up-right" size={16} color="#000000" />
             </View>
           </View>
-          
+
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>$X Off Per Litre</Text>
             <Text style={[styles.cardDescription, styles.cardDescription1]}>
@@ -130,28 +131,28 @@ export default function FuelDiscount(props) {
           </View>
         </TouchableOpacity> */}
 
-        {/* <TouchableOpacity 
+        {/* <TouchableOpacity
           style={[styles.dealCard, styles.dealCard2]}
           onPress={() => handleDealPress(2)}
           activeOpacity={0.9}
         >
           <View style={styles.cardBackground} />
-          
+
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderBg2} />
             <View style={styles.cardImageWrapper2}>
-              <Image 
+              <Image
                 source={require('../../../../../../assets/images/cashback-3d-icon.png')}
                 style={styles.cardImage2}
                 resizeMode="cover"
               />
             </View>
-            
+
             <View style={[styles.arrowIcon, styles.arrowIcon2]}>
               <Feather name="arrow-up-right" size={16} color="#000000" />
             </View>
           </View>
-          
+
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Fuel & Get Cashback</Text>
             <Text style={[styles.cardDescription, styles.cardDescription2]}>
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     position: 'absolute',
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     left: 70,
     fontSize: 22,
     color: 'white',
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
   },
   exclusiveTitle: {
     position: 'absolute',
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     width: 250,
     left: 0,
     fontSize: 16,
@@ -217,11 +218,11 @@ const styles = StyleSheet.create({
   },
   exclusiveDescription: {
     position: 'absolute',
-    fontWeight: '400',
+    fontFamily: fontsFamily.regularFont,
     lineHeight: 15,
     left: 0,
     color: '#cacaca',
-    fontSize: 10,
+    fontSize: 12,
     top: 30,
     width: 189,
   },
@@ -240,13 +241,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   claimButtonText: {
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
     color: 'white',
   },
   pickedDealsTitle: {
     position: 'absolute',
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     left: 17,
     fontSize: 14,
     color: 'white',
@@ -351,15 +352,16 @@ const styles = StyleSheet.create({
     top: 83,
   },
   cardTitle: {
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
     color: 'black',
   },
   cardDescription: {
-    fontWeight: '600',
+
+    fontFamily: fontsFamily.semiboldFont,
     lineHeight: 12,
     color: '#868686',
-    fontSize: 8,
+    fontSize: 9,
     marginTop: 6,
   },
   cardDescription1: {
