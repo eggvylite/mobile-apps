@@ -12,7 +12,7 @@ on:
           - roja
           - paiio
           - jackpot
-#        default: all
+        default: all
       platform:
         description: "Which platform should be built?"
         required: true
@@ -21,15 +21,15 @@ on:
           - all
           - ios
           - android
-#        default: all
+        default: all
 
 # ==============================================================
 # GLOBAL CONFIGURATION
 # ==============================================================
 env:
   AWS_REGION: us-east-1
-  S3_BUCKET: mobile-apps-artifacts
-  AWS_ROLE_ARN: arn:aws:iam::738678807623:role/MobileAppDeploymentRole
+  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
 permissions:
   contents: read
@@ -78,6 +78,18 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # Map lowercase app key to exact directory name (e.g. roja -> Roja)
+      - name: Resolve App Directory
+        id: dir
+        shell: bash
+        run: |
+          APP_DIR=$(find apps -maxdepth 1 -iname "${{ matrix.app }}" -type d | head -n 1 | sed 's|^apps/||')
+          if [ -z "$APP_DIR" ]; then
+            APP_DIR="${{ matrix.app }}"
+          fi
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+          echo "Resolved App Directory: apps/$APP_DIR"
+
       - name: Configure AWS Credentials
         if: github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
@@ -91,7 +103,7 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
-            APP_SECRETS, mobile-cicd/${{ matrix.app }}
+            APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
 
       - name: Setup Node.js
@@ -99,8 +111,10 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+          cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
       - name: Install Dependencies
+        working-directory: apps/${{ env.APP_DIR }}
         run: npm ci --legacy-peer-deps
 
       - name: Setup Ruby
@@ -108,11 +122,13 @@ jobs:
         with:
           ruby-version: "3.2"
           bundler-cache: true
+          working-directory: apps/${{ env.APP_DIR }}
 
       # --------------------------------------------------------
       # PATCH COMPATIBILITY (BOOST & RCT-FOLLY FOR XCODE 16+)
       # --------------------------------------------------------
       - name: Patch Dependencies & Podfile
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           # 1. Patch Boost Podspec URL
@@ -168,7 +184,7 @@ jobs:
           "
 
       - name: Install CocoaPods
-        working-directory: ios
+        working-directory: apps/${{ env.APP_DIR }}/ios
         run: |
           bundle exec pod cache clean boost --all || true
           bundle exec pod cache clean RCT-Folly --all || true
@@ -202,22 +218,20 @@ jobs:
       # ARCHIVE & EXPORT
       # ========================================================
       - name: Archive iOS App
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          rm -rf "ios/build/$APP_NAME"
-          mkdir -p "ios/build/$APP_NAME"
+          rm -rf "ios/build"
+          mkdir -p "ios/build"
 
-          # Detect workspace accurately if not provided in secrets
+          # Detect workspace accurately (handles DemoROJA.xcworkspace)
           if [ -n "$APP_SECRETS_IOS_WORKSPACE" ]; then
             WORKSPACE_PATH="$APP_SECRETS_IOS_WORKSPACE"
           else
-            WORKSPACE_PATH=$(find ios -maxdepth 1 -iname "${APP_NAME}.xcworkspace" -type d | head -n 1)
-            if [ -z "$WORKSPACE_PATH" ]; then
-              WORKSPACE_PATH=$(find ios -maxdepth 1 -name "*.xcworkspace" -type d | head -n 1)
-            fi
+            WORKSPACE_PATH=$(find ios -maxdepth 1 -name "*.xcworkspace" -type d | head -n 1)
           fi
 
-          # Detect scheme accurately
+          # Detect scheme accurately (e.g. DemoROJA)
           if [ -n "$APP_SECRETS_IOS_SCHEME" ]; then
             SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
           else
@@ -235,7 +249,7 @@ jobs:
               -configuration Release \
               -sdk iphoneos \
               -destination "generic/platform=iOS" \
-              -archivePath "$PWD/ios/build/$APP_NAME/$APP_NAME.xcarchive" \
+              -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
               clean archive \
               CODE_SIGNING_ALLOWED=NO
           else
@@ -245,7 +259,7 @@ jobs:
               -configuration Release \
               -sdk iphoneos \
               -destination "generic/platform=iOS" \
-              -archivePath "$PWD/ios/build/$APP_NAME/$APP_NAME.xcarchive" \
+              -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
               clean archive \
               CODE_SIGNING_ALLOWED=YES \
               DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID"
@@ -253,9 +267,10 @@ jobs:
 
       - name: Create ExportOptions.plist
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          cat > "ios/build/$APP_NAME/ExportOptions.plist" <<EOF
+          cat > "ios/build/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -278,41 +293,44 @@ jobs:
 
       - name: Export IPA
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          mkdir -p "ios/build/$APP_NAME/export"
+          mkdir -p "ios/build/export"
           xcodebuild \
             -exportArchive \
-            -archivePath "$PWD/ios/build/$APP_NAME/$APP_NAME.xcarchive" \
-            -exportPath "$PWD/ios/build/$APP_NAME/export" \
-            -exportOptionsPlist "$PWD/ios/build/$APP_NAME/ExportOptions.plist" \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            -exportPath "$PWD/ios/build/export" \
+            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" \
             -allowProvisioningUpdates
 
       - name: Prepare IPA
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          IPA=$(find "ios/build/$APP_NAME/export" -name "*.ipa" -type f | head -n 1)
+          IPA=$(find "ios/build/export" -name "*.ipa" -type f | head -n 1)
           if [ -z "$IPA" ]; then
             echo "IPA not found"
             exit 1
           fi
-          cp "$IPA" "ios/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
+          cp "$IPA" "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
 
       - name: Upload iOS Artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-ios-${{ github.run_number }}
-          path: ios/build/${{ matrix.app }}/*.ipa
+          path: apps/${{ env.APP_DIR }}/ios/build/*.ipa
           retention-days: 14
 
       - name: Upload Current iOS IPA to S3
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           aws s3 cp \
-            "ios/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" \
+            "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" \
             "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" \
             --only-show-errors
 
@@ -320,7 +338,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: Apple-Actions/upload-testflight-build@v1
         with:
-          app-path: ios/build/${{ matrix.app }}/${{ matrix.app }}-${{ github.run_number }}.ipa
+          app-path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
           issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
           api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
@@ -347,6 +365,17 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Resolve App Directory
+        id: dir
+        shell: bash
+        run: |
+          APP_DIR=$(find apps -maxdepth 1 -iname "${{ matrix.app }}" -type d | head -n 1 | sed 's|^apps/||')
+          if [ -z "$APP_DIR" ]; then
+            APP_DIR="${{ matrix.app }}"
+          fi
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+          echo "Resolved App Directory: apps/$APP_DIR"
+
       - name: Configure AWS Credentials
         if: github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
@@ -360,7 +389,7 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
-            APP_SECRETS, mobile-cicd/${{ matrix.app }}
+            APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
 
       - name: Setup Node.js
@@ -368,8 +397,10 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+          cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
       - name: Install Dependencies
+        working-directory: apps/${{ env.APP_DIR }}
         run: npm ci --legacy-peer-deps
 
       - name: Setup Java
@@ -381,6 +412,7 @@ jobs:
 
       - name: Create Android Keystore
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           mkdir -p android/app
@@ -389,6 +421,7 @@ jobs:
 
       - name: Configure Android Signing
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           cat >> android/gradle.properties <<EOF
@@ -399,7 +432,7 @@ jobs:
           EOF
 
       - name: Build Android AAB / APK
-        working-directory: android
+        working-directory: apps/${{ env.APP_DIR }}/android
         shell: bash
         run: |
           chmod +x gradlew
@@ -418,6 +451,7 @@ jobs:
 
       - name: Prepare AAB
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           AAB=$(find android/app/build/outputs/bundle -name "*.aab" -type f | head -n 1)
@@ -425,23 +459,24 @@ jobs:
             echo "AAB not found"
             exit 1
           fi
-          mkdir -p "android/build/$APP_NAME"
-          cp "$AAB" "android/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
+          mkdir -p "android/build"
+          cp "$AAB" "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
 
       - name: Upload Android Artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-android-${{ github.run_number }}
-          path: android/build/${{ matrix.app }}/*.aab
+          path: apps/${{ env.APP_DIR }}/android/build/*.aab
           retention-days: 14
 
       - name: Upload Current Android AAB to S3
         if: github.event_name != 'pull_request'
+        working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           aws s3 cp \
-            "android/build/$APP_NAME/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab" \
+            "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab" \
             "s3://${S3_BUCKET}/android/${APP_NAME}/${APP_NAME}.aab" \
             --only-show-errors
 
@@ -451,5 +486,5 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.APP_SECRETS_ANDROID_APPLICATION_ID }}
-          releaseFiles: android/build/${{ matrix.app }}/${{ matrix.app }}-${{ github.run_number }}.aab
+          releaseFiles: apps/${{ env.APP_DIR }}/android/build/${{ matrix.app }}-${{ github.run_number }}.aab
           track: internal
