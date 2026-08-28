@@ -62,10 +62,7 @@ jobs:
   build-ios:
     name: iOS - ${{ matrix.app }}
     needs: setup
-    if: |
-      github.event_name != 'workflow_dispatch' ||
-      github.event.inputs.platform == 'all' ||
-      github.event.inputs.platform == 'ios'
+    if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios'
     runs-on: macos-15
     strategy:
       fail-fast: false
@@ -78,7 +75,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Map lowercase app key to exact directory name (e.g. roja -> Roja)
       - name: Resolve App Directory
         id: dir
         shell: bash
@@ -91,7 +87,6 @@ jobs:
           echo "Resolved App Directory: apps/$APP_DIR"
 
       - name: Configure AWS Credentials
-        if: github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
@@ -99,7 +94,6 @@ jobs:
           role-session-name: github-mobile-${{ github.run_id }}
 
       - name: Get iOS Secrets
-        if: github.event_name != 'pull_request'
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
@@ -194,14 +188,12 @@ jobs:
       # SIGNING & CERTIFICATES
       # ========================================================
       - name: Import Apple Distribution Certificate
-        if: github.event_name != 'pull_request'
         uses: Apple-Actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
           p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
 
       - name: Download Provisioning Profile
-        if: github.event_name != 'pull_request'
         uses: Apple-Actions/download-provisioning-profiles@v3
         with:
           bundle-id: ${{ env.APP_SECRETS_IOS_BUNDLE_ID }}
@@ -211,7 +203,6 @@ jobs:
           api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
 
       - name: Check Signing Identity
-        if: github.event_name != 'pull_request'
         run: security find-identity -v -p codesigning
 
       # ========================================================
@@ -224,14 +215,12 @@ jobs:
           rm -rf "ios/build"
           mkdir -p "ios/build"
 
-          # Detect workspace accurately (handles DemoROJA.xcworkspace)
           if [ -n "$APP_SECRETS_IOS_WORKSPACE" ]; then
             WORKSPACE_PATH="$APP_SECRETS_IOS_WORKSPACE"
           else
             WORKSPACE_PATH=$(find ios -maxdepth 1 -name "*.xcworkspace" -type d | head -n 1)
           fi
 
-          # Detect scheme accurately (e.g. DemoROJA)
           if [ -n "$APP_SECRETS_IOS_SCHEME" ]; then
             SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
           else
@@ -241,32 +230,18 @@ jobs:
           echo "Using Workspace: $WORKSPACE_PATH"
           echo "Using Scheme: $SCHEME_NAME"
 
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            echo "Pull request build: unsigned archive"
-            xcodebuild \
-              -workspace "$WORKSPACE_PATH" \
-              -scheme "$SCHEME_NAME" \
-              -configuration Release \
-              -sdk iphoneos \
-              -destination "generic/platform=iOS" \
-              -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-              clean archive \
-              CODE_SIGNING_ALLOWED=NO
-          else
-            xcodebuild \
-              -workspace "$WORKSPACE_PATH" \
-              -scheme "$SCHEME_NAME" \
-              -configuration Release \
-              -sdk iphoneos \
-              -destination "generic/platform=iOS" \
-              -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-              clean archive \
-              CODE_SIGNING_ALLOWED=YES \
-              DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID"
-          fi
+          xcodebuild \
+            -workspace "$WORKSPACE_PATH" \
+            -scheme "$SCHEME_NAME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            clean archive \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID"
 
       - name: Create ExportOptions.plist
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -292,7 +267,6 @@ jobs:
           EOF
 
       - name: Export IPA
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -305,7 +279,6 @@ jobs:
             -allowProvisioningUpdates
 
       - name: Prepare IPA
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -317,7 +290,6 @@ jobs:
           cp "$IPA" "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
 
       - name: Upload iOS Artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-ios-${{ github.run_number }}
@@ -325,7 +297,6 @@ jobs:
           retention-days: 14
 
       - name: Upload Current iOS IPA to S3
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -335,7 +306,6 @@ jobs:
             --only-show-errors
 
       - name: Upload to TestFlight
-        if: github.event_name != 'pull_request'
         uses: Apple-Actions/upload-testflight-build@v1
         with:
           app-path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
@@ -349,10 +319,7 @@ jobs:
   build-android:
     name: Android - ${{ matrix.app }}
     needs: setup
-    if: |
-      github.event_name != 'workflow_dispatch' ||
-      github.event.inputs.platform == 'all' ||
-      github.event.inputs.platform == 'android'
+    if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'android'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -377,7 +344,6 @@ jobs:
           echo "Resolved App Directory: apps/$APP_DIR"
 
       - name: Configure AWS Credentials
-        if: github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
@@ -385,7 +351,6 @@ jobs:
           role-session-name: github-mobile-${{ github.run_id }}
 
       - name: Get Android Secrets
-        if: github.event_name != 'pull_request'
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
@@ -411,7 +376,6 @@ jobs:
           cache: gradle
 
       - name: Create Android Keystore
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -420,7 +384,6 @@ jobs:
           chmod 600 android/app/release.keystore
 
       - name: Configure Android Signing
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -431,26 +394,20 @@ jobs:
           MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
           EOF
 
-      - name: Build Android AAB / APK
+      - name: Build Android AAB
         working-directory: apps/${{ env.APP_DIR }}/android
         shell: bash
         run: |
           chmod +x gradlew
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            echo "Pull request build: debug APK"
-            ./gradlew :app:assembleDebug
-          else
-            VARIANT="${APP_SECRETS_ANDROID_VARIANT:-Release}"
-            FIRST_CHAR="${VARIANT:0:1}"
-            REST="${VARIANT:1}"
-            FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
-            GRADLE_TASK="${FIRST_CHAR}${REST}"
-            echo "Building Gradle task: :app:bundle${GRADLE_TASK}"
-            ./gradlew ":app:bundle${GRADLE_TASK}"
-          fi
+          VARIANT="${APP_SECRETS_ANDROID_VARIANT:-Release}"
+          FIRST_CHAR="${VARIANT:0:1}"
+          REST="${VARIANT:1}"
+          FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
+          GRADLE_TASK="${FIRST_CHAR}${REST}"
+          echo "Building Gradle task: :app:bundle${GRADLE_TASK}"
+          ./gradlew ":app:bundle${GRADLE_TASK}"
 
       - name: Prepare AAB
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -463,7 +420,6 @@ jobs:
           cp "$AAB" "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
 
       - name: Upload Android Artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-android-${{ github.run_number }}
@@ -471,7 +427,6 @@ jobs:
           retention-days: 14
 
       - name: Upload Current Android AAB to S3
-        if: github.event_name != 'pull_request'
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -481,7 +436,7 @@ jobs:
             --only-show-errors
 
       - name: Upload to Google Play
-        if: github.event_name != 'pull_request' && env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        if: env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
