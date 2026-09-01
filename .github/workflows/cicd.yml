@@ -13,6 +13,7 @@ on:
           - paiio
           - jackpot
         default: all
+
       platform:
         description: "Which platform should be built?"
         required: true
@@ -22,88 +23,192 @@ on:
           - ios
           - android
         default: all
+
       version_name:
-        description: "App Version (e.g., 1.9 — leave blank to keep project default)"
+        description: "App Version (example: 1.9). Leave blank to keep project version."
         required: false
         type: string
 
-# ==============================================================
-# GLOBAL CONFIGURATION
-# ==============================================================
 env:
   AWS_REGION: us-east-1
   S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
+# GitHub OIDC -> AWS
 permissions:
   contents: read
   id-token: write
 
 jobs:
+
   # ============================================================
   # SELECT APPS
   # ============================================================
   setup:
     name: Select Apps
     runs-on: ubuntu-latest
+
     outputs:
       apps: ${{ steps.matrix.outputs.apps }}
+
     steps:
-      - name: Generate Matrix
+      - name: Generate App Matrix
         id: matrix
         shell: bash
         run: |
-          APP="${{ github.event.inputs.app }}"
-          if [ -z "$APP" ] || [ "$APP" = "all" ]; then
-            echo 'apps=["roja","paiio","jackpot"]' >> "$GITHUB_OUTPUT"
-          else
-            echo "apps=[\"$APP\"]" >> "$GITHUB_OUTPUT"
-          fi
+          set -euo pipefail
+
+          APP="${{ inputs.app }}"
+
+          case "$APP" in
+            all|"")
+              echo 'apps=["roja","paiio","jackpot"]' >> "$GITHUB_OUTPUT"
+              ;;
+
+            roja|paiio|jackpot)
+              echo "apps=[\"$APP\"]" >> "$GITHUB_OUTPUT"
+              ;;
+
+            *)
+              echo "ERROR: Invalid app: $APP"
+              exit 1
+              ;;
+          esac
+
 
   # ============================================================
-  # IOS BUILD & DEPLOY
+  # IOS
   # ============================================================
   build-ios:
     name: iOS - ${{ matrix.app }}
+
     needs: setup
-    if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios'
+
+    if: >
+      inputs.platform == 'all' ||
+      inputs.platform == 'ios'
+
     runs-on: macos-15
+
     strategy:
       fail-fast: false
       matrix:
         app: ${{ fromJSON(needs.setup.outputs.apps) }}
+
     env:
       APP_NAME: ${{ matrix.app }}
 
     steps:
+
+      # ========================================================
+      # CHECKOUT
+      # ========================================================
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
+
+      # ========================================================
+      # RESOLVE APP DIRECTORY
+      # ========================================================
       - name: Resolve App Directory
-        id: dir
         shell: bash
         run: |
-          APP_DIR=$(find apps -maxdepth 1 -iname "${{ matrix.app }}" -type d | head -n 1 | sed 's|^apps/||')
-          if [ -z "$APP_DIR" ]; then
-            APP_DIR="${{ matrix.app }}"
-          fi
-          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
-          echo "Resolved App Directory: apps/$APP_DIR"
+          set -euo pipefail
 
+          APP_DIR="$(
+            find apps \
+              -maxdepth 1 \
+              -mindepth 1 \
+              -type d \
+              -iname "${{ matrix.app }}" \
+              -print -quit \
+            | sed 's|^apps/||'
+          )"
+
+          if [ -z "$APP_DIR" ]; then
+            echo "ERROR: Could not find apps/${{ matrix.app }}"
+            exit 1
+          fi
+
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+
+          echo "Resolved:"
+          echo "apps/$APP_DIR"
+
+
+      # ========================================================
+      # AWS OIDC
+      # ========================================================
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: github-mobile-${{ github.run_id }}
+          role-session-name: github-mobile-${{ github.run_id }}-${{ matrix.app }}
 
-      - name: Get iOS Secrets
+
+      # ========================================================
+      # VERIFY AWS
+      # ========================================================
+      - name: Verify AWS Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws sts get-caller-identity
+
+          if [ -z "${S3_BUCKET:-}" ]; then
+            echo "ERROR: S3_BUCKET is empty."
+            exit 1
+          fi
+
+
+      # ========================================================
+      # LOAD APP SECRETS
+      # ========================================================
+      - name: Get App Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
             APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
 
+
+      # ========================================================
+      # VALIDATE IOS SECRETS
+      # ========================================================
+      - name: Validate iOS Configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required_vars=(
+            APP_SECRETS_IOS_BUNDLE_ID
+            APP_SECRETS_IOS_TEAM_ID
+            APP_SECRETS_IOS_P12_BASE64
+            APP_SECRETS_IOS_P12_PASSWORD
+            APP_SECRETS_IOS_APPSTORE_ISSUER_ID
+            APP_SECRETS_IOS_APPSTORE_API_KEY_ID
+            APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY
+          )
+
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var:-}" ]; then
+              echo "ERROR: Missing required iOS variable: $var"
+              exit 1
+            fi
+          done
+
+          echo "iOS configuration:"
+          echo "Bundle ID : $APP_SECRETS_IOS_BUNDLE_ID"
+          echo "Team ID   : $APP_SECRETS_IOS_TEAM_ID"
+
+
+      # ========================================================
+      # NODE
+      # ========================================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -111,10 +216,22 @@ jobs:
           cache: npm
           cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
+
+      # ========================================================
+      # NPM
+      # ========================================================
       - name: Install Dependencies
         working-directory: apps/${{ env.APP_DIR }}
-        run: npm ci --legacy-peer-deps
+        shell: bash
+        run: |
+          set -euo pipefail
 
+          npm ci --legacy-peer-deps
+
+
+      # ========================================================
+      # RUBY
+      # ========================================================
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -122,82 +239,156 @@ jobs:
           bundler-cache: true
           working-directory: apps/${{ env.APP_DIR }}
 
-      # --------------------------------------------------------
-      # PATCH COMPATIBILITY (BOOST & RCT-FOLLY FOR XCODE 16+)
-      # --------------------------------------------------------
-      - name: Patch Dependencies & Podfile
+
+      # ========================================================
+      # PATCH IOS DEPENDENCIES
+      # ========================================================
+      - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          # 1. Patch Boost Podspec URL
-          python3 -c "
-          import glob
-          for path in glob.glob('node_modules/**/boost*.podspec', recursive=True):
-              with open(path, 'r') as f:
-                  content = f.read()
-              new_content = content.replace('https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2', 'https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2')
-              with open(path, 'w') as f:
-                  f.write(new_content)
-              print(f'Successfully patched {path}')
-          "
+          set -euo pipefail
 
-          # 2. Patch RCT-Folly for C++20 compiler standard
-          python3 -c "
+          python3 <<'PY'
           import glob
-          for path in glob.glob('node_modules/**/RCT-Folly.podspec', recursive=True):
-              with open(path, 'r') as f:
+
+          # ----------------------------------------------------
+          # Boost
+          # ----------------------------------------------------
+          old_url = (
+              "https://boostorg.jfrog.io/artifactory/main/"
+              "release/1.76.0/source/boost_1_76_0.tar.bz2"
+          )
+
+          new_url = (
+              "https://archives.boost.io/release/1.76.0/"
+              "source/boost_1_76_0.tar.bz2"
+          )
+
+          for path in glob.glob(
+              "node_modules/**/boost*.podspec",
+              recursive=True
+          ):
+              with open(path, "r", encoding="utf-8") as f:
                   content = f.read()
-              if '-Wno-error=unqualified-std-cast-call' not in content:
-                  content = content.replace(
-                      'folly_compiler_flags = [',
-                      'folly_compiler_flags = [\"-Wno-error=unqualified-std-cast-call\", \"-Wno-error=c++11-narrowing\", \"-DFOLLY_NO_CONFIG=1\", '
-                  )
-                  with open(path, 'w') as f:
+
+              if old_url in content:
+                  content = content.replace(old_url, new_url)
+
+                  with open(path, "w", encoding="utf-8") as f:
                       f.write(content)
-                  print(f'Successfully patched {path}')
-          "
 
-          # 3. Patch Deployment Target inside existing post_install
-          python3 -c "
-          with open('ios/Podfile', 'r') as f:
-              lines = f.readlines()
+                  print(f"Patched Boost: {path}")
 
-          target_code = '''
+
+          # ----------------------------------------------------
+          # RCT-Folly
+          # ----------------------------------------------------
+          for path in glob.glob(
+              "node_modules/**/RCT-Folly.podspec",
+              recursive=True
+          ):
+              with open(path, "r", encoding="utf-8") as f:
+                  content = f.read()
+
+              if "-Wno-error=unqualified-std-cast-call" not in content:
+                  content = content.replace(
+                      "folly_compiler_flags = [",
+                      (
+                          'folly_compiler_flags = ['
+                          '"-Wno-error=unqualified-std-cast-call", '
+                          '"-Wno-error=c++11-narrowing", '
+                          '"-DFOLLY_NO_CONFIG=1", '
+                      ),
+                      1
+                  )
+
+                  with open(path, "w", encoding="utf-8") as f:
+                      f.write(content)
+
+                  print(f"Patched RCT-Folly: {path}")
+          PY
+
+
+      # ========================================================
+      # PODFILE
+      # ========================================================
+      - name: Configure Pod Build Settings
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path("ios/Podfile")
+
+          if not path.exists():
+              raise SystemExit("ERROR: ios/Podfile not found")
+
+          content = path.read_text()
+
+          marker = "installer.pods_project.targets.each do |target|"
+
+          if marker not in content:
+              raise SystemExit(
+                  "ERROR: Could not find expected CocoaPods post_install marker."
+              )
+
+          settings = '''
               target.build_configurations.each do |config|
-                config.build_settings[\"IPHONEOS_DEPLOYMENT_TARGET\"] = \"13.0\"
-                config.build_settings[\"CLANG_CXX_LANGUAGE_STANDARD\"] = \"c++17\"
-                config.build_settings[\"GCC_WARN_INHIBIT_ALL_WARNINGS\"] = \"YES\"
-                config.build_settings[\"GCC_TREAT_WARNINGS_AS_ERRORS\"] = \"NO\"
+                config.build_settings["IPHONEOS_DEPLOYMENT_TARGET"] = "13.0"
+                config.build_settings["CLANG_CXX_LANGUAGE_STANDARD"] = "c++17"
+                config.build_settings["GCC_WARN_INHIBIT_ALL_WARNINGS"] = "YES"
+                config.build_settings["GCC_TREAT_WARNINGS_AS_ERRORS"] = "NO"
               end
           '''
 
-          new_lines = []
-          for line in lines:
-              new_lines.append(line)
-              if 'installer.pods_project.targets.each do |target|' in line:
-                  new_lines.append(target_code)
+          if 'IPHONEOS_DEPLOYMENT_TARGET"] = "13.0"' not in content:
+              content = content.replace(
+                  marker,
+                  marker + "\n" + settings,
+                  1
+              )
 
-          with open('ios/Podfile', 'w') as f:
-              f.writelines(new_lines)
-          "
+              path.write_text(content)
 
+              print("Podfile patched.")
+          else:
+              print("Podfile already patched.")
+          PY
+
+
+      # ========================================================
+      # COCOAPODS
+      # ========================================================
       - name: Install CocoaPods
         working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
         run: |
+          set -euo pipefail
+
           bundle exec pod cache clean boost --all || true
           bundle exec pod cache clean RCT-Folly --all || true
+
           bundle exec pod install --repo-update
 
+
       # ========================================================
-      # SIGNING & CERTIFICATES
+      # APPLE CERTIFICATE
       # ========================================================
       - name: Import Apple Distribution Certificate
-        uses: Apple-Actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
           p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
 
-      - name: Download Provisioning Profile
+
+      # ========================================================
+      # APP STORE PROVISIONING PROFILE
+      # ========================================================
+      - name: Download App Store Provisioning Profile
         uses: Apple-Actions/download-provisioning-profiles@v3
         with:
           bundle-id: ${{ env.APP_SECRETS_IOS_BUNDLE_ID }}
@@ -206,48 +397,161 @@ jobs:
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
           api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
 
-      - name: Check Signing Identity
-        run: security find-identity -v -p codesigning
 
       # ========================================================
-      # VERSION & BUILD NUMBER AUTOMATION
+      # FIND INSTALLED PROVISIONING PROFILE
+      #
+      # This avoids guessing the profile name.
+      # ========================================================
+      - name: Resolve Provisioning Profile
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          if [ ! -d "$PROFILE_DIR" ]; then
+            echo "ERROR: Provisioning Profiles directory not found."
+            exit 1
+          fi
+
+          PROFILE_FILE="$(
+            find "$PROFILE_DIR" \
+              -name "*.mobileprovision" \
+              -type f \
+              -print0 \
+            | xargs -0 -I{} sh -c '
+                security cms -D -i "{}" 2>/dev/null |
+                /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /dev/stdin 2>/dev/null |
+                grep -q "\.${APP_SECRETS_IOS_BUNDLE_ID}$" &&
+                echo "{}" &&
+                exit 0
+              ' \
+            | head -n 1
+          )"
+
+          if [ -z "$PROFILE_FILE" ]; then
+            echo "ERROR: No provisioning profile found for:"
+            echo "$APP_SECRETS_IOS_BUNDLE_ID"
+            exit 1
+          fi
+
+          PROFILE_UUID="$(
+            security cms -D -i "$PROFILE_FILE" |
+            /usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin
+          )"
+
+          PROFILE_NAME="$(
+            security cms -D -i "$PROFILE_FILE" |
+            /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin
+          )"
+
+          echo "Provisioning profile found:"
+          echo "Name: $PROFILE_NAME"
+          echo "UUID: $PROFILE_UUID"
+
+          echo "IOS_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+
+
+      # ========================================================
+      # VERIFY CERTIFICATE
+      # ========================================================
+      - name: Verify Apple Signing Certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          security find-identity -v -p codesigning
+
+          if ! security find-identity -v -p codesigning \
+            | grep -q "Apple Distribution"; then
+
+            echo "ERROR: Apple Distribution certificate not found."
+            exit 1
+          fi
+
+
+      # ========================================================
+      # VERSION
       # ========================================================
       - name: Set iOS Version and Build Number
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
-          echo "Setting CFBundleVersion (Build Number) to ${{ github.run_number }}"
-          xcrun agvtool new-version -all "${{ github.run_number }}"
+          set -euo pipefail
 
-          if [ -n "${{ github.event.inputs.version_name }}" ]; then
-            echo "Setting CFBundleShortVersionString to ${{ github.event.inputs.version_name }}"
-            xcrun agvtool new-marketing-version "${{ github.event.inputs.version_name }}"
+          xcrun agvtool new-version -all "$GITHUB_RUN_NUMBER"
+
+          if [ -n "${{ inputs.version_name }}" ]; then
+            xcrun agvtool new-marketing-version "${{ inputs.version_name }}"
           fi
 
+
       # ========================================================
-      # ARCHIVE & EXPORT
+      # RESOLVE WORKSPACE
+      # ========================================================
+      - name: Resolve Xcode Workspace and Scheme
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${APP_SECRETS_IOS_WORKSPACE:-}" ]; then
+            WORKSPACE_PATH="$APP_SECRETS_IOS_WORKSPACE"
+          else
+            WORKSPACE_PATH="$(
+              find ios \
+                -maxdepth 1 \
+                -name "*.xcworkspace" \
+                -type d \
+                -print -quit
+            )"
+          fi
+
+          if [ -z "$WORKSPACE_PATH" ]; then
+            echo "ERROR: No .xcworkspace found."
+            exit 1
+          fi
+
+          if [ -n "${APP_SECRETS_IOS_SCHEME:-}" ]; then
+            SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
+          else
+            SCHEME_NAME="$(
+              xcodebuild \
+                -list \
+                -workspace "$WORKSPACE_PATH" \
+                -json \
+              | python3 -c \
+                'import sys,json; print(json.load(sys.stdin)["workspace"]["schemes"][0])'
+            )"
+          fi
+
+          if [ -z "$SCHEME_NAME" ]; then
+            echo "ERROR: Xcode scheme not found."
+            exit 1
+          fi
+
+          echo "WORKSPACE_PATH=$WORKSPACE_PATH" >> "$GITHUB_ENV"
+          echo "SCHEME_NAME=$SCHEME_NAME" >> "$GITHUB_ENV"
+
+          echo "Workspace: $WORKSPACE_PATH"
+          echo "Scheme: $SCHEME_NAME"
+
+
+      # ========================================================
+      # ARCHIVE
+      #
+      # Explicitly use the downloaded profile.
       # ========================================================
       - name: Archive iOS App
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          rm -rf "ios/build"
-          mkdir -p "ios/build"
+          set -euo pipefail
 
-          if [ -n "$APP_SECRETS_IOS_WORKSPACE" ]; then
-            WORKSPACE_PATH="$APP_SECRETS_IOS_WORKSPACE"
-          else
-            WORKSPACE_PATH=$(find ios -maxdepth 1 -name "*.xcworkspace" -type d | head -n 1)
-          fi
-
-          if [ -n "$APP_SECRETS_IOS_SCHEME" ]; then
-            SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
-          else
-            SCHEME_NAME=$(xcodebuild -list -workspace "$WORKSPACE_PATH" -json | python3 -c "import sys, json; print(json.load(sys.stdin)['workspace']['schemes'][0])")
-          fi
-
-          echo "Using Workspace: $WORKSPACE_PATH"
-          echo "Using Scheme: $SCHEME_NAME"
+          rm -rf ios/build
+          mkdir -p ios/build
 
           xcodebuild \
             -workspace "$WORKSPACE_PATH" \
@@ -258,124 +562,279 @@ jobs:
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             clean archive \
             CODE_SIGNING_ALLOWED=YES \
-            DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID"
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
+
+      # ========================================================
+      # EXPORT OPTIONS
+      # ========================================================
       - name: Create ExportOptions.plist
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          cat > "ios/build/ExportOptions.plist" <<EOF
+          set -euo pipefail
+
+          cat > ios/build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
           <plist version="1.0">
           <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>teamID</key>
-            <string>${APP_SECRETS_IOS_TEAM_ID}</string>
+
             <key>destination</key>
             <string>export</string>
+
+            <key>method</key>
+            <string>app-store</string>
+
+            <key>signingStyle</key>
+            <string>manual</string>
+
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+
+            <key>teamID</key>
+            <string>${APP_SECRETS_IOS_TEAM_ID}</string>
+
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_SECRETS_IOS_BUNDLE_ID}</key>
+              <string>${IOS_PROFILE_NAME}</string>
+            </dict>
+
             <key>stripSwiftSymbols</key>
             <true/>
+
             <key>uploadSymbols</key>
             <true/>
+
           </dict>
           </plist>
           EOF
 
+          plutil -lint ios/build/ExportOptions.plist
+
+          echo "ExportOptions.plist created successfully."
+
+
+      # ========================================================
+      # EXPORT IPA
+      # ========================================================
       - name: Export IPA
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          mkdir -p "ios/build/export"
+          set -euo pipefail
+
+          rm -rf ios/build/export
+          mkdir -p ios/build/export
+
           xcodebuild \
             -exportArchive \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             -exportPath "$PWD/ios/build/export" \
-            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" \
-            -allowProvisioningUpdates
+            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist"
 
+
+      # ========================================================
+      # PREPARE IPA
+      # ========================================================
       - name: Prepare IPA
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          IPA=$(find "ios/build/export" -name "*.ipa" -type f | head -n 1)
+          set -euo pipefail
+
+          IPA="$(
+            find ios/build/export \
+              -name "*.ipa" \
+              -type f \
+              -print -quit
+          )"
+
           if [ -z "$IPA" ]; then
-            echo "IPA not found"
+            echo "ERROR: IPA was not generated."
             exit 1
           fi
-          cp "$IPA" "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
 
+          OUTPUT="ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
+
+          cp "$IPA" "$OUTPUT"
+
+          echo "IPA ready:"
+          echo "$OUTPUT"
+
+
+      # ========================================================
+      # GITHUB ARTIFACT
+      # ========================================================
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-ios-${{ github.run_number }}
-          path: apps/${{ env.APP_DIR }}/ios/build/*.ipa
+          path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
+          if-no-files-found: error
           retention-days: 14
 
+
+      # ========================================================
+      # S3
+      # ========================================================
       - name: Upload Current iOS IPA to S3
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
+          set -euo pipefail
+
           aws s3 cp \
             "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" \
             "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" \
             --only-show-errors
 
+
+      # ========================================================
+      # TESTFLIGHT
+      # ========================================================
       - name: Upload to TestFlight
-        uses: Apple-Actions/upload-testflight-build@v1
+        uses: Apple-Actions/upload-testflight-build@v4
         with:
           app-path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
           issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
           api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
 
+
   # ============================================================
-  # ANDROID BUILD & DEPLOY
+  # ANDROID
   # ============================================================
   build-android:
     name: Android - ${{ matrix.app }}
+
     needs: setup
-    if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'android'
+
+    if: >
+      inputs.platform == 'all' ||
+      inputs.platform == 'android'
+
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         app: ${{ fromJSON(needs.setup.outputs.apps) }}
+
     env:
       APP_NAME: ${{ matrix.app }}
 
     steps:
+
+      # ========================================================
+      # CHECKOUT
+      # ========================================================
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
+
+      # ========================================================
+      # RESOLVE APP DIRECTORY
+      # ========================================================
       - name: Resolve App Directory
-        id: dir
         shell: bash
         run: |
-          APP_DIR=$(find apps -maxdepth 1 -iname "${{ matrix.app }}" -type d | head -n 1 | sed 's|^apps/||')
-          if [ -z "$APP_DIR" ]; then
-            APP_DIR="${{ matrix.app }}"
-          fi
-          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
-          echo "Resolved App Directory: apps/$APP_DIR"
+          set -euo pipefail
 
+          APP_DIR="$(
+            find apps \
+              -maxdepth 1 \
+              -mindepth 1 \
+              -type d \
+              -iname "${{ matrix.app }}" \
+              -print -quit \
+            | sed 's|^apps/||'
+          )"
+
+          if [ -z "$APP_DIR" ]; then
+            echo "ERROR: Could not find apps/${{ matrix.app }}"
+            exit 1
+          fi
+
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+
+
+      # ========================================================
+      # AWS OIDC
+      # ========================================================
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: github-mobile-${{ github.run_id }}
+          role-session-name: github-mobile-${{ github.run_id }}-${{ matrix.app }}
 
-      - name: Get Android Secrets
+
+      # ========================================================
+      # VERIFY AWS
+      # ========================================================
+      - name: Verify AWS Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws sts get-caller-identity
+
+          if [ -z "${S3_BUCKET:-}" ]; then
+            echo "ERROR: S3_BUCKET is empty."
+            exit 1
+          fi
+
+
+      # ========================================================
+      # LOAD APP SECRETS
+      # ========================================================
+      - name: Get App Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
             APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
 
+
+      # ========================================================
+      # VALIDATE ANDROID
+      # ========================================================
+      - name: Validate Android Configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required_vars=(
+            APP_SECRETS_ANDROID_KEYSTORE_BASE64
+            APP_SECRETS_ANDROID_KEYSTORE_PASSWORD
+            APP_SECRETS_ANDROID_KEY_ALIAS
+            APP_SECRETS_ANDROID_KEY_PASSWORD
+            APP_SECRETS_ANDROID_APPLICATION_ID
+          )
+
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var:-}" ]; then
+              echo "ERROR: Missing required Android variable: $var"
+              exit 1
+            fi
+          done
+
+          echo "Android configuration is present."
+          echo "Application ID: $APP_SECRETS_ANDROID_APPLICATION_ID"
+
+
+      # ========================================================
+      # NODE
+      # ========================================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -383,10 +842,22 @@ jobs:
           cache: npm
           cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
+
+      # ========================================================
+      # NPM
+      # ========================================================
       - name: Install Dependencies
         working-directory: apps/${{ env.APP_DIR }}
-        run: npm ci --legacy-peer-deps
+        shell: bash
+        run: |
+          set -euo pipefail
 
+          npm ci --legacy-peer-deps
+
+
+      # ========================================================
+      # JAVA
+      # ========================================================
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -394,67 +865,136 @@ jobs:
           java-version: "17"
           cache: gradle
 
+
+      # ========================================================
+      # ANDROID KEYSTORE
+      # ========================================================
       - name: Create Android Keystore
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p android/app
-          echo "$APP_SECRETS_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+
+          printf '%s' "$APP_SECRETS_ANDROID_KEYSTORE_BASE64" \
+            | base64 --decode \
+            > android/app/release.keystore
+
           chmod 600 android/app/release.keystore
 
-      - name: Configure Android Signing & Version
+          if [ ! -s android/app/release.keystore ]; then
+            echo "ERROR: Android keystore is empty."
+            exit 1
+          fi
+
+
+      # ========================================================
+      # ANDROID SIGNING
+      # ========================================================
+      - name: Configure Android Signing
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
+          set -euo pipefail
+
           cat >> android/gradle.properties <<EOF
           MYAPP_UPLOAD_STORE_FILE=release.keystore
           MYAPP_UPLOAD_STORE_PASSWORD=${APP_SECRETS_ANDROID_KEYSTORE_PASSWORD}
           MYAPP_UPLOAD_KEY_ALIAS=${APP_SECRETS_ANDROID_KEY_ALIAS}
           MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
-          VERSION_CODE=${{ github.run_number }}
+          VERSION_CODE=${GITHUB_RUN_NUMBER}
           EOF
 
+
+      # ========================================================
+      # ANDROID BUILD
+      # ========================================================
       - name: Build Android AAB
         working-directory: apps/${{ env.APP_DIR }}/android
         shell: bash
         run: |
+          set -euo pipefail
+
           chmod +x gradlew
+
           VARIANT="${APP_SECRETS_ANDROID_VARIANT:-Release}"
+
           FIRST_CHAR="${VARIANT:0:1}"
           REST="${VARIANT:1}"
-          FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
-          GRADLE_TASK="${FIRST_CHAR}${REST}"
-          echo "Building Gradle task: :app:bundle${GRADLE_TASK}"
-          ./gradlew ":app:bundle${GRADLE_TASK}" -PversionCode=${{ github.run_number }}
 
+          FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
+
+          GRADLE_TASK="${FIRST_CHAR}${REST}"
+
+          echo "Gradle task: :app:bundle${GRADLE_TASK}"
+
+          ./gradlew \
+            ":app:bundle${GRADLE_TASK}" \
+            -PversionCode="${GITHUB_RUN_NUMBER}"
+
+
+      # ========================================================
+      # PREPARE AAB
+      # ========================================================
       - name: Prepare AAB
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          AAB=$(find android/app/build/outputs/bundle -name "*.aab" -type f | head -n 1)
+          set -euo pipefail
+
+          AAB="$(
+            find android/app/build/outputs/bundle \
+              -name "*.aab" \
+              -type f \
+              -print -quit
+          )"
+
           if [ -z "$AAB" ]; then
-            echo "AAB not found"
+            echo "ERROR: AAB was not generated."
             exit 1
           fi
-          mkdir -p "android/build"
-          cp "$AAB" "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
 
+          mkdir -p android/build
+
+          OUTPUT="android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
+
+          cp "$AAB" "$OUTPUT"
+
+          echo "AAB ready:"
+          echo "$OUTPUT"
+
+
+      # ========================================================
+      # GITHUB ARTIFACT
+      # ========================================================
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-android-${{ github.run_number }}
-          path: apps/${{ env.APP_DIR }}/android/build/*.aab
+          path: apps/${{ env.APP_DIR }}/android/build/${{ matrix.app }}-${{ github.run_number }}.aab
+          if-no-files-found: error
           retention-days: 14
 
+
+      # ========================================================
+      # S3
+      # ========================================================
       - name: Upload Current Android AAB to S3
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
+          set -euo pipefail
+
           aws s3 cp \
             "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab" \
             "s3://${S3_BUCKET}/android/${APP_NAME}/${APP_NAME}.aab" \
             --only-show-errors
 
+
+      # ========================================================
+      # GOOGLE PLAY
+      # ========================================================
       - name: Upload to Google Play
         if: env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
         uses: r0adkll/upload-google-play@v1
