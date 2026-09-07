@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import CommonIcon from '../../common_component/Commonicons';
 import { appName } from '../../service/environment';
 import { fontsFamily } from '../../constants/fontsFamily';
+import appLog from '../../constants/logger';
 
 
 const AccountManagementOption = React.memo(
@@ -26,36 +27,56 @@ const AccountManagementOption = React.memo(
   )
 );
 
-const AccountManagementCard = React.memo(({ onConnectAnother, onDeleteAccount, showBank = false, head, description }) => (
+const AccountManagementCard = React.memo(({ onConnectAnother, onDeleteAccount, showBank = false, head, description, bankAccountDataLabel }) => (
   <View style={styles.accountManagementCard}>
-    <Text style={styles.accountManagementTitle}>{head}</Text>
+    <Text style={styles.accountManagementTitle}>{bankAccountDataLabel?.title ?? ''}</Text>
     <Text style={styles.accountManagementSubtitle}>
-      {description}
+      {bankAccountDataLabel?.description ?? ''}
     </Text>
+
     {
-      showBank && <>
-        <View style={styles.accountManagementDivider} />
+      0 < bankAccountDataLabel?.features?.length && <>
+        {
+          bankAccountDataLabel?.features?.map((item, index) => {
+            return (
+              <View key={index}>
 
-        <AccountManagementOption
-          icon={<FontAwesome5 name="university" size={20} color="#3F2B96" />}
-          title="Connect Another Account"
-          description="Link another checking account"
-          onPress={onConnectAnother}
-        />
+                {
+                  showBank && index == 0 && <>
+                    <View style={styles.accountManagementDivider} />
 
+                    <AccountManagementOption
+                      icon={<CommonIcon family={item?.family} name={item?.icon} size={20} color="#3F2B96" />}
+                      title={item?.title}
+                      description={item?.description}
+                      onPress={onConnectAnother}
+                    />
+
+                  </>
+                }
+
+                {index == 1 &&
+                  <>
+                    <View style={styles.accountManagementDivider} />
+                    <AccountManagementOption
+                      icon={<CommonIcon family={item?.family} name={item?.icon} size={20} color="#DC2626" />}
+                      iconContainerStyle={styles.deleteIconContainer}
+                      title={item?.title}
+                      description={item?.description}
+                      titleStyle={styles.deleteText}
+                      onPress={onDeleteAccount}
+
+                    />
+                  </>
+                }
+              </View>
+            )
+          })
+        }
       </>
     }
 
-    <View style={styles.accountManagementDivider} />
 
-    <AccountManagementOption
-      icon={<CommonIcon  family={'MaterialCommunityIcons'} name="bank-off" size={20} color="#DC2626" />}
-      iconContainerStyle={styles.deleteIconContainer}
-      title="Disconnect Bank Account"
-      titleStyle={styles.deleteText}
-      description={`Disconnect this bank account from your ${appName} profile`}
-      onPress={onDeleteAccount}
-    />
   </View>
 ));
 

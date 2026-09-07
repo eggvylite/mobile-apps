@@ -18,7 +18,7 @@ import getmanulaccountSlice from '../slices/getmanulaccountSlice'
 import getnameAccountSlice from '../slices/getnameAccountSlice'
 import goalhisSlice from '../slices/goalhisSlice'
 import goalSlice from '../slices/goalSlice'
-import labelSlice from  '../slices/labelSlice'
+import labelSlice from '../slices/labelSlice'
 import manualaccountSlice from '../slices/manualaccountSlice'
 import menuiconSlice from '../slices/menuiconSlice'
 import newstatementSlice from '../slices/newstatementSlice'
@@ -43,54 +43,54 @@ import workflowLabelSlice from '../slices/workflowlableSilce'
 import applabelsSlice from '../slices/applabelsSlice'
 import merketplaceSlice from '../slices/merketplaceSlice'
 import handpicheckSlice from '../slices/handpicheckSlice'
-import insightSlice  from '../slices/insightSlice';
+import insightSlice from '../slices/insightSlice';
 import { reduxStorage } from './ storage';
 
 const appReducer = combineReducers({
   account: accountSlice,
   activeplan: activePlanSlice,
   advancehistory: advanceTransSlice,
-  advance:advanceSlice,
+  advance: advanceSlice,
   appcolor: appcolorSlice,
-  auth:authSlice,
-  bank:bankSlice,
-  bill:billSlice,
-  brandlogo:brandlogoSlice,
-  budgetcategory:budgetcategorySlice,
-  category:categorySlice,
-  chooseplan:chooseplanSlice,
-  customer:customerSlice,
+  auth: authSlice,
+  bank: bankSlice,
+  bill: billSlice,
+  brandlogo: brandlogoSlice,
+  budgetcategory: budgetcategorySlice,
+  category: categorySlice,
+  chooseplan: chooseplanSlice,
+  customer: customerSlice,
   dashboardmenu: dashboardmenuSlice,
-  elgible:elgibleofferSlice,
-  getaccount:getmanulaccountSlice,
-  getaccountname:getnameAccountSlice,
-  goalhistrory:goalhisSlice,
-  goal:goalSlice,
-  labels:labelSlice,
-  manualaccount:manualaccountSlice,
-  menuicons:menuiconSlice,
-  updateStatement:newstatementSlice,
-  notificationcustom:notificationCustomSlice,
-  notification:notificationSlice,
-  notificonect:notificonnectSlice,
-  handpicks:offerHandSlice,
-  offers:offerSlice,
-  offerstype:offertypeSlice,
-  openoffers:openofferSlice,
-  payment:paymentSlice,
-  reminder:reminderSlice,
-  creditScore:scoreSlice,
-  statement:statementSlice,
-  subscription:subscriptionSlice,
-  tagdescription:tagdescriptionSlice,
-  taglist:tagSlice,
-  transaction:transactionSlice,
-  faq:faqSlice,
-  workflowLabel:workflowLabelSlice,
-  appscreenlabels:applabelsSlice,
-  marketplace:merketplaceSlice,
-  handpicheck:handpicheckSlice,
-  insights:insightSlice
+  elgible: elgibleofferSlice,
+  getaccount: getmanulaccountSlice,
+  getaccountname: getnameAccountSlice,
+  goalhistrory: goalhisSlice,
+  goal: goalSlice,
+  labels: labelSlice,
+  manualaccount: manualaccountSlice,
+  menuicons: menuiconSlice,
+  updateStatement: newstatementSlice,
+  notificationcustom: notificationCustomSlice,
+  notification: notificationSlice,
+  notificonect: notificonnectSlice,
+  handpicks: offerHandSlice,
+  offers: offerSlice,
+  offerstype: offertypeSlice,
+  openoffers: openofferSlice,
+  payment: paymentSlice,
+  reminder: reminderSlice,
+  creditScore: scoreSlice,
+  statement: statementSlice,
+  subscription: subscriptionSlice,
+  tagdescription: tagdescriptionSlice,
+  taglist: tagSlice,
+  transaction: transactionSlice,
+  faq: faqSlice,
+  workflowLabel: workflowLabelSlice,
+  appscreenlabels: applabelsSlice,
+  marketplace: merketplaceSlice,
+  handpicheck: handpicheckSlice,
+  insights: insightSlice
 })
 
 const rootReducer = (state, action) => {
@@ -110,7 +110,6 @@ const persistConfig = {
   storage: reduxStorage,
   whitelist: [
     'account',
-    'advancehistory',
     'appcolor',
     'auth',
     'bank',
@@ -130,7 +129,6 @@ const persistConfig = {
     'menuicons',
     'notificationcustom',
     'notification',
-    'payment',
     'reminder',
     'creditScore',
     'statement',

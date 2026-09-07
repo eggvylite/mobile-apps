@@ -19,6 +19,8 @@ import { themeColors } from '../../Common';
 import { fontsFamily } from '../../../constants/fontsFamily';
 import appLog from '../../../constants/logger';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import useLoginLabels from '../../../hook/Labels/useLoginLabels';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,6 +30,8 @@ const Intro = ({ navigation, route }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
   const onboardingData = route.params.intro?.data || []
+  const {onbordcontent} = useSelector((state) => state.menuicons || {});
+   const {  onboardcontent } = useLoginLabels()
 
 
   const handleNext = () => {
@@ -104,14 +108,14 @@ const Intro = ({ navigation, route }) => {
       {/* Header with Skip */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{onboardcontent.skip}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Main Content */}
       <FlatList
         ref={flatListRef}
-        data={onboardingData}
+        data={onbordcontent}
         renderItem={renderItem}
         horizontal
         pagingEnabled
@@ -139,7 +143,7 @@ const Intro = ({ navigation, route }) => {
               style={styles.nextButton}
             >
               <View>
-                <Text style={styles.nextButtonText}>{currentIndex === onboardingData.length - 1 ? 'Get Started' : 'Next'}</Text>
+                <Text style={styles.nextButtonText}>{currentIndex === onboardingData.length - 1 ? onboardcontent.getstarted : onboardcontent.next}</Text>
               </View>
               <View style={{ justifyContent: 'center', marginStart: 10 }}>
                 <Icon

@@ -16,10 +16,11 @@ import useMarketplaceHook from '../../../../../hook/useOffersHook';
 import { getFontSize } from '../../../../../constants/Font';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
 import { mergeOffer } from '../../../../../utill/Utills';
+import useDashboardLablehook from '../../../../../hook/Labels/useDashboardLablehook';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.9;
-const CARD_MIN_HEIGHT = 108;
+const CARD_MIN_HEIGHT = 100;
 const CARD_GAP = 10;
 
 const ACCENT_COLORS = ['#FFD700', '#FF6B6B', '#9F7AEA'];
@@ -33,7 +34,7 @@ export default function PicksForYou(props) {
   const { marketPlaceLabel } = useSelector((state) => state.labels || {});
   const { marketplaceFeature, marketPlaceHandpickOffer } = useSelector((state) => state.marketplace);
   const { filterOffers, filterCategory, filterHandpickOffers, dashboardOfferId } = useMarketplaceHook();
-
+  const { marketlabels } = useDashboardLablehook()
 
 
 
@@ -106,7 +107,7 @@ const financeOffer = useMemo(() => {
   if (financeOffer) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>{marketPlaceLabel?.labels?.[1]?.message}</Text>
+        <Text style={styles.sectionTitle}>{marketlabels?.pickforyou}</Text>
 
         <View style={styles.cardsWrapper}>
           <Animated.ScrollView
@@ -124,9 +125,9 @@ const financeOffer = useMemo(() => {
               financeOffer && 0 < financeOffer?.features?.length &&
               financeOffer?.features.map((card, index) => {
 
-                const details = marketplaceFeature.find((obj) => obj?._id === card?.feature.value)
-                const offer = filterOffers.find((obj) => obj?.id === card?.id)
-                const accent = details.card_bg
+                const details = marketplaceFeature?.find((obj) => obj?._id === card?.feature.value)
+                const offer = filterOffers?.find((obj) => obj?.id === card?.id)
+                const accent = details?.card_bg
 
 
                 return (
@@ -189,11 +190,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: getFontSize(18),
-    fontFamily: fontsFamily.regularFont,
-    fontWeight: '600',
+    fontFamily: fontsFamily.semiboldFont,
+    fontWeight: '00',
     color: '#1b1b1b',
     marginBottom: 16,
-
   },
   cardsWrapper: {
     width: '100%',
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 160,
     height: 90,
-    right: -20,
+    right: -45,
     top: 60,
     borderRadius: 50,
     transform: [{ rotate: '1deg' }, { skewY: '-5deg' }],
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 17,
+    paddingVertical: 10,
     paddingLeft: 11,
     paddingRight: 8,
   },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1b1b1b',
   },
@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   imageColumn: {
-    width: 130,
-    height: 90,
+    width: 120,
+    height: 80,
     zIndex: 3,
     alignItems: 'center',
     justifyContent: 'center',

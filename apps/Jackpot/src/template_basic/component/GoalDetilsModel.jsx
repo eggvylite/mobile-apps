@@ -2,6 +2,7 @@ import { stylesheet, Text, View, Model, ScrollView, Modal, TouchableOpacity, Tex
 import React, { useState, useEffect, useRef } from 'react'
 import LinearGradient from 'react-native-linear-gradient'
 import Icon from 'react-native-vector-icons/Feather';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { themeColors } from '../Common';
@@ -16,32 +17,129 @@ import styles from '../styles/goalStyles';
 import CloudImage from '../../utill/CloudImage';
 import { commondateformat } from '../../utill/Utills';
 import timezone from 'moment-timezone'
+import CustomModal from './CustomModal';
 
-const CircularProgress = ({
-    percentage,
-    color,
-    size = 140,
-    strokeWidth = 10,
-}) => {
+// const CircularProgress = ({
+//     percentage,
+//     color,
+//     size = 140,
+//     strokeWidth = 10,
+// }) => {
+//     const animatedValue = useRef(new Animated.Value(0)).current;
+//     const [progress, setProgress] = useState(0);
+//     const [goalHis, setgoalHis] = useState([])
+
+//     useEffect(() => {
+//         const listener = animatedValue.addListener(({ value }) => {
+//             setProgress(value);
+//         });
+
+//         Animated.timing(animatedValue, {
+//             toValue: percentage,
+//             duration: 1500,
+//             easing: Easing.out(Easing.bezier(0.25, 0.1, 0.25, 1)),
+//             useNativeDriver: false,
+//         }).start();
+
+//         return () => {
+//             animatedValue.removeListener(listener);
+//         };
+//     }, [percentage]);
+
+//     const getProgressColor = () => {
+//         if (percentage >= 100) return '#34C759';
+//         if (percentage >= 75) return '#3F2B96';
+//         if (percentage >= 50) return '#FFB347';
+//         if (percentage >= 25) return '#FF8C00';
+//         return '#FF6B6B';
+//     };
+
+//     const progressColor = color || getProgressColor();
+
+//     // Calculate the rotation based on progress
+//     const rotation = (progress / 100) * 360;
+
+//     return (
+//         <View style={[styles.circularProgressContainer, { width: size, height: size }]}>
+//             {/* Background Circle */}
+//             <View
+//                 style={[
+//                     styles.circleBackground,
+//                     {
+//                         width: size,
+//                         height: size,
+//                         borderRadius: size / 2,
+//                         borderWidth: strokeWidth,
+//                         borderColor: '#F1F5F9',
+//                     },
+//                 ]}
+//             />
+
+//             {/* Progress Indicator */}
+//             <View
+//                 style={[
+//                     styles.progressIndicator,
+//                     {
+//                         width: size,
+//                         height: size,
+//                         borderRadius: size / 2,
+//                         borderWidth: strokeWidth,
+//                         borderColor: progressColor,
+//                         borderLeftColor: 'transparent',
+//                         borderBottomColor: 'transparent',
+//                         transform: [{ rotate: `${rotation}deg` }],
+//                     },
+//                 ]}
+//             />
+
+//             {/* Inner Circle */}
+//             <View
+//                 style={[
+//                     styles.circleInner,
+//                     {
+//                         width: size - strokeWidth * 2,
+//                         height: size - strokeWidth * 2,
+//                         borderRadius: (size - strokeWidth * 2) / 2,
+//                         backgroundColor: '#FFFFFF',
+//                     },
+//                 ]}
+//             />
+
+//             {/* Percentage Text */}
+//             <View style={styles.percentageContainer}>
+//                 <Text style={[styles.percentageText, { color: progressColor }]}>
+//                     {progress.toFixed(1)}%
+//                 </Text>
+//                 <Text style={styles.percentageLabel}>Complete</Text>
+//             </View>
+//         </View>
+//     );
+// };
+
+
+import Svg, { Circle } from 'react-native-svg';
+import appLog from '../../constants/logger';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const CircularProgress = ({ percentage, color, size = 140, strokeWidth = 10 }) => {
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [progress, setProgress] = useState(0);
-    const [goalHis, setgoalHis] = useState([])
+
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
 
     useEffect(() => {
-        const listener = animatedValue.addListener(({ value }) => {
-            setProgress(value);
-        });
+        const listener = animatedValue.addListener(({ value }) => setProgress(value));
 
         Animated.timing(animatedValue, {
             toValue: percentage,
             duration: 1500,
             easing: Easing.out(Easing.bezier(0.25, 0.1, 0.25, 1)),
-            useNativeDriver: false,
+            useNativeDriver: false, // strokeDashoffset can't use native driver
         }).start();
 
-        return () => {
-            animatedValue.removeListener(listener);
-        };
+        return () => animatedValue.removeListener(listener);
     }, [percentage]);
 
     const getProgressColor = () => {
@@ -53,57 +151,37 @@ const CircularProgress = ({
     };
 
     const progressColor = color || getProgressColor();
-
-    // Calculate the rotation based on progress
-    const rotation = (progress / 100) * 360;
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
-        <View style={[styles.circularProgressContainer, { width: size, height: size }]}>
-            {/* Background Circle */}
-            <View
-                style={[
-                    styles.circleBackground,
-                    {
-                        width: size,
-                        height: size,
-                        borderRadius: size / 2,
-                        borderWidth: strokeWidth,
-                        borderColor: '#F1F5F9',
-                    },
-                ]}
-            />
+        <View style={[styles.container, { width: size, height: size, backgroundColor: 'transparent' }]}>
+            <Svg width={size} height={size}>
+                {/* Background ring */}
+                <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke="#F1F5F9"
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                />
+                {/* Progress ring */}
+                <AnimatedCircle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke={progressColor}
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    // rotate so it starts at 12 o'clock instead of 3 o'clock
+                    rotation="-90"
+                    origin={`${size / 2}, ${size / 2}`}
+                />
+            </Svg>
 
-            {/* Progress Indicator */}
-            <View
-                style={[
-                    styles.progressIndicator,
-                    {
-                        width: size,
-                        height: size,
-                        borderRadius: size / 2,
-                        borderWidth: strokeWidth,
-                        borderColor: progressColor,
-                        borderLeftColor: 'transparent',
-                        borderBottomColor: 'transparent',
-                        transform: [{ rotate: `${rotation}deg` }],
-                    },
-                ]}
-            />
-
-            {/* Inner Circle */}
-            <View
-                style={[
-                    styles.circleInner,
-                    {
-                        width: size - strokeWidth * 2,
-                        height: size - strokeWidth * 2,
-                        borderRadius: (size - strokeWidth * 2) / 2,
-                        backgroundColor: '#FFFFFF',
-                    },
-                ]}
-            />
-
-            {/* Percentage Text */}
             <View style={styles.percentageContainer}>
                 <Text style={[styles.percentageText, { color: progressColor }]}>
                     {progress.toFixed(1)}%
@@ -114,8 +192,16 @@ const CircularProgress = ({
     );
 };
 
+
+
+
 const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, withDraw, editGoal }) => {
     const { storedata } = useSelector((state) => state.auth);
+    const saveamt = selectedGoal?.savedamount || 0
+    const spentamt = selectedGoal?.spent || 0
+    const totalsaveamt = saveamt + spentamt
+    const [isCustomModel, setIsCustomModel] = useState(false)
+
     function formatDateTime(date) {
         if (storedata) {
             var zone = storedata.zone
@@ -156,15 +242,22 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
     };
 
     const deleteGoalItem = async () => {
+        setIsCustomModel(false)
         try {
             const goalDelete = await deleteGoal(selectedGoal?._id)
         } catch (error) {
             console.log(error)
         } finally {
 
+            handleClose()
         }
-        handleClose()
+
     }
+
+
+
+
+
     return (
         <Modal
             visible={visible}
@@ -182,10 +275,30 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                         <Text style={styles.modalTitle}>Goal Details</Text>
                         <TouchableOpacity
                             style={styles.modalHeaderButton}
-                            onPress={() => deleteGoalItem()}>
+                            onPress={() => setIsCustomModel(true)}>
                             <Icon name="trash-2" size={20} color="#FF6B6B" />
                         </TouchableOpacity>
                     </View>
+
+                    <CustomModal
+                        visible={isCustomModel}
+                        onClose={() => { setIsCustomModel(false) }}
+                        alertTitle="Alert !"
+                        actionText={"Yes"}
+                        cancelText={"No"}
+                        onCancel={() => {
+                            setIsCustomModel(false)
+                        }}
+                        onAction={() => {
+                            deleteGoalItem()
+
+                        }}
+                    >
+                        <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15) }}>
+                            Are you sure you want to delete this Gaol?
+                        </Text>
+
+                    </CustomModal>
 
                     {selectedGoal && (
                         <ScrollView
@@ -212,13 +325,14 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
 
                                     }
                                 </LinearGradient>
+
                                 <View style={styles.modernTextContainer}>
                                     <Text style={styles.modernGoalName}>
-                                        {selectedGoal.name}
+                                        {selectedGoal?.name}
                                     </Text>
                                     <View style={styles.modernCategoryBadge}>
                                         <Text style={styles.modernCategoryText}>
-                                            {selectedGoal.categoryName || 'Custom Goal'}
+                                            {selectedGoal?.cate || 'Custom Goal'}
                                         </Text>
                                     </View>
                                 </View>
@@ -248,7 +362,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     style={styles.modernMetricCard}>
                                     <Text style={styles.modernMetricLabel}>Current</Text>
                                     <Text style={styles.modernMetricValue}>
-                                        {storedata?.currency}{CommonFunction.formatamount(selectedGoal?.savedamount || 0)}
+                                        {storedata?.currency}{CommonFunction.formatamount(totalsaveamt || 0)}
                                     </Text>
                                 </View>
 
@@ -295,6 +409,20 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                         </Text>
                                         <Text style={styles.modernDetailValue}>
                                             {storedata?.currency}{CommonFunction.formatamount(selectedGoal.contribution)}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                  <View style={styles.modernDetailRow}>
+                                    <View style={styles.modernDetailIcon}>
+                                        <FontAwesome name="money" size={16} color="#3F2B96" />
+                                    </View>
+                                    <View style={styles.modernDetailContent}>
+                                        <Text style={styles.modernDetailLabel}>
+                                            Spent Amount
+                                        </Text>
+                                        <Text style={styles.modernDetailValue}>
+                                            {storedata?.currency}{CommonFunction.formatamount(selectedGoal.spent)}
                                         </Text>
                                     </View>
                                 </View>
@@ -351,7 +479,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
 
                             {
                                 goalHis.length > 0 && (
-                                    <View style={{ marginTop: 20, backgroundColor: '#F8FAFC', borderRadius:10}}>
+                                    <View style={{ marginTop: 20, backgroundColor: '#F8FAFC', borderRadius: 10 }}>
 
                                         {goalHis
                                             .slice(0, 10)
@@ -440,9 +568,8 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                     <View style={styles.fixedBottomButtons}>
                         <View style={styles.fixedButtonsRow}>
 
-
                             {
-                                0 === Number(selectedGoal?.savedamount) &&
+                                0 === Number(totalsaveamt) &&
                                 <TouchableOpacity
                                     style={[styles.fixedActionButton, { backgroundColor: 'white', borderColor: '#BB750D', borderWidth: 1, marginEnd: 10 }]}
                                     onPress={() => {
@@ -478,6 +605,26 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
 
                                 </TouchableOpacity>
                             }
+
+                            {
+                                0 < spentamt && 0 === Number(saveamt) &&
+                                <TouchableOpacity
+                                    style={[styles.fixedActionButton, { backgroundColor: 'white', borderColor: "#FF6B6B", borderWidth: 1, marginEnd: 10 }]}
+                                    onPress={() => {
+                                        setTimeout(() => {
+                                            setIsCustomModel(true)
+                                        }, 300);
+                                    }}
+                                    activeOpacity={0.9}>
+                                    <View style={{ flexDirection: 'row' }}>
+                                        <Icon name="edit" size={18} color="#FF6B6B" />
+                                        <Text style={[styles.fixedButtonText, { color: "#FF6B6B" }]}>Delete</Text>
+                                    </View>
+
+                                </TouchableOpacity>
+                            }
+
+
 
 
                             <SubmitBtn

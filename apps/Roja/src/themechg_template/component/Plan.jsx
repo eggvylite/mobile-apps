@@ -161,7 +161,6 @@ function Plan(props) {
                         CommonFunction.storeData('@cusLoginInfo', infodata)
                         dispatch(updateAuthdata(infodata))
                         dispatch(fetchCustomer())
-
                         CommonFunction.message("Your subscription is now active!",)
                         props.onChange('completed')
 

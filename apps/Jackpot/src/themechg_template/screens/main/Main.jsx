@@ -56,6 +56,7 @@ import { fetchOpenoffers } from '../../../redux/slices/openofferSlice';
 import { getLoginInfo } from '../../../service/storage';
 import api from '../../../service/api';
 import { imgApi } from '../../../service/environment';
+import appLog from '../../../constants/logger';
 
 const Tab = createBottomTabNavigator();
 const screenHeight = Dimensions.get("window").height
@@ -317,6 +318,7 @@ export default function Main(props) {
 
     const saveTokenWithBiometric = async () => {
         var store = await getLoginInfo()
+        appLog.error(store)
         try {
 
             await Keychain.setGenericPassword('user', store.id, {

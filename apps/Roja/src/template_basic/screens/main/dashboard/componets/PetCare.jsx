@@ -6,41 +6,25 @@ import { useSelector } from 'react-redux';
 import useMarketplaceHook from '../../../../../hook/useOffersHook';
 import CloudImage from '../../../../../utill/CloudImage';
 import { mergeOffer } from '../../../../../utill/Utills';
+import useDashboardLablehook from '../../../../../hook/Labels/useDashboardLablehook';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.9;
 const CARD_GAP = 8;
 const CARD_MARGIN = 10;
 
-// const petCareData = [
-//     {
-//         id: '1',
-//         title: '24/7 Telehealth & Vet Access',
-//         description: 'Connect with licensed vets anytime via phone or video.',
-//         // image: require('./assets/vet.png'),
-//     },
-//     {
-//         id: '2',
-//         title: 'Pet Health Support',
-//         description: 'Get professional support for your pet anytime.',
-//         // image: require('./assets/vet.png'),
-//     },
-//     {
-//         id: '3',
-//         title: 'Virtual Pet Care',
-//         description: 'Easy access to veterinary care from home.',
-//         // image: require('./assets/vet.png'),
-//     },
-// ];
+
 
 
 
 const PetCare = (props) => {
     const scrollViewRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
-    const { filterOffers, filterCategory, filterHandpickOffers,dashboardOfferId } = useMarketplaceHook();
+    const { filterOffers, filterCategory, filterHandpickOffers, dashboardOfferId } = useMarketplaceHook();
     const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
+    const { marketlabels } = useDashboardLablehook()
 
+    
     const scrollToIndex = (index) => {
         if (scrollViewRef.current) {
             scrollViewRef.current.scrollTo({
@@ -61,22 +45,22 @@ const PetCare = (props) => {
 
 
     const petCareData = useMemo(() => {
-       const openOffer = filterOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
-           const handpick = filterHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
+        const openOffer = filterOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
+        const handpick = filterHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
 
-           if(handpick) {
-            const finalOffer = mergeOffer(handpick,[])
+        if (handpick) {
+            const finalOffer = mergeOffer(handpick, [])
             return finalOffer
-           }
+        }
 
-           const finalOffer = mergeOffer(openOffer,[])
-           return finalOffer
+        const finalOffer = mergeOffer(openOffer, [])
+        return finalOffer
     }, [filterOffers])
 
 
     const renderItem = ({ item }) => {
         const categoryDetails = marketplaceFeature.find((obj) => obj?._id === item?.feature.value)
-         const offer = filterOffers.find((obj) => obj?.id === item?.id)
+        const offer = filterOffers.find((obj) => obj?.id === item?.id)
         const accent = categoryDetails.icon_color
         return (
             <TouchableOpacity style={[styles.card, { backgroundColor: categoryDetails?.card_bg }]} onPress={() => {
@@ -122,7 +106,7 @@ const PetCare = (props) => {
     return (
         <View style={styles.container}>
             <Text style={styles.heading}>
-                Virtual Pet Care Service
+                {marketlabels?.petcare}
             </Text>
 
             {
@@ -170,7 +154,7 @@ const styles = StyleSheet.create({
 
     heading: {
         fontSize: getFontSize(18),
-        fontFamily: fontsFamily.regularFont,
+        fontFamily: fontsFamily.semiboldFont,
         fontWeight: '600',
         color: '#1b1b1b',
         marginBottom: 16,

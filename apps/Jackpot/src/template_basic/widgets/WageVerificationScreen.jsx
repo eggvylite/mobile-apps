@@ -33,6 +33,8 @@ import { fetchCustomer } from '../../redux/slices/customerSlice';
 import { fetchAuth } from '../../redux/slices/authSlice';
 import useFeatureWorkInfoLabel from '../../hook/useFeatureInfoWorkLablehook';
 import useGeneralLabelsHook from '../../hook/Labels/useGenerallablehoo';
+import useBankConnectionLabelFlow from '../../hook/Labels/useBankConnectionMagemntLableHook';
+import CommonIcon from '../../common_component/Commonicons';
 
 
 
@@ -43,6 +45,13 @@ const FLOW_STEPS = {
     LAST_PAYDAY: 'LAST_PAYDAY',
     UPCOMING_PAYDAY: 'UPCOMING_PAYDAY',
     CALENDAR: 'CALENDAR',
+};
+export const replaceDynamicValues = (label, value) => {
+    if (typeof label !== 'string') {
+        return '';
+    }
+
+    return label.replace(/\{details\}/g, String(value ?? ''));
 };
 
 const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, description, mode = 'card', connectBankOnPress, wageVerificationLabeleData, deletedOnPress }) => {
@@ -68,6 +77,10 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
         connectBankPromtTitle,
         deleteBankPromtAlertPromt,
         deleteConnectBankPromtTitle, wageProgress, manageBankConnection, manageBankConnectionDescription } = useGeneralLabelsHook()
+
+    const { bankAccountDataLabel, wageConnectionLabelData } = useBankConnectionLabelFlow()
+
+
 
 
 
@@ -120,6 +133,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
             setDeleteAccountLoading(false);
         }
     }, [storedata?.id]);
+
 
 
 
@@ -288,6 +302,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
     const handleCheckWages = () => {
         setCurrentStep(FLOW_STEPS.INCOME);
         setIsFlowModalVisible(true);
+        setSelectedTransactions([])
     };
 
     const handleStatusPress = () => {
@@ -866,72 +881,83 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
         }
     };
 
+
+
     switch (wageStatus) {
         case WageStatus.NOT_SUBMITTED:
-            if (mode === 'inline') {
-                return renderFlowContent();
-            }
 
             return (
                 <View style={{ flex: 1 }}>
                     <ScrollView showsVerticalScrollIndicator={false}>
                         <View style={styles.cardContainer}>
                             <View style={styles.card}>
-                                <View style={[styles.timerBanner, { flexDirection: 'column', padding: 10, justifyContent: 'center', alignItems: 'center', height: 'auto' }]}>
-                                    <Text style={styles.timerText}>Complete Verification Within </Text>
-                                    <CountdownTimer expiryTime={expiryTime} />
-                                </View>
+                                {
+                                    0 < wageConnectionLabelData?.notes?.length ? <View style={[styles.timerBanner, { flexDirection: 'column', padding: 10, justifyContent: 'center', alignItems: 'center', height: 'auto' }]}>
+                                        <Text style={styles.timerText}>{wageConnectionLabelData?.notes[0]?.label} </Text>
+                                        <CountdownTimer expiryTime={expiryTime} />
+                                    </View> : <View style={[styles.timerBanner, { flexDirection: 'column', padding: 10, justifyContent: 'center', alignItems: 'center', height: 'auto' }]}>
+                                        <Text style={styles.timerText}>Complete Verification Within </Text>
+                                        <CountdownTimer expiryTime={expiryTime} />
+                                    </View>
+                                }
 
-                                <Text style={styles.title}>{wageVerificationLabeleData?.title ?? ''}</Text>
+
+                                <Text style={styles.title}>{wageConnectionLabelData?.title ?? ''}</Text>
                                 <Text style={styles.bodyText}>
-                                    {wageVerificationLabeleData?.description ?? ''}
+                                    {wageConnectionLabelData?.description ?? ''}
                                 </Text>
 
-                                <View style={styles.stepsContainer}>
-                                    <View style={styles.stepRow}>
-                                        <View style={[styles.stepIcon, styles.stepIconDone]}>
-                                            <Icon name="check-circle" size={16} color="#2FA948" />
-                                        </View>
-                                        <View style={styles.stepContent}>
-                                            <Text style={styles.stepMain}>Bank Connected</Text>
-                                            <Text style={styles.stepSub}>{defaultBankName} {defaultBankAccountType}</Text>
-                                        </View>
+
+                                {
+                                    0 < wageConnectionLabelData?.features?.length &&
+
+                                    <View style={styles.stepsContainer}>
+                                        {
+                                            wageConnectionLabelData?.features?.map((item, index) => {
+                                                return (
+                                                    <View style={styles.stepRow} key={index}>
+                                                        <View style={[styles.stepIcon, styles.stepIconDone, { backgroundColor: item?.bgcolor }]}>
+
+                                                            <CommonIcon family={item?.family} name={item?.icon} size={16} color={item?.iconcolor} />
+                                                        </View>
+                                                        <View style={styles.stepContent}>
+                                                            <Text style={styles.stepMain}>{item?.title ?? ''}</Text>
+                                                            <Text style={styles.stepSub}>{replaceDynamicValues(
+                                                                item?.description,
+                                                                `${defaultBankName} ${defaultBankAccountType}`
+                                                            )}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                )
+                                            })
+                                        }
                                     </View>
 
-                                    <View style={styles.stepRow}>
-                                        <View style={[styles.stepIcon, styles.stepIconDone]}>
-                                            <Icon name="check-circle" size={16} color="#2FA948" />
-                                        </View>
-                                        <View style={styles.stepContent}>
-                                            <Text style={styles.stepMain}>Transaction analyzed</Text>
-                                            <Text style={styles.stepSub}>90 days of activity reviewed</Text>
-                                        </View>
-                                    </View>
+                                }
 
-                                    <View style={styles.stepRow}>
-                                        <View style={[styles.stepIcon, styles.stepIconWarning]}>
-                                            <Icon name="exclamation-triangle" size={15} color="#FFD84B" />
-                                        </View>
-                                        <View style={styles.stepContent}>
-                                            <Text style={[styles.stepMain, styles.stepMainWarning]}>
-                                                Additional Verification needed
-                                            </Text>
-                                            <Text style={styles.stepSub}>We need a bit more detail</Text>
-                                        </View>
-                                    </View>
-                                </View>
 
-                                <TouchableOpacity
-                                    style={styles.primaryButton}
-                                    onPress={handleCheckWages}
-                                    activeOpacity={0.8}
-                                >
+                                {
+                                    0 < wageConnectionLabelData?.notes?.length ? <TouchableOpacity
+                                        style={styles.primaryButton}
+                                        onPress={handleCheckWages}
+                                        activeOpacity={0.8}
+                                    >
 
-                                    <Text style={styles.primaryButtonText}>Continue Verification</Text>
-                                </TouchableOpacity>
+                                        <Text style={styles.primaryButtonText}>{wageConnectionLabelData?.notes[1]?.label ?? ''}</Text>
+                                    </TouchableOpacity> :
+                                        <TouchableOpacity
+                                            style={styles.primaryButton}
+                                            onPress={handleCheckWages}
+                                            activeOpacity={0.8}
+                                        >
 
+                                            <Text style={styles.primaryButtonText}>Continue Verification</Text>
+                                        </TouchableOpacity>
+                                }
 
                             </View>
+
 
                             <Modal
                                 animationType="slide"
@@ -949,7 +975,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
 
                         </View>
 
-                        <AccountManagementCard showBank={showBank} onConnectAnother={connectBankOpenhandler} onDeleteAccount={handleDeleteFunction} head={manageBankConnection} description={manageBankConnectionDescription} />
+                        <AccountManagementCard showBank={showBank} onConnectAnother={connectBankOpenhandler} onDeleteAccount={handleDeleteFunction} head={manageBankConnection} description={manageBankConnectionDescription} bankAccountDataLabel={bankAccountDataLabel} />
                         {
                             wageVerificationLabeleData && <BenefitSectionCard data={wageVerificationLabeleData} />
                         }
@@ -994,389 +1020,22 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
 
             );
         case WageStatus.PROCESSING:
-            if (mode === 'inline') {
-                return (
-                    <View style={{ flex: 1 }}>
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <View style={styles.statusBankSection}>
-                                <View style={styles.statusBankIcon}>
-                                    <Icon name="university" size={20} color="#5A21F1" />
-                                </View>
-                                <View style={styles.statusBankInfo}>
-                                    <Text style={styles.statusBankName}>{defaultBankName}</Text>
-                                    <Text style={styles.statusBankAccount}>{defaultBankAccountType}</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.statusStepsContainer}>
-                                {DEFAULT_STEPS.map((step, index) => (
-                                    <View key={step.id}>
-                                        <View style={styles.statusStepRow}>
-                                            <View style={styles.statusStepIcon}>
-                                                <Icon
-                                                    name={step.icon}
-                                                    size={20}
-                                                    color={
-                                                        step.status === 'completed' ? '#2FA948' :
-                                                            step.status === 'in-progress' ? '#F57C00' : '#BDBDBD'
-                                                    }
-                                                />
-                                            </View>
-                                            <View style={styles.statusStepContent}>
-                                                <Text style={[
-                                                    styles.statusStepTitle,
-                                                    step.status === 'pending' && styles.statusStepTitlePending
-                                                ]}>
-                                                    {step.title}
-                                                </Text>
-                                                <Text style={styles.statusStepSubtitle}>{step.subtitle}</Text>
-                                            </View>
-                                            <View style={styles.statusStepDate}>
-                                                <Text style={styles.statusStepDateText}>{step.date}</Text>
-                                                {step.status === 'in-progress' && (
-                                                    <View style={styles.statusStepBadge}>
-                                                        <Text style={styles.statusStepBadgeText}>In Progress</Text>
-                                                    </View>
-                                                )}
-                                                {step.status === 'completed' && (
-                                                    <Icon name="check-circle" size={16} color="#2FA948" />
-                                                )}
-                                            </View>
-                                        </View>
-                                        {index < DEFAULT_STEPS.length - 1 && (
-                                            <View style={[
-                                                styles.statusStepLine,
-                                                step.status === 'completed' && styles.statusStepLineCompleted
-                                            ]} />
-                                        )}
-                                    </View>
-                                ))}
-                            </View>
-
-                            <View style={styles.statusMessageContainer}>
-                                <Icon name="info-circle" size={16} color="#5A21F1" />
-                                <Text style={styles.statusMessageText}>
-                                    {wageProgress}
-                                </Text>
-                            </View>
-                        </ScrollView>
-                        <AppCommonModal
-                            visible={deteteModelOpen}
-                            icon="trash-2"
-                            title={deleteConnectBankPromtTitle}
-                            message={deleteBankPromtAlertPromt}
-                            confirmText="Disconnect"
-                            cancelText="Cancel"
-                            loading={deleteAccountLoading}
-                            bankIcon={true}
-                            iconFamilty={'MaterialCommunityIcons'}
-                            iconName={'bank-off'}
-                            onConfirm={() => {
-                                deleteAccountService()
-                            }}
-                            onCancel={() => setDeleteModel(false)}
-                        />
-
-
-                        <AppCommonModal
-                            visible={openNewBankConnect}
-                            iconBackground={"#F1F5F9"}
-                            icon="credit-card"
-                            title={connectBankPromtTitle}
-                            message={connectNewBankAlertPromt}
-                            confirmText="Connect Bank"
-                            cancelText="Cancel"
-                            loading={deleteAccountLoading}
-                            bankIcon={true}
-                            iconFamilty={'FontAwesome5'}
-                            iconName={'university'}
-                            iconColor='#3F2B96'
-                            onConfirm={connectMultiBankService}
-                            onCancel={() => setNewBankConnect(false)}
-                        />
-                    </View>
-                );
-            }
-
-            if (dashbordscreen) {
-                return (
-                    <View style={styles.cardContainer}>
-                        <TouchableOpacity onPress={handleStatusPress} activeOpacity={0.9}>
-                            <LinearGradient
-                                colors={['#FFF8E1', '#FFECB3']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.progressCard}
-                            >
-                                <View style={styles.progressLeftContent}>
-                                    <Text style={styles.inProgressTitle}>{featureLabel?.name || "Wage review in process"}</Text>
-                                    <Text style={styles.inProgressSubtitle}>{featureLabel?.description || "We're reviewing your wage information"}</Text>
-                                    <View style={styles.infoContainer}>
-                                        <Icon name="info-circle" size={14} color="#F57C00" />
-                                        <Text style={styles.infoText}>Process will take up to 5 days</Text>
-                                    </View>
-                                </View>
-
-                                <View style={styles.progressImageWrap}>
-                                    <Image
-                                        source={require('../../../assets/images/verification-progress.png')}
-                                        style={styles.clockImage}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        <Modal
-                            animationType="slide"
-                            transparent={true}
-                            visible={statusModalVisible}
-                            onRequestClose={() => setStatusModalVisible(false)}
-                        >
-                            <View style={styles.modalOverlay}>
-                                <View style={styles.statusModalContainer}>
-                                    <View style={styles.modalHeader}>
-                                        <Text style={styles.modalTitle}>Verification Status</Text>
-                                        <TouchableOpacity onPress={() => setStatusModalVisible(false)} style={styles.closeButton}>
-                                            <Icon name="times" size={20} color="#1B1B1B" />
-                                        </TouchableOpacity>
-                                    </View>
-
-                                    <ScrollView style={styles.statusScrollView} showsVerticalScrollIndicator={false}>
-                                        <View style={styles.statusBankSection}>
-                                            <View style={styles.statusBankIcon}>
-                                                <Icon name="university" size={20} color="#5A21F1" />
-                                            </View>
-                                            <View style={styles.statusBankInfo}>
-                                                <Text style={styles.statusBankName}>{defaultBankName}</Text>
-                                                <Text style={styles.statusBankAccount}>{defaultBankAccountType}</Text>
-                                            </View>
-                                        </View>
-
-                                        <View style={styles.statusStepsContainer}>
-                                            {DEFAULT_STEPS.map((step, index) => (
-                                                <View key={step.id}>
-                                                    <View style={styles.statusStepRow}>
-                                                        <View style={styles.statusStepIcon}>
-                                                            <Icon
-                                                                name={step.icon}
-                                                                size={20}
-                                                                color={
-                                                                    step.status === 'completed' ? '#2FA948' :
-                                                                        step.status === 'in-progress' ? '#F57C00' : '#BDBDBD'
-                                                                }
-                                                            />
-                                                        </View>
-                                                        <View style={styles.statusStepContent}>
-                                                            <Text style={[
-                                                                styles.statusStepTitle,
-                                                                step.status === 'pending' && styles.statusStepTitlePending
-                                                            ]}>
-                                                                {step.title}
-                                                            </Text>
-                                                            <Text style={styles.statusStepSubtitle}>{step.subtitle}</Text>
-                                                        </View>
-                                                        <View style={styles.statusStepDate}>
-                                                            <Text style={styles.statusStepDateText}>{step.date}</Text>
-                                                            {step.status === 'in-progress' && (
-                                                                <View style={styles.statusStepBadge}>
-                                                                    <Text style={styles.statusStepBadgeText}>In Progress</Text>
-                                                                </View>
-                                                            )}
-                                                            {step.status === 'completed' && (
-                                                                <Icon name="check-circle" size={16} color="#2FA948" />
-                                                            )}
-                                                        </View>
-                                                    </View>
-                                                    {index < DEFAULT_STEPS.length - 1 && (
-                                                        <View style={[
-                                                            styles.statusStepLine,
-                                                            step.status === 'completed' && styles.statusStepLineCompleted
-                                                        ]} />
-                                                    )}
-                                                </View>
-                                            ))}
-                                        </View>
-
-                                        <View style={styles.statusMessageContainer}>
-                                            <Icon name="info-circle" size={16} color="#5A21F1" />
-                                            <Text style={styles.statusMessageText}>
-                                                {wageProgress}
-                                            </Text>
-                                        </View>
-                                    </ScrollView>
-
-                                    <TouchableOpacity
-                                        style={styles.statusCloseBtn}
-                                        onPress={() => setStatusModalVisible(false)}
-                                    >
-                                        <Text style={styles.statusCloseBtnText}>Close</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </Modal>
-                        <AppCommonModal
-                            visible={deteteModelOpen}
-                            icon="trash-2"
-                            title={deleteConnectBankPromtTitle}
-                            message={deleteBankPromtAlertPromt}
-                            confirmText="Disconnect"
-                            cancelText="Cancel"
-                            loading={deleteAccountLoading}
-                            bankIcon={true}
-                            iconFamilty={'MaterialCommunityIcons'}
-                            iconName={'bank-off'}
-                            onConfirm={() => {
-                                deleteAccountService()
-                            }}
-                            onCancel={() => setDeleteModel(false)}
-                        />
-
-
-                        <AppCommonModal
-                            visible={openNewBankConnect}
-                            iconBackground={"#F1F5F9"}
-                            icon="credit-card"
-                            title={connectBankPromtTitle}
-                            message={connectNewBankAlertPromt}
-                            confirmText="Connect Bank"
-                            cancelText="Cancel"
-                            loading={deleteAccountLoading}
-                            bankIcon={true}
-                            iconFamilty={'FontAwesome5'}
-                            iconName={'university'}
-                            iconColor='#3F2B96'
-                            onConfirm={connectMultiBankService}
-                            onCancel={() => setNewBankConnect(false)}
-                        />
-                    </View>
-                )
-            } else {
                 return (
                     <View style={{ flex: 1, marginVertical: 20 }}>
 
 
                         <ScrollView showsVerticalScrollIndicator={false}>
 
-                            <View style={styles.cardContainer}>
-                                <TouchableOpacity activeOpacity={0.9}>
-                                    <LinearGradient
-                                        colors={['#FFF8E1', '#FFECB3']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={styles.progressCard}
-                                    >
-                                        <View style={styles.progressLeftContent}>
-                                            <Text style={styles.inProgressTitle}>{featureLabel?.name || "Wage review in process"}</Text>
-                                            <Text style={styles.inProgressSubtitle}>{featureLabel?.description || "We're reviewing your wage information"}</Text>
-                                            <View style={styles.infoContainer}>
-                                                <Icon name="info-circle" size={14} color="#F57C00" />
-                                                <Text style={styles.infoText}>Process will take up to 5 days</Text>
-                                            </View>
-                                        </View>
 
-                                        <View style={styles.progressImageWrap}>
-                                            <Image
-                                                source={require('../../../assets/images/verification-progress.png')}
-                                                style={styles.clockImage}
-                                                resizeMode="contain"
-                                            />
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                <Modal
-                                    animationType="slide"
-                                    transparent={true}
-                                    visible={statusModalVisible}
-                                    onRequestClose={() => setStatusModalVisible(false)}
-                                >
-                                    <View style={styles.modalOverlay}>
-                                        <View style={styles.statusModalContainer}>
-                                            <View style={styles.modalHeader}>
-                                                <Text style={styles.modalTitle}>Verification Status</Text>
-                                                <TouchableOpacity onPress={() => setStatusModalVisible(false)} style={styles.closeButton}>
-                                                    <Icon name="times" size={20} color="#1B1B1B" />
-                                                </TouchableOpacity>
-                                            </View>
-
-                                            <ScrollView style={styles.statusScrollView} showsVerticalScrollIndicator={false}>
-                                                <View style={styles.statusBankSection}>
-                                                    <View style={styles.statusBankIcon}>
-                                                        <Icon name="university" size={20} color="#5A21F1" />
-                                                    </View>
-                                                    <View style={styles.statusBankInfo}>
-                                                        <Text style={styles.statusBankName}>{defaultBankName}</Text>
-                                                        <Text style={styles.statusBankAccount}>{defaultBankAccountType}</Text>
-                                                    </View>
-                                                </View>
-
-                                                <View style={styles.statusStepsContainer}>
-                                                    {DEFAULT_STEPS.map((step, index) => (
-                                                        <View key={step.id}>
-                                                            <View style={styles.statusStepRow}>
-                                                                <View style={styles.statusStepIcon}>
-                                                                    <Icon
-                                                                        name={step.icon}
-                                                                        size={20}
-                                                                        color={
-                                                                            step.status === 'completed' ? '#2FA948' :
-                                                                                step.status === 'in-progress' ? '#F57C00' : '#BDBDBD'
-                                                                        }
-                                                                    />
-                                                                </View>
-                                                                <View style={styles.statusStepContent}>
-                                                                    <Text style={[
-                                                                        styles.statusStepTitle,
-                                                                        step.status === 'pending' && styles.statusStepTitlePending
-                                                                    ]}>
-                                                                        {step.title}
-                                                                    </Text>
-                                                                    <Text style={styles.statusStepSubtitle}>{step.subtitle}</Text>
-                                                                </View>
-                                                                <View style={styles.statusStepDate}>
-                                                                    <Text style={styles.statusStepDateText}>{step.date}</Text>
-                                                                    {step.status === 'in-progress' && (
-                                                                        <View style={styles.statusStepBadge}>
-                                                                            <Text style={styles.statusStepBadgeText}>In Progress</Text>
-                                                                        </View>
-                                                                    )}
-                                                                    {step.status === 'completed' && (
-                                                                        <Icon name="check-circle" size={16} color="#2FA948" />
-                                                                    )}
-                                                                </View>
-                                                            </View>
-                                                            {index < DEFAULT_STEPS.length - 1 && (
-                                                                <View style={[
-                                                                    styles.statusStepLine,
-                                                                    step.status === 'completed' && styles.statusStepLineCompleted
-                                                                ]} />
-                                                            )}
-                                                        </View>
-                                                    ))}
-                                                </View>
-
-                                                <View style={styles.statusMessageContainer}>
-                                                    <Icon name="info-circle" size={16} color="#5A21F1" />
-                                                    <Text style={styles.statusMessageText}>
-                                                        {wageProgress}
-                                                    </Text>
-                                                </View>
-                                            </ScrollView>
-
-                                            <TouchableOpacity
-                                                style={styles.statusCloseBtn}
-                                                onPress={() => setStatusModalVisible(false)}
-                                            >
-                                                <Text style={styles.statusCloseBtnText}>Close</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                </Modal>
-                            </View>
-
-
-                            <View style={{ margin: 10, flex: 1, backgroundColor: '#ffff', padding: 20, borderRadius: 10 }}>
+                            <View style={{
+                                backgroundColor: '#FFFFFF',
+                                borderRadius: 20,
+                                marginHorizontal: 16,
+                                marginVertical: 12,
+                                padding: 20,
+                                borderWidth: 1,
+                                borderColor: '#E5E7EB',
+                            }}>
                                 <Text style={[styles.modalTitle, { marginBottom: 20 }]}>Wage Verification Status</Text>
 
                                 <View style={styles.statusBankSection}>
@@ -1442,7 +1101,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                                     </Text>
                                 </View>
                             </View>
-                            <AccountManagementCard showBank={showBank} onConnectAnother={connectBankOpenhandler} onDeleteAccount={handleDeleteFunction} head={manageBankConnection} description={manageBankConnectionDescription} />
+                            <AccountManagementCard showBank={showBank} onConnectAnother={connectBankOpenhandler} onDeleteAccount={handleDeleteFunction} head={manageBankConnection} description={manageBankConnectionDescription} bankAccountDataLabel={bankAccountDataLabel} />
                             {
                                 wageVerificationLabeleData && <BenefitSectionCard data={wageVerificationLabeleData} />
                             }
@@ -1485,7 +1144,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                         />
                     </View>
                 )
-            }
+
 
 
     }
@@ -1602,7 +1261,7 @@ const styles = StyleSheet.create({
         padding: 18,
         backgroundColor: '#5A21F1',
         borderRadius: 5,
-        marginEnd:15,
+        marginEnd: 15,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

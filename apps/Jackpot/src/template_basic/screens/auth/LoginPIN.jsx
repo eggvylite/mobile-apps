@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
@@ -13,6 +12,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import HeaderIOS from '../../../common_component/HeaderIOS';
 import { themeColors } from '../../Common';
@@ -25,6 +25,7 @@ import { useSelector } from 'react-redux';
 import { getLoginInfo } from '../../../service/storage';
 import { forgotmobileOTP, loginPIN } from '../../../constants/Loginapi';
 import SubmitBtn from '../../component/SubmitBtn';
+import useLoginLabels from '../../../hook/Labels/useLoginLabels';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,8 @@ function LoginPIN({ navigation, route }) {
   const [showPin, setShowPin] = useState(false);
   const [record, setRecord] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { loginpin } = useLoginLabels()
+
 
   const pinInputRefs = useRef([]);
   const info = route.params;
@@ -99,7 +102,7 @@ function LoginPIN({ navigation, route }) {
         setIsLoading(false);
         setRecord('');
         resetPIN();
-        CommonFunction.message('Incorrect PIN. Please try again', 'danger');
+        CommonFunction.message(loginpin.incorrectpin, 'danger');
       }
     } else {
       try {
@@ -162,7 +165,7 @@ function LoginPIN({ navigation, route }) {
     const keys = ['@cusLoginInfo', 'name', 'account', 'photo', 'paramsMonth'];
 
     const clearAndLogout = () => {
-      AsyncStorage.multiRemove(keys, () => {});
+      AsyncStorage.multiRemove(keys, () => { });
       store.dispatch({ type: 'auth/logout' });
       persistor.purge();
       CommonFunction.logout(navigation);
@@ -184,7 +187,7 @@ function LoginPIN({ navigation, route }) {
 
   const renderPinDots = () => {
     return (
-      <View style={styles.pinContainer}>
+      <View style={[styles.pinContainer, { gap: Platform.OS === 'ios' ? 10 : 5 }]}>
         {pin.map((digit, index) => (
           <TextInput
             key={index}
@@ -235,14 +238,14 @@ function LoginPIN({ navigation, route }) {
             <HeaderIOS />
 
             <View style={styles.card}>
-              <Text style={styles.navTitles}>Enter Your PIN</Text>
+              <Text style={styles.navTitles}>{loginpin.enteryourpin}</Text>
               <Text style={styles.subtitle}>
-                Enter your 6-digit PIN to continue
+                {loginpin.enter6digitpin}
               </Text>
 
               <View style={styles.inputContainer}>
                 <View style={styles.pinHeader}>
-                  <Text style={styles.label}>Enter PIN</Text>
+                  <Text style={styles.label}>{loginpin.enterpin}</Text>
                   <TouchableOpacity onPress={() => setShowPin(!showPin)}>
                     <Icon
                       name={showPin ? 'eye-off' : 'eye'}
@@ -259,12 +262,12 @@ function LoginPIN({ navigation, route }) {
                 style={{ alignItems: 'flex-end', marginBottom: 15 }}
                 onPress={() => forgotOTP()}
               >
-                <Text style={styles.editLink}>Forgot PIN?</Text>
+                <Text style={styles.editLink}>{loginpin.forgotpin}</Text>
               </TouchableOpacity>
 
               {isPinComplete && (
                 <SubmitBtn
-                  text={isLoading ? 'Loading' : 'Continue'}
+                  text={isLoading ? 'Loading' : loginpin.continue}
                   submit={handleSetPin}
                   disabled={isLoading}
                   disableGradient={isLoading}
@@ -278,7 +281,7 @@ function LoginPIN({ navigation, route }) {
       {/* Footer stays fixed at bottom regardless of keyboard state */}
       <View style={styles.footer}>
         <TouchableOpacity onPress={() => logoutsession()}>
-          <Text style={styles.editLink}>Login to another account</Text>
+          <Text style={styles.editLink}>{loginpin.loginanotheraccount}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -369,17 +372,17 @@ const styles = StyleSheet.create({
   pinContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 15,
+    paddingHorizontal: 5,
   },
   pinInput: {
-    width: 40,
+    width: 42,
     height: 55,
     backgroundColor: '#F5F6FA',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#EEE',
     textAlign: 'center',
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#333',
   },

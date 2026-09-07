@@ -144,19 +144,29 @@ export default function SelectPaymentMethod({ route }) {
       api.post('advances/' + storedata.id, payload)
         .then(function (response) {
 
+
           navigation.navigate('AdvanceSuccess', {
             type: 'advance',
             amount: successAmount,
             last4: selectedCard?.number || selectedCard?.last4 || '0000',
             brand: selectedCard?.brand || selectedCard?.name || 'Card',
             message: response?.data?.message || 'Advance Received!',
+            advanceId: response?.data?.advance_id
           });
           setIsSubmitting(false);
+          dispatch(fetchadvanceActiveSubscription());
+          dispatch(fetchOutstanding());
+          dispatch(resetTransaction());
+          dispatch(resetAdvTransaction());
+
         })
         .catch(err => {
 
           const errorMsg = err.response?.data?.message || 'Failed to process cash advance.';
           CommonFunction.message(errorMsg, 'danger');
+          dispatch(fetchNotication(10));
+          dispatch(resetTransaction());
+          dispatch(resetAdvTransaction());
         })
         .finally(() => {
           setIsSubmitting(false);
@@ -169,27 +179,37 @@ export default function SelectPaymentMethod({ route }) {
   const payBalance = async () => {
     setIsSubmitting(true);
 
+    const { repaymentType, repaymentContext, advance_id, selectedAdvances, totalBill } = route.params || {};
+    const isPartial = repaymentType === 'partial';
+
+    let endpoint = isPartial ? 'advances/partialpayment' : 'advances/captureall';
     const payload = {
       customer: storedata.id,
       pmid: selectedMethod,
       device_name: CommonFunction.getdevicename(),
       platform: CommonFunction.getOS(),
       ipaddress: await CommonFunction.getipaddress(),
+      amount: totalBill
     };
 
-    api.post('advances/captureall', payload).then(res => {
+
+
+
+    api.post(endpoint, payload).then(res => {
       dispatch(fetchNotication(10));
       dispatch(fetchadvanceActiveSubscription());
       dispatch(fetchOutstanding());
       dispatch(resetTransaction());
       dispatch(resetAdvTransaction());
 
+
       navigation.navigate('AdvanceSuccess', {
         type: 'payment',
-        amount: route.params?.totalBill,
-        last4: selectedCard?.number || selectedCard?.last4 || '0000',
-        brand: selectedCard?.brand || selectedCard?.name || 'Card',
-        message: res.data?.status[0]?.message || 'Payment Successful',
+        amount: totalBill,
+        last4: selectedCard?.number || '0000',
+        brand: selectedCard?.brand || 'Card',
+        message: res.data?.message || 'Payment Successful',
+        advanceId: res?.data?.transactionId
       });
     }).catch(err => {
       dispatch(fetchNotication(10));
@@ -371,21 +391,62 @@ export default function SelectPaymentMethod({ route }) {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Amount</Text>
             <Text style={styles.summaryValue}>
-              {storedata?.currency}{CommonFunction.formatamount(route.params?.advance_amount || activeSub?.plan_cash_upto)}
+              {storedata?.currency}{CommonFunction.formatamount(route.params?.advance_amount || route.params?.totalBill || activeSub?.plan_cash_upto)}
             </Text>
           </View>
           {
-            appLog.error(route.params)
+            route?.params?.fromAdvance && <>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Convenience Fee</Text>
+                <Text style={[styles.summaryValue, { color: route.params?.payment_mode === 'Instant_funding' ? '#EF4444' : '#10B981' }]}>
+                  {route.params?.payment_mode === 'Instant_funding'
+                    ? `${storedata?.currency}${CommonFunction.formatamount(route?.params?.instant_funding_price ?? 0)}`
+                    : `${storedata?.currency}0.00`}
+                </Text>
+              </View>
+
+              {
+                route.params?.payment_mode === 'Instant_funding' ? <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Disbursement</Text>
+                  <Text style={[styles.summaryValue, { color: '#10B981' }]}>
+
+                    {
+
+                      `${storedata?.currency}${CommonFunction.formatamount(
+                        (route.params?.advance_amount ?? 0) -
+                        (route.params?.instant_funding_price ?? 0)
+                      )}`
+
+                    }
+
+
+                  </Text>
+                </View> : <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Disbursement</Text>
+                  <Text style={[styles.summaryValue, { color: '#10B981' }]}>
+
+                    {
+
+                      `${storedata?.currency}${CommonFunction.formatamount(
+                        (route.params?.advance_amount ?? 0)
+
+                      )}`
+
+                    }
+
+
+                  </Text>
+                </View>
+              }
+
+            </>
           }
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Convenience Fee</Text>
-            <Text style={[styles.summaryValue, { color: route.params?.payment_mode === 'Instant_funding' ? '#EF4444' : '#10B981' }]}>
-              {route.params?.payment_mode === 'Instant_funding'
-                ? `${storedata?.currency}${CommonFunction.formatamount(route?.params?.instant_funding_price ?? 0)}`
-                : `${storedata?.currency}0.00`}
-            </Text>
-          </View>
+
         </View>
+
+
+
 
 
         <Text style={styles.sectionTitle}>Other Payment Methods</Text>

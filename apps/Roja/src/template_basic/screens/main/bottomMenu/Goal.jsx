@@ -26,6 +26,7 @@ import styles from '../../../styles/goalStyles';
 import { BottomContext } from '../../../../context/BottomContext';
 import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
 import WorkflowScreen from '../../../widgets/WorkflowScreen';
+import appLog from '../../../../constants/logger';
 
 
 export default function Goal() {
@@ -42,7 +43,7 @@ export default function Goal() {
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [groupedByAccount, setGroupedByAccount] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
-    const [goalStatus, setGoalstatus] = useState('Active')
+    const [goalStatus, setGoalstatus] = useState('All')
     const [isFilter, setIsfilter] = useState(false)
     const [bankaccount, setbankaccount] = useState([])
     const [selectedAccount, setSelectedAccount] = useState(null);
@@ -101,7 +102,7 @@ export default function Goal() {
                 arrey.push({
                     label: element.type + ' ' + number + ' (' + amount + ') ',
                     value: element._id,
-                    balance: element.balance,
+                    balance: amount,
 
                 })
 
@@ -207,7 +208,7 @@ export default function Goal() {
     };
 
     const totalTarget = goalList.reduce((sum, g) => sum + (g.amount || 0), 0);
-    const totalCurrent = goalList.reduce((sum, g) => sum + (g.savedamount || 0), 0);
+    const totalCurrent = goalList.reduce( (sum, g) => sum + (Number(g?.savedamount || 0) + Number(g?.spent || 0)),0);
     const totalProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
     const formatCurrency = (amount) => {
@@ -215,70 +216,8 @@ export default function Goal() {
     };
 
 
-    const renderAccountSelector = () => (
-        <Modal
-            visible={showAccountSelector}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowAccountSelector(false)}>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, styles.accountSelectorModal]}>
-                    <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => setShowAccountSelector(false)}>
-                            <Icon name="x" size={24} color="#333" />
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Select Account</Text>
-                        <View style={{ width: 24 }} />
-                    </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <View style={styles.accountList}>
-                            {selectedGoal?.availableAccounts?.map((account) => (
-                                <TouchableOpacity
-                                    key={account.id}
-                                    style={[
-                                        styles.accountItem,
-                                        selectedAccount?.id === account.id && styles.selectedAccountItem,
-                                    ]}
-                                    onPress={() => {
-                                        setSelectedAccount(account);
-                                        setShowAccountSelector(false);
-                                    }}>
-                                    <LinearGradient
-                                        colors={selectedAccount?.id === account.id
-                                            ? ['#3F2B9620', '#2A1B6D20']
-                                            : ['#F8FAFC', '#F1F5F9']}
-                                        style={styles.accountItemGradient}>
-                                        <View style={styles.accountItemLeft}>
-                                            <View style={[
-                                                styles.accountIcon,
-                                                { backgroundColor: selectedAccount?.id === account.id ? '#3F2B96' : '#E2E8F0' }
-                                            ]}>
-                                                <Icon
-                                                    name={getAccountIcon(account.type)}
-                                                    size={16}
-                                                    color={selectedAccount?.id === account.id ? '#FFF' : '#64748B'}
-                                                />
-                                            </View>
-                                            <View style={styles.accountInfo}>
-                                                <Text style={styles.accountName}>{account.name}</Text>
-                                                <Text style={styles.accountBalance}>
-                                                    Balance: {formatCurrency(account.balance)}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        {selectedAccount?.id === account.id && (
-                                            <Icon name="check-circle" size={20} color="#34C759" />
-                                        )}
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </ScrollView>
-                </View>
-            </View>
-        </Modal>
-    );
+
 
 
     const renderByGoal = () => (
@@ -304,7 +243,9 @@ export default function Goal() {
             ) : (
                 goals.map((goal, key) => {
                     const goalamt = goal?.amount || 0
-                    const saveamt = goal?.savedamount || 0
+                    const spent = goal?.spent || 0
+                    const savedamount = goal?.savedamount || 0
+                      const saveamt =   savedamount + spent
                     const remaining = goalamt - saveamt
                     const progressPercentage = saveamt > 0 ? Math.min((saveamt / goalamt) * 100, 100) : 0;
                     const data = {
@@ -472,8 +413,8 @@ export default function Goal() {
                                                 <View style={styles.accountGoalInfo}>
                                                     <Text style={styles.accountGoalName}>{goal.name}</Text>
                                                     <Text style={styles.accountGoalProgress}>
-                                                        {CommonFunction.formatamount(goal?.contributeamt || 0)} /{' '}
-                                                        {CommonFunction.formatamount(goal?.amount || 0)}
+                                                        {storedata?.currency}{CommonFunction.formatamount(goal?.contributeamt || 0)} /{' '}
+                                                        {storedata?.currency}{CommonFunction.formatamount(goal?.amount || 0)}
                                                     </Text>
                                                 </View>
                                                 <View

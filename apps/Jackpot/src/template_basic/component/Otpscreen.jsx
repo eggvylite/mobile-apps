@@ -7,6 +7,8 @@ import { getFontSize } from '../../constants/Font';
 import { useSelector } from 'react-redux';
 import SubmitBtn from './SubmitBtn';
 import appLog from '../../constants/logger';
+import useRegisterLabels from '../../hook/Labels/useRegisterLabels';
+import useLoginLabels from '../../hook/Labels/useLoginLabels';
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +20,8 @@ const OTPScreen = (props) => {
     const [isOTP, setisOTP] = useState(false)
     const [num, setnum] = useState(60)
     const { settingcms } = useSelector((state) => state.menuicons);
+    const { registerContent } = useRegisterLabels()
+    const { loadingmsg } = useLoginLabels()
 
 
     useEffect(() => {
@@ -128,7 +132,9 @@ const OTPScreen = (props) => {
                     <View style={styles.backButtom}>
                         <TouchableOpacity
                             style={styles.backCircle}
-                            onPress={() => props.onBackpress()}
+                            onPress={() => {
+                                props?.onBackpress()
+                            }}
                             activeOpacity={0.7}
                         >
                             <Icon
@@ -164,7 +170,7 @@ const OTPScreen = (props) => {
 
                         <View style={styles.inputContainer}>
                             <Text style={styles.label}>
-                                Enter OTP Code
+                                {registerContent.enterotp}
                             </Text>
 
                             <View style={[styles.otpContainer, { marginTop: 5 }]}>
@@ -203,7 +209,7 @@ const OTPScreen = (props) => {
 
 
                         <SubmitBtn
-                            text={props?.loading ? 'Loading...' : 'Verify & Continue'}
+                            text={props?.loading ? loadingmsg : registerContent.verificontinue}
                             submit={handleVerifyOTP}
                             disabled={props?.loading}
                             disableGradient={props?.loading}
@@ -216,10 +222,10 @@ const OTPScreen = (props) => {
                                 onPress={() => resendOTP()}
                                 style={{ marginTop: 15 }}>
                                 {
-                                    isOTP ? <Text style={styles.text}>OTP will expire in :{minutesLeft < 10 ? `0${minutesLeft}` : minutesLeft}:{secondsDisplay < 10 ? `0${secondsDisplay}` : secondsDisplay}</Text> :
+                                    isOTP ? <Text style={styles.text}>{registerContent.otpwillexpire} :{minutesLeft < 10 ? `0${minutesLeft}` : minutesLeft}:{secondsDisplay < 10 ? `0${secondsDisplay}` : secondsDisplay}</Text> :
                                         <Text style={styles.linktext}>
 
-                                            Resend Code
+                                            {registerContent.resendcode}
                                         </Text>
                                 }
 
@@ -330,7 +336,7 @@ const styles = StyleSheet.create({
     otpContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 5,
+        // paddingHorizontal: 5,
     },
     otpInput: {
         width: 42,

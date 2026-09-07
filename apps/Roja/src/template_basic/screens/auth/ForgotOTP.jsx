@@ -6,6 +6,7 @@ import messaging from '@react-native-firebase/messaging';
 import api from '../../../service/api';
 import { themeColors } from '../../Common';
 import { forgotmobileOTP, getOTP, verifymobileOTP } from '../../../constants/Loginapi';
+import useRegisterLabels from '../../../hook/Labels/useRegisterLabels';
 
 
 
@@ -13,6 +14,7 @@ function ForgotOTP({ navigation, route }) {
     const [formatdata, setFormatData] = useState('');
     const [record, setRecord] = useState('')
     const [loading, setloading] = useState(false)
+       const { registerContent } = useRegisterLabels()
 
 
 
@@ -81,7 +83,7 @@ function ForgotOTP({ navigation, route }) {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.backgroudColor }}>
             <OTPScreen
-                title={'Verify Your Number'}
+                title={registerContent.verifynumber}
                 loading={loading}
                 value={formatdata}
                 fooderlabel={''}

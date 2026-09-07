@@ -558,7 +558,6 @@ export default function Profile() {
                     placeholder="Select State"
                     searchPlaceholder="Search..."
                     {...register("state", { required: content.fieldrequire })}
-                    searchPlaceholder="Search..."
                     value={profile?.state}
                     onChange={item => {
                       if (item.value != 10) {
@@ -598,7 +597,6 @@ export default function Profile() {
                     placeholder="Select City"
                     searchPlaceholder="Search..."
                     {...register("city", { required: content.fieldrequire })}
-                    searchPlaceholder="Search..."
                     value={profile?.city}
                     onChange={item => {
                       if (item.value != 10) {
@@ -638,7 +636,6 @@ export default function Profile() {
                     placeholder="Select Zipcode"
                     searchPlaceholder="Search..."
                     {...register("zip", { required: content.fieldrequire })}
-                    searchPlaceholder="Search..."
                     value={profile?.zip}
                     onChange={item => {
                       if (item.value != 10) {

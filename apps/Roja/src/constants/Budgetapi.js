@@ -56,6 +56,20 @@ export const addCategory = async (payload, dispatch) => {
         CommonFunction.message(error.response.data.message, 'danger')
         throw error
     }
+    
+}
+
+export const editCategory = async (payload) => {
+    try {
+        const response = await api.post(`dashboard/updatebudgetgroupcate/${payload?.id}`, payload)
+        if (response.status == 200) {
+            CommonFunction.message(response.data.message)
+            return response
+        }
+    } catch (error) {
+        CommonFunction.message(error.response.data.message, 'danger')
+        throw error
+    }
 }
 
 export const setBudget = async (catgoryid, payload) => {

@@ -23,6 +23,7 @@ const { width, height } = Dimensions.get('window')
 import FontAwesome from "react-native-vector-icons/FontAwesome"
 import SubmitBtn from '../../component/SubmitBtn';
 import { useSelector } from 'react-redux';
+import useRegisterLabels from '../../../hook/Labels/useRegisterLabels';
 
 
 const Register = ({ navigation, route }) => {
@@ -39,27 +40,18 @@ const Register = ({ navigation, route }) => {
   const [isdateShow, setisDateShow] = useState(false);
   const [isLocation, setIsLoaction] = useState(false)
   const { settingcms } = useSelector((state) => state.menuicons)
+  const { registerContent } = useRegisterLabels()
   const company = settingcms?.company || appName
   maxDate.setFullYear(maxDate.getFullYear() - 18);
   const [dob, setDob] = useState(maxDate);
-
-
-
-
-
 
   useEffect(() => {
     reset(formData)
   }, [formData])
 
-
-
   useEffect(() => {
     getDetails()
   }, [])
-
-
-
 
   const getDetails = () => {
     getState()
@@ -124,11 +116,6 @@ const Register = ({ navigation, route }) => {
 
   }
 
-
-
-
-
-
   const handleSignUp = async () => {
     const cellphone = CommonFunction.removePattern(formData.phone)
     var payload = { ...formData, phone: `+1${cellphone}`, user: "admin", status: "Pending" }
@@ -161,6 +148,12 @@ const Register = ({ navigation, route }) => {
     setIsLoaction(true)
   }
 
+  const changeDateformat = (date) => {
+    var datechange = moment(date).format("YYYY-MM-DD")
+    return datechange
+  }
+
+
   const onCancel = () => {
     setisDateShow(false)
   };
@@ -170,9 +163,17 @@ const Register = ({ navigation, route }) => {
     setisDateShow(false);
   };
 
-  const changeDateformat = (date) => {
-    var datechange = moment(date).format("YYYY-MM-DD")
-    return datechange
+  const onIOSChange = (e, date) => {
+    if (date) setDob(date)
+  }
+
+
+  const onAndroidChange = (event, date) => {
+    setisDateShow(false) // the dialog is already closed/closing at this point either way
+    if (event.type === 'set' && date) {
+      setDob(date)
+      handleInputChange('dob', changeDateformat(date))
+    }
 
   }
 
@@ -213,14 +214,14 @@ const Register = ({ navigation, route }) => {
               </View>
 
               <View style={styles.card}>
-                <Text style={styles.navTitles}>Create Account</Text>
-                <Text style={styles.subtitle}>Join us and start your journey</Text>
+                <Text style={styles.navTitles}>{registerContent.title}</Text>
+                <Text style={styles.subtitle}>{registerContent.description}</Text>
 
                 {/* First & Last Name */}
                 <View style={styles.row}>
                   <View style={styles.inputGroup}>
                     <View style={{ flexDirection: 'row' }}>
-                      <Text style={styles.label}>First Name</Text>
+                      <Text style={styles.label}>{registerContent.firstname}</Text>
                       <Text style={styles.require}>*</Text>
                     </View>
                     <TextInput
@@ -246,7 +247,7 @@ const Register = ({ navigation, route }) => {
                   <View style={styles.rowDivider} />
                   <View style={styles.inputGroup}>
                     <View style={{ flexDirection: 'row' }}>
-                      <Text style={styles.label}>Last Name</Text>
+                      <Text style={styles.label}>{registerContent.lastname}</Text>
                       <Text style={styles.require}>*</Text>
                     </View>
                     <TextInput
@@ -284,7 +285,7 @@ const Register = ({ navigation, route }) => {
                 </View>
 
                 <View style={{ flexDirection: 'row' }}>
-                  <Text style={styles.label}>Date of Birth</Text>
+                  <Text style={styles.label}>{registerContent.dob}</Text>
                   <Text style={styles.require}>*</Text>
                 </View>
                 <Pressable style={[styles.input, { flexDirection: 'row' }]} onPress={() => {
@@ -303,7 +304,7 @@ const Register = ({ navigation, route }) => {
                 <View style={styles.vSpacer} />
 
                 <View style={{ flexDirection: 'row' }}>
-                  <Text style={styles.label}>Email Address</Text>
+                  <Text style={styles.label}>{registerContent.email}</Text>
                   <Text style={styles.require}>*</Text>
                 </View>
                 <TextInput
@@ -327,7 +328,7 @@ const Register = ({ navigation, route }) => {
                 <View style={styles.vSpacer} />
 
                 <View style={{ flexDirection: 'row' }}>
-                  <Text style={styles.label}>Cell Phone Number</Text>
+                  <Text style={styles.label}>{registerContent.cellphonenumber}</Text>
                   <Text style={styles.require}>*</Text>
                 </View>
 
@@ -386,7 +387,7 @@ const Register = ({ navigation, route }) => {
                       handleInputChange('check', '')
                     }
                   }}>
-                    <Text style={[{ fontSize: getFontSize(14) }]}> By checking this box, you agree to receive text messages.</Text>
+                    <Text style={[{ fontSize: getFontSize(14), fontFamily:fontsFamily.regularFont }]}>{registerContent.marketingmesg}</Text>
                   </Pressable>
                 </View>
 
@@ -409,7 +410,7 @@ const Register = ({ navigation, route }) => {
                 <View style={styles.vSpacer} />
 
                 <View style={{ flexDirection: 'row' }}>
-                  <Text style={styles.label}>Address</Text>
+                  <Text style={styles.label}>{registerContent.address}</Text>
                   <Text style={styles.require}>*</Text>
                 </View>
                 <TextInput
@@ -431,7 +432,7 @@ const Register = ({ navigation, route }) => {
                 <View style={styles.row}>
                   <View style={styles.inputGroup}>
                     <View style={{ flexDirection: 'row' }}>
-                      <Text style={styles.label}>State</Text>
+                      <Text style={styles.label}>{registerContent.state}</Text>
                       <Text style={styles.require}>*</Text>
                     </View>
 
@@ -458,7 +459,7 @@ const Register = ({ navigation, route }) => {
                   <View style={styles.rowDivider} />
                   <View style={styles.inputGroup}>
                     <View style={{ flexDirection: 'row' }}>
-                      <Text style={styles.label}>City</Text>
+                      <Text style={styles.label}>{registerContent.city}</Text>
                       <Text style={styles.require}>*</Text>
                     </View>
 
@@ -485,7 +486,7 @@ const Register = ({ navigation, route }) => {
                 </View>
 
                 <View style={{ flexDirection: 'row' }}>
-                  <Text style={styles.label}>Zip Code</Text>
+                  <Text style={styles.label}>{registerContent.zipcode}</Text>
                   <Text style={styles.require}>*</Text>
                 </View>
 
@@ -496,7 +497,7 @@ const Register = ({ navigation, route }) => {
                     required: content.fieldrequire,
                   }))}
                   data={zip}
-                  placeholder="Zipcode"
+                  placeholder={registerContent.zipcode}
                   placeholderStyle={{ color: "#999" }}
                   labelField="label"
                   valueField="value"
@@ -510,7 +511,7 @@ const Register = ({ navigation, route }) => {
                 {errors.zip_id && <Text style={styles.errortext}>{errors.zip_id.message}</Text>}
 
                 <View style={{ marginTop: 20 }}>
-                  <Text style={[styles.label, { fontWeight: 'normal', textAlign: 'justify' }]}>{`By submitting, you agree to receive messages from ${company}. Msg & Data rates may apply. Messages will be used for MFA authentication and account notices, frequency will vary with use. Reply STOP to opt-out or HELP for help`}</Text>
+                  <Text style={[styles.label, { fontWeight: 'normal', textAlign: 'justify' }]}>{registerContent.privacyPolicy}</Text>
 
 
                 </View>
@@ -522,7 +523,7 @@ const Register = ({ navigation, route }) => {
                         <FontAwesome name="external-link" size={14} color={themeColors.primarColor} />
                       </View>
                       <View style={{ marginStart: 10, justifyContent: 'center' }}>
-                        <Text style={[styles.btnText, { fontSize: getFontSize(12), color: themeColors?.primarColor }]}>Terms and Conditions</Text>
+                        <Text style={[styles.btnText, { fontSize: getFontSize(12), color: themeColors?.primarColor }]}>{registerContent.terms}</Text>
                       </View>
                     </TouchableOpacity>
                     <TouchableOpacity style={{ flexDirection: 'row', marginStart: 20 }} onPress={() => {
@@ -535,70 +536,75 @@ const Register = ({ navigation, route }) => {
                         <FontAwesome name="external-link" size={14} color={themeColors.primarColor} />
                       </View>
                       <View style={{ marginStart: 10, justifyContent: 'center', alignItems: 'center' }}>
-                        <Text style={[styles.btnText, { fontSize: getFontSize(12), color: themeColors?.primarColor }]}>Privacy Policy</Text>
+                        <Text style={[styles.btnText, { fontSize: getFontSize(12), color: themeColors?.primarColor }]}>{registerContent.privacy}</Text>
                       </View>
                     </TouchableOpacity>
                   </View>
 
                 </View>
 
-                {/* <TouchableOpacity
-                  style={[styles.btn, isLoading && styles.disabledButton, { marginTop: 20 }]}
-                  onPress={handleSubmit(handleSignUp)}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#FFF" size="small" />
-                  ) : (
-                    <Text style={styles.btnText}>Sign Up</Text>
-                  )}
-                </TouchableOpacity> */}
+
                 <SubmitBtn
-                  text={isLoading ? 'Loading ...' : 'Sign Up'}
+                  text={isLoading ? 'Loading ...' : registerContent.signupbtn}
                   disabled={isLoading}
-                  style={{marginTop:20}}
+                  style={{ marginTop: 20 }}
                   disableGradient={isLoading}
                   submit={handleSubmit(handleSignUp)}
                 />
               </View>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Already have an account? </Text>
+                <Text style={styles.footerText}>{registerContent.alreadyhaveaccount}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
-                  <Text style={styles.linktext}>Sign In</Text>
+                  <Text style={styles.linktext}>{registerContent.signin}</Text>
                 </TouchableOpacity>
               </View>
 
             </ScrollView>
-            <Modal isVisible={isdateShow}>
-              <View style={[styles.overlay1, {}]}>
-                <View style={styles.container1}>
-
-                  <View style={styles.header1}>
-                    <Pressable onPress={onCancel}>
-                      <Text style={styles.cancel1}>Cancel</Text>
-                    </Pressable>
-
-                    <Pressable onPress={onDone}>
-                      <Text style={styles.done1}>Done</Text>
-                    </Pressable>
-                  </View>
 
 
-                  <View style={{ alignItems: 'center' }}>
-                    <DateTimePicker
-                      value={dob || maxDate}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      maximumDate={maxDate}
-                      style={{ backgroundColor: '#F2F2F2' }}
-                      textColor="black"   // iOS only
-                      onChange={(e, date) => date && setDob(date)}
-                    />
+            {Platform.OS === 'ios' && (
+              <Modal isVisible={isdateShow}>
+                <View style={[styles.overlay1, {}]}>
+                  <View style={styles.container1}>
+
+                    <View style={styles.header1}>
+                      <Pressable onPress={onCancel}>
+                        <Text style={styles.cancel1}>Cancel</Text>
+                      </Pressable>
+
+                      <Pressable onPress={onDone}>
+                        <Text style={styles.done1}>Done</Text>
+                      </Pressable>
+                    </View>
+
+
+                    <View style={{ alignItems: 'center' }}>
+                      <DateTimePicker
+                        value={dob || maxDate}
+                        mode="date"
+                        display="spinner"
+                        maximumDate={maxDate}
+                        style={{ backgroundColor: '#F2F2F2' }}
+                        textColor="black"   // iOS only
+                        onChange={onIOSChange}
+                      />
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Modal>
+              </Modal>
+            )}
+
+
+            {Platform.OS === 'android' && isdateShow && (
+              <DateTimePicker
+                value={dob || maxDate}
+                mode="date"
+                display="default"
+                maximumDate={maxDate}
+                onChange={onAndroidChange}
+              />
+            )}
           </KeyboardAvoidingView>
 
       }
@@ -611,10 +617,15 @@ const Register = ({ navigation, route }) => {
 
 };
 
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.backgroudColor },
   flex1: { flex: 1 },
   scrollContent: { padding: 20, alignItems: 'center' },
+  require: {
+    color: themeColors?.negativeColor,
+    fontSize: getFontSize(14)
+  },
 
   // Header styles
   headerContainer: {
@@ -638,10 +649,10 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 140,
-    height: 60
+    height: 60,
   },
   headerSpacer: {
-    width: 38, // Same width as backCircle for balanced alignment
+    width: 38,
   },
 
   card: {
@@ -657,13 +668,14 @@ const styles = StyleSheet.create({
   },
   navTitles: {
     fontSize: 24,
-    fontWeight: '800',
+    fontFamily: fontsFamily.boldFont,
     color: '#333',
     textAlign: 'center',
     marginTop: 10,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: fontsFamily.regularFont,
     color: '#777',
     marginTop: 4,
     marginBottom: 20,
@@ -672,15 +684,15 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 15 },
   rowDivider: { width: 15 },
   inputGroup: { flex: 1 },
-  label: { fontSize: getFontSize(12), fontWeight: '600', fontFamily: fontsFamily.regularFont, color: themeColors.textinputlabelColor, marginBottom: 6 },
+  label: { fontSize: 12, fontFamily: fontsFamily.semiboldFont, color: themeColors.textinputlabelColor, marginBottom: 6 },
   input: {
     height: 48,
     backgroundColor: '#F5F6FA',
     borderRadius: 10,
     paddingHorizontal: 12,
-    color: '#333', // This ensures text is dark
+    color: '#333',
     borderWidth: 1,
-    borderColor: '#EEE'
+    borderColor: '#EEE',
   },
   vSpacer: { height: 15 },
   phoneWrapper: {
@@ -691,28 +703,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEE',
     marginBottom: 15,
-    alignItems: 'center', // Ensure vertical alignment
+    alignItems: 'center',
   },
   flagArea: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: 10,
-    height: '100%', // Take full height
+    height: '100%',
   },
   flag: { fontSize: 16, marginRight: 4 },
-  code: { fontSize: 14, fontWeight: '600', color: '#333' },
+  code: { fontSize: 14, fontFamily: fontsFamily.semiboldFont, color: '#333' },
   verticalDivider: {
     width: 1,
     height: 20,
     backgroundColor: '#DDD',
-    marginHorizontal: 10
+    marginHorizontal: 10,
   },
   phoneInput: {
     flex: 1,
     fontSize: 14,
-    color: '#333', // Explicitly set text color to dark
-    paddingVertical: 0, // Remove default padding
-    height: '100%', // Take full height
+    color: '#333',
+    paddingVertical: 0,
+    height: '100%',
   },
   locationBtn: {
     padding: 12,
@@ -724,56 +736,56 @@ const styles = StyleSheet.create({
     borderColor: themeColors.primarColor,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15
+    marginBottom: 15,
   },
   innerBtnRow: { flexDirection: 'row', alignItems: 'center' },
   iconMargin: { marginRight: 8 },
-  locationBtnText: { color: '#000', fontSize: getFontSize(13) },
+  locationBtnText: { color: '#000', fontSize: 13, fontFamily: fontsFamily.regularFont },
   signUpBtn: { backgroundColor: '#4A2A63', height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
-  signUpBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  signUpBtnText: { color: '#FFF', fontSize: 16, fontFamily: fontsFamily.boldFont },
   disabledButton: { opacity: 0.6 },
   footer: { flexDirection: 'row', marginTop: 25, marginBottom: 30 },
-  btnText: { color: themeColors.btnColor, fontSize: getFontSize(16), fontWeight: 'bold' },
-  footerText: { color: '#777', fontSize: 14 },
-  loginLink: { color: '#4A2A63', fontWeight: '800', fontSize: 14, textDecorationLine: 'underline' },
+  btnText: { color: themeColors.btnColor, fontSize: 16, fontFamily: fontsFamily.boldFont },
+  footerText: { color: '#777', fontSize: 14, fontFamily: fontsFamily.regularFont },
+  loginLink: { color: '#4A2A63', fontFamily: fontsFamily.boldFont, fontSize: 14, textDecorationLine: 'underline' },
   overlay1: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
     borderRadius: 8,
   },
   container1: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     paddingBottom: 20,
   },
   header1: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     padding: 15,
     borderBottomWidth: 1,
-    borderColor: "#eee",
+    borderColor: '#eee',
   },
   cancel1: {
-    color: "#999",
+    color: '#999',
     fontSize: 16,
+    fontFamily: fontsFamily.regularFont,
   },
   done1: {
-    color: "#007AFF",
+    color: '#007AFF',
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fontsFamily.semiboldFont,
   },
   btn: { backgroundColor: themeColors.primarColor, height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   errortext: {
     margin: 5,
     color: themeColors?.negativeColor,
     fontFamily: fontsFamily.boldFont,
-    fontSize: getFontSize(12),
-    marginStart: 10
+    fontSize: 12,
+    marginStart: 10,
   },
   linktext: {
     color: themeColors?.primarColor,
-    fontSize: getFontSize(14),
-    fontWeight: '800',
-  }
-})
-
+    fontSize: 14,
+    fontFamily: fontsFamily.boldFont,
+  },
+});
 export default Register;

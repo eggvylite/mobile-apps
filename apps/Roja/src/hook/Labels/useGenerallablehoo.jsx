@@ -30,9 +30,45 @@ export default function useGeneralLabelsHook() {
         const dashboardSycnStatementHead = labels[14]?.message ?? "Get Statement";
         const dashboardSyncStamenDescription = labels[15]?.message ?? "Are you sure you want to get a new statement? This might take a moment to sync your recent transactions.";
         const unlockFeature = labels[16]?.message ?? "Subscribe to unlock this feature";
+        const OutstandingBalancelable = labels[17]?.message ?? "Outstanding Balance";
+        const OutstandingBalanceButtonlable = labels[18]?.message ?? "Repay All Outstanding";
+        const showLimtlables = labels[19]?.message ?? "Limit Reached";
+        const advanceLimitButton = labels[20]?.message ?? "Advance Limit Reached";
+        const advanceCardUsed = labels[21]?.message ?? "Used";
+        const advanceMinimumAmountPromtLable = labels[22]?.message ?? "You’re currently not eligible for an advance. A minimum limit of";
+        const advanceMinimumAmountPromtLable2 = labels[23]?.message ?? "is required.";
+        const AdvanceHisoryshowLableContent = labels[24]?.message ?? "Advance Received";
+        const PlanScreenInstantFountLabel = labels[25]?.message ?? "View Instant Transfer Fee Details";
+        const InstantFeeLabelHead = labels[26]?.message ?? "Instant fund Fee ";
+        const InstantFeeLabelFrom = labels[27]?.message ?? "From ";
+        const InstantFeeLabelTo = labels[28]?.message ?? "To";
+        const InstantFeeLabelFee = labels[29]?.message ?? "Fee ";
+        const InstantFeeLabelAbove = labels[30]?.message ?? "Above ";
+        const advancesDrawn = labels[31]?.message ?? 'Advances Drawn'
+        const advanceFrequencyLimt = labels[32]?.message ?? 'You have reached your advance limit for this cycle.'
+        const advanceremining = labels[33]?.message ?? 'remaining'
+        const advanceTypically = labels[34]?.message ?? 'Typically available within minutes '
+        const advanceTypcallyavalibleminit = labels[35]?.message ?? 'Typically available in 2-3 business days'
+        const advanceLimitadvanceLabel = labels[36]?.message ?? 'advance'
+        const InstatFoundingHead = labels[37]?.message ?? 'Instant Funding'
+        const ACHHEAD = labels[38]?.message ?? 'Standard ACH Transfer'
+        const NoFeeLable = labels[39]?.message ?? 'No fee'
 
 
         return {
+            NoFeeLable,
+            InstatFoundingHead,
+            ACHHEAD,
+            advanceLimitadvanceLabel,
+            advanceTypically,
+            advanceTypcallyavalibleminit,
+            advanceremining,
+            advancesDrawn,
+            advanceFrequencyLimt,
+            InstantFeeLabelAbove,
+            InstantFeeLabelFrom,
+            InstantFeeLabelTo,
+            InstantFeeLabelFee,
             subscriptionbages,
             subscriptionInformation,
             connectNewBankAlertPromt,
@@ -50,7 +86,17 @@ export default function useGeneralLabelsHook() {
             dashboardSycnStatementHead,
             dashboardSyncStamenDescription,
             manageBankConnectionDescription,
-            unlockFeature
+            unlockFeature,
+            OutstandingBalancelable,
+            OutstandingBalanceButtonlable,
+            showLimtlables,
+            advanceLimitButton,
+            advanceCardUsed,
+            advanceMinimumAmountPromtLable,
+            advanceMinimumAmountPromtLable2,
+            AdvanceHisoryshowLableContent,
+            PlanScreenInstantFountLabel,
+            InstantFeeLabelHead
         };
     }, [byScreen]);
 }

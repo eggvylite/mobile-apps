@@ -19,82 +19,9 @@ import useGeneralLabelsHook from '../../hook/Labels/useGenerallablehoo';
 import CommonIcon from '../../themechg_template/component/Commonicons';
 import { appName } from '../../service/environment';
 import { fontsFamily } from '../../constants/fontsFamily';
+import { replaceDynamicValues } from './ConnectBankWidgetScreen';
 
 
-const QUALIFIED_CARD_CONTENT = {
-    header: {
-        title: "You're qualified for",
-        amount: '$200',
-        badgeText: 'from your earned wages',
-        subText: 'Based on your connected bank information and eligible earned wages.',
-    },
-    availableNote: 'Your available amount may change based on your eligibility and account activity.',
-    benefitsTitle: `${appName} offers many key benefits to support your financial needs`,
-    benefits: [
-        {
-            icon: 'zap',
-            title: 'Up to $200 Earned Wage Access',
-            description: 'Access a portion of your earned wages when you need it.',
-            color: '#EEF2FF',
-        },
-        {
-            icon: 'briefcase',
-            title: 'Budgeting & Spending Management',
-            description: 'Plan, track, and manage your everyday spending.',
-            color: '#E8F5E9',
-        },
-        {
-            icon: 'target',
-            title: 'Savings Goal Tracking',
-            description: 'Set goals and build better savings habits.',
-            color: '#FFF3E0',
-        },
-        {
-            icon: 'shield',
-            title: 'Credit Monitoring',
-            description: 'Stay informed about changes to your credit.',
-            color: '#F3E5F5',
-        },
-        {
-            icon: 'bell',
-            title: 'Smart Alerts & Reminders',
-            description: 'Stay ahead of bills and help avoid NSF and overdraft fees.',
-            color: '#FCE4EC',
-        },
-        {
-            icon: 'bell',
-            title: 'Bill Alerts & Reminders',
-            description: 'Never miss a payment with smart alerts and reminders.',
-            color: '#E8F5E9',
-        },
-        {
-            icon: 'alert-circle',
-            title: 'NSF & Overdraft Prevention Alerts',
-            description: 'Get alerts to help you avoid NSF and overdraft fees.',
-            color: '#FFF3E0',
-        },
-        {
-            icon: 'pie-chart',
-            title: 'Personalized Insights',
-            description: 'All your spending analysis with income-based suggestions.',
-            color: '#E0F7FA',
-        },
-        {
-            icon: 'tag',
-            title: 'Handpicked Offers',
-            description: 'Offers tailored for you based on your spending.',
-            color: '#F3E5F5',
-        },
-    ],
-    pricing: {
-        title: 'Simple Monthly Subscription',
-        highlight: '$10 monthly fee',
-        important: 'This is not interest or a fee for accessing your earned wages in advance.',
-        description:
-            `${appName} is a subscription service with a {highlight}. {important}—it is the cost of accessing your ${appName} membership and financial tools, including Earned Wage Access when you qualify.`,
-    },
-    buttonText: 'Subscribe & Unlock Your Benefits',
-};
 
 const BenefitSectionCard = ({ icon, title, description, color, iconColor, family }) => (
     <View style={styles.benefitSectionCard}>
@@ -112,7 +39,7 @@ const BenefitSectionCard = ({ icon, title, description, color, iconColor, family
 );
 
 
-const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, subscriptionInformation }) => (
+const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, subscriptionInformation, plandata }) => (
     <View style={styles.qualifiedCard}>
 
         <View style={{ width: "100%", padding: Platform.OS === 'android' ? 10 : 0 }}>
@@ -128,11 +55,15 @@ const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, s
                     <View style={[styles.qualifiedHeaderAmountContainer]}>
                         <Text style={styles.qualifiedHeaderAmountValue}>{storedata?.currency}{cusDetails?.advance ?? 0}</Text>
                     </View>
+                    {
+                        0 < onSubscribe?.notes?.length && <>
+                            <View style={styles.qualifiedHeaderBadge}>
+                                <Icon name="check-circle" size={18} color="#10B981" />
+                                <Text style={styles.qualifiedHeaderBadgeText}>{onSubscribe?.notes[0]?.label ?? ''}</Text>
+                            </View>
+                        </>
+                    }
 
-                    <View style={styles.qualifiedHeaderBadge}>
-                        <Icon name="check-circle" size={18} color="#10B981" />
-                        <Text style={styles.qualifiedHeaderBadgeText}>{subscriptionBage}</Text>
-                    </View>
 
                     <Text style={styles.qualifiedHeaderSubText}>
                         {onSubscribe?.description}
@@ -146,22 +77,25 @@ const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, s
             marginHorizontal: 16,
             marginVertical: 16,
         }}>
+            {
+                0 < onSubscribe?.notes?.length && <View style={styles.qualifiedAvailableContainer}>
+                    <View style={styles.qualifiedAvailableIcon}>
+                        <Icon name="info" size={16} color="#3F2B96" />
+                    </View>
+                    <View style={styles.qualifiedAvailableContent}>
+                        <Text style={styles.qualifiedAvailableText}>
+                            {onSubscribe?.notes[1]?.label ?? ''}
+                        </Text>
+                    </View>
+                </View>
+            }
 
-            <View style={styles.qualifiedAvailableContainer}>
-                <View style={styles.qualifiedAvailableIcon}>
-                    <Icon name="info" size={16} color="#3F2B96" />
-                </View>
-                <View style={styles.qualifiedAvailableContent}>
-                    <Text style={styles.qualifiedAvailableText}>
-                        {subscriptionInformation}
-                    </Text>
-                </View>
-            </View>
 
             <View style={styles.qualifiedBenefits}>
                 <Text style={styles.qualifiedBenefitsTitle}>{onSubscribe?.head}</Text>
+                <Text style={styles.qualifiedBenefitsDescription}>{onSubscribe?.information}</Text>
 
-                {0 < onSubscribe?.features?.length && onSubscribe?.features.map((benefit, index) => (
+                {0 < onSubscribe?.features?.length && onSubscribe?.features?.map((benefit, index) => (
                     <BenefitSectionCard
                         key={benefit.title || index}
                         icon={benefit.icon}
@@ -174,17 +108,36 @@ const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, s
                 ))}
             </View>
 
-            <View style={styles.qualifiedPricing}>
-                <View style={styles.qualifiedPricingIconRow}>
-                    <FontAwesome5 name="credit-card" size={18} color="#3F2B96" />
-                    <Text style={styles.qualifiedPricingTitle}>{QUALIFIED_CARD_CONTENT.pricing.title}</Text>
+
+            {
+                0 < onSubscribe?.notes?.length && 0 < plandata?.list?.length && <View style={styles.connectBankPricing}>
+                    <View style={styles.qualifiedPricingIconRow}>
+                        <FontAwesome5 name="credit-card" size={18} color="#3F2B96" />
+                        <Text style={styles.connectBankPricingTitle}>{onSubscribe?.notes[2]?.label ?? ''}</Text>
+                    </View>
+                    {
+                        0 < plandata?.list?.length && <Text style={styles.connectBankPricingDescription}>
+                            {replaceDynamicValues(onSubscribe?.notes[3]?.label ?? '', storedata?.currency + plandata?.list[0]?.fee)}
+                        </Text>
+                    }
+
+                    <View style={styles.noteContainer}>
+
+                        <View style={styles.qualifiedAvailableContent}>
+                            <Text style={[styles.qualifiedAvailableText, { color: '#fc6969', fontFamily: fontsFamily.semiboldFont }]}>
+                                Note:<Text style={[styles.qualifiedAvailableText, { color: '#fc6969', fontFamily: fontsFamily.regularFont }]}>
+                                    {onSubscribe?.notes[4]?.label ?? ''}
+                                </Text>
+                            </Text>
+
+
+                        </View>
+
+                    </View>
+
                 </View>
-                <Text style={styles.qualifiedPricingDescription}>
-                    {appName} is a subscription service with a <Text style={styles.qualifiedPricingHighlight}>{QUALIFIED_CARD_CONTENT.pricing.highlight}</Text>.
-                    <Text style={styles.qualifiedPricingImportant}> {QUALIFIED_CARD_CONTENT.pricing.important}</Text>
-                    —it is the cost of accessing your {appName} membership and financial tools, including Earned Wage Access when you qualify.
-                </Text>
-            </View>
+            }
+
 
         </View>
 
@@ -197,13 +150,13 @@ const SubscriptionPromtScreen = ({ subscriptionLabelData }) => {
     const { storedata } = useSelector((state) => state.auth);
     const { cusDetails, cusloading, cuserror } = useSelector((state) => state.customer);
     const { subscriptionInformation, subscriptionbages } = useGeneralLabelsHook()
+    const { plandata, planloading, planerror } = useSelector((state) => state.chooseplan);
 
     const handleSubscribe = () => {
-        navigation.navigate('Subscription', {
+        navigation.navigate('Plan', {
             fromDashboard: true
         });
     };
-
 
 
     return (
@@ -218,7 +171,7 @@ const SubscriptionPromtScreen = ({ subscriptionLabelData }) => {
 
             >
 
-                <QualifiedCard onSubscribe={subscriptionLabelData} storedata={storedata} cusDetails={cusDetails} subscriptionBage={subscriptionbages} subscriptionInformation={subscriptionInformation} />
+                <QualifiedCard onSubscribe={subscriptionLabelData} storedata={storedata} cusDetails={cusDetails} subscriptionBage={subscriptionbages} subscriptionInformation={subscriptionInformation} plandata={plandata} />
 
 
 
@@ -237,7 +190,11 @@ const SubscriptionPromtScreen = ({ subscriptionLabelData }) => {
                         end={{ x: 1, y: 0 }}
                     >
                         <FontAwesome5 name="crown" size={18} color="#FFFFFF" />
-                        <Text style={styles.fixedBottomButtonText}>{QUALIFIED_CARD_CONTENT.buttonText}</Text>
+                        {
+                            0 < subscriptionLabelData?.notes?.length ? <Text style={styles.fixedBottomButtonText}>{subscriptionLabelData?.notes[5]?.label ?? ''}</Text> :
+                                <Text style={styles.fixedBottomButtonText}>Subscribe & Unlock Your Benefits</Text>
+                        }
+
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
@@ -303,6 +260,26 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
 
+    noteContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: '#fff2f0',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 20,
+
+        marginTop: 10
+    },
+    note: {
+        color: 'red',
+        fontFamily: fontsFamily.semiboldFont,
+        fontSize: 14
+    },
+    notetext: {
+        color: 'red',
+        fontFamily: fontsFamily.regularFont,
+        fontSize: 14
+    },
     // ─── Connect Bank Card ──────────────────────────────
     connectBankCard: {
         backgroundColor: '#FFFFFF',
@@ -533,7 +510,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: fontsFamily.semiboldFont,
         color: '#111827',
-        marginBottom: 12,
+        marginBottom: 10,
+    },
+    qualifiedBenefitsDescription: {
+        fontSize: 14,
+        fontFamily: fontsFamily.regularFont,
+        color: '#111827',
+        marginBottom: 15,
     },
 
     // ─── Pricing ──────────────────────────────────────

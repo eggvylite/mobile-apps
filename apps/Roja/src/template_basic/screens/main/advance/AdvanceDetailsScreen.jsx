@@ -59,6 +59,9 @@ export default function AdvanceDetailsScreen() {
     return `${id?.substring(0, 10)}...`;
   };
 
+
+
+
   const LoadingSkeleton = () => (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
@@ -162,10 +165,10 @@ export default function AdvanceDetailsScreen() {
           </View>
           <View style={styles.compactCardInfo}>
             <Text style={styles.compactCardTitle} numberOfLines={1}>
-              {transaction?.typeid === "Free" ? transaction?.typeid : transaction?.message ? transaction?.message : 'N/A'}
+              {transaction?.typeid === "Free" ? transaction?.typeid : transaction?.txnmsg ? transaction?.txnmsg : 'N/A'}
             </Text>
             <Text style={styles.compactCardDate}>
-              {formatDate(transaction.txndate)} {formatTime(transaction?.txndate)}
+              {formatDate(transaction.Date)} {formatTime(transaction?.Date)}
             </Text>
           </View>
         </View>
@@ -178,7 +181,7 @@ export default function AdvanceDetailsScreen() {
           >
             {transaction?.payment === 'Credit' ? '-' : '+'}
             {storedata?.currency}
-            {transaction?.txnamount.toFixed(2)}
+            {CommonFunction.formatamount(transaction?.transaction_amount ?? '')}
           </Text>
           <Text
             style={[
@@ -196,7 +199,7 @@ export default function AdvanceDetailsScreen() {
           <Feather name="credit-card" size={12} color="#64748B" style={{ marginRight: 6 }} />
           <Text style={styles.compactCardFooterLabel}>Method:</Text>
           <Text style={styles.compactCardFooterValue}>
-            {'XXXXX' + (transaction?.payment_method?.number || '****')}
+            {'XXXXX' + (transaction?.method || '****')}
           </Text>
         </View>
         <View style={styles.compactCardFooterRow}>
@@ -233,6 +236,13 @@ export default function AdvanceDetailsScreen() {
           <View style={styles.detailsGrid}>
             <DetailRow label="Advance ID" value={onTransactiondetails?.data?.advance_id} icon="hash" />
 
+
+
+            <DetailRow
+              label="Disbursement"
+              value={`${storedata?.currency}${CommonFunction.formatamount(onTransactiondetails?.data?.transaction_amount)}`}
+              icon="dollar-sign"
+            />
             {onTransactiondetails?.data?.payment_method === 'Instant' && (
               <DetailRow
                 label="Instant Charge"
@@ -241,11 +251,12 @@ export default function AdvanceDetailsScreen() {
               />
             )}
 
-            <DetailRow
-              label="Disbursement"
-              value={`${storedata?.currency}${CommonFunction.formatamount(onTransactiondetails?.data?.transaction_amount)}`}
+             <DetailRow
+              label="Advance Amount"
+              value={`${storedata?.currency}${CommonFunction.formatamount(onTransactiondetails?.data?.advance_amount)}`}
               icon="dollar-sign"
             />
+
 
             <DetailRow
               label="Date"
@@ -287,12 +298,10 @@ export default function AdvanceDetailsScreen() {
             <Text style={styles.sectionTitle}>Transaction Summary</Text>
           </View>
 
-          {transdata?.filter(t => t?.advance_id?._id === transationData?.id).length > 0 ? (
-            transdata
-              .filter(t => t?.advance_id?._id === transationData?.id)
-              .map((transaction, index) => (
-                <TransactionCard key={index} transaction={transaction} />
-              ))
+          {onTransactiondetails?.data?.history?.length > 0 ? (
+            onTransactiondetails?.data.history.map((transaction, index) => (
+              <TransactionCard key={index} transaction={transaction} />
+            ))
           ) : (
             <View style={styles.noRecordContainer}>
               <Feather name="info" size={32} color="#94A3B8" />

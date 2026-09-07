@@ -25,7 +25,7 @@ export default function FuelDiscount(props) {
 
 
   const handleClaimNow = () => {
- props?.navigation?.navigate('OfferDetailScreen', { product: cardDetails })
+    props?.navigation?.navigate('OfferDetailScreen', { product: cardDetails })
   };
 
 
@@ -44,24 +44,65 @@ export default function FuelDiscount(props) {
         <Text style={[styles.mainTitle, cardDetails && { color: cardDetails?.template_id?.text_primary }]}>{cardDetails?.name}</Text>
 
         <View style={styles.exclusiveSection}>
-          <Text style={[styles.exclusiveTitle, cardDetails && { color: cardDetails?.template_id?.text_secondary }]}>{cardDetails?.title}</Text>
-          <Text style={[styles.exclusiveDescription, cardDetails && { color: cardDetails?.template_id?.text_secondary }]}>
+          <View style={styles.exclusiveHeader}>
+            <Text
+              style={[
+                styles.exclusiveTitle,
+                cardDetails && {
+                  color: cardDetails?.template_id?.text_secondary,
+                },
+              ]}
+            >
+              {cardDetails?.title}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.claimButtonWrapper}
+              onPress={() => {
+                handleClaimNow()
+              }}
+            >
+              <View
+                style={[
+                  styles.claimButton,
+                  cardDetails && {
+                    backgroundColor: cardDetails?.template_id?.bgbtn,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.claimButtonText,
+                    cardDetails && {
+                      color: cardDetails?.template_id?.btn_text_color,
+                    },
+                  ]}
+                >
+                  {cardDetails?.call_to_action}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <Text
+            style={[
+              styles.exclusiveDescription,
+              cardDetails && {
+                color: cardDetails?.template_id?.text_secondary,
+              },
+            ]}
+          >
             {cardDetails?.short_des}
           </Text>
-
-          <TouchableOpacity style={[styles.claimButtonWrapper]} onPress={() => {
-            handleClaimNow()
-          }}>
-            <View style={[styles.claimButton, cardDetails && { backgroundColor: cardDetails?.template_id?.bgbtn }]}>
-              <Text style={[styles.claimButtonText, cardDetails && { color: cardDetails?.template_id?.btn_text_color }]}>{cardDetails?.call_to_action}</Text>
-            </View>
-          </TouchableOpacity>
         </View>
 
-        <Text style={styles.pickedDealsTitle}>{cardDetails?.feature_title}</Text>
-        <ScrollView horizontal style={{ marginStart: 15, marginEnd: 15 }}>
+       
+        <Text style={[styles.pickedDealsTitle,{start:15, width: '80%' }]} numberOfLines={1}>
+          {cardDetails?.feature_title}
+        </Text>
+        <ScrollView horizontal style={{ marginStart: 13, marginEnd: 15, bottom:20 }}>
           {
-            cardDetails?.features.slice(0,2).map((card, key) => {
+            cardDetails?.features.slice(0, 2).map((card, key) => {
               const details = marketplaceFeature.find((obj) => obj?._id === card.value)
               return (
                 <TouchableOpacity
@@ -73,12 +114,12 @@ export default function FuelDiscount(props) {
                   <View style={[styles.cardBackground]} />
 
                   <View style={styles.cardHeader}>
-                    <View style={[styles.cardHeaderBg1,{backgroundColor:details?.card_bg}]} />
+                    <View style={[styles.cardHeaderBg1, { backgroundColor: details?.card_bg }]} />
                     <View style={styles.cardImageWrapper1}>
-                        <CloudImage
-                     style={styles.cardImage1}
-                      page='product'
-                      cloudSource={details?.temp_image} />
+                      <CloudImage
+                        style={styles.cardImage1}
+                        page='product'
+                        cloudSource={details?.temp_image} />
 
                     </View>
 
@@ -167,7 +208,6 @@ export default function FuelDiscount(props) {
 
 const styles = StyleSheet.create({
   container: {
-
     width: screenWidth * 0.9,
     height: 414,
     alignSelf: 'center',
@@ -205,33 +245,29 @@ const styles = StyleSheet.create({
   exclusiveSection: {
     position: 'absolute',
     left: 16,
+    right: 16,
     top: 97,
   },
+
+  exclusiveHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+
   exclusiveTitle: {
-    position: 'absolute',
     fontFamily: fontsFamily.semiboldFont,
-    width: 250,
-    left: 0,
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 22,
     color: 'white',
-    top: 0,
+    flex: 1,
+    marginRight: 10,
   },
-  exclusiveDescription: {
-    position: 'absolute',
-    fontFamily: fontsFamily.regularFont,
-    lineHeight: 15,
-    left: 0,
-    color: '#cacaca',
-    fontSize: 12,
-    top: 30,
-    width: 189,
-  },
+
   claimButtonWrapper: {
-    position: 'absolute',
-    left: 230,
-    top: 16,
-    zIndex: 1
+    zIndex: 1,
   },
+
   claimButton: {
     backgroundColor: '#5A21F1',
     height: 30,
@@ -240,15 +276,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   claimButtonText: {
     fontFamily: fontsFamily.semiboldFont,
     fontSize: 11,
     color: 'white',
   },
+
+  exclusiveDescription: {
+    fontFamily: fontsFamily.regularFont,
+    lineHeight: 15,
+    color: '#adabab',
+    fontSize: 13,
+    width: '100%',
+    marginTop: 10,
+  },
   pickedDealsTitle: {
-    position: 'absolute',
     fontFamily: fontsFamily.semiboldFont,
-    left: 17,
     fontSize: 14,
     color: 'white',
     top: 197,

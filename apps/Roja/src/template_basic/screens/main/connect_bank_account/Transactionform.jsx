@@ -65,16 +65,17 @@ const Transactionform = ({ navigation, route }) => {
 
   const getDetails = () => {
     var data = {}
-    if (route?.params?.data) {
+    if (route?.params?.data?.description) {
       console.log('test 1')
       const dataparams = route?.params?.data
       var category_id = dataparams?.category_id ? dataparams?.category_id : dataparams?.category_guid ? dataparams?.category_guid : ''
       data = {
-        ...dataparams,date: dataparams?.transacted_at || new Date(),
+        ...dataparams,
+        date: dataparams?.transacted_at || new Date(),
         amount: String(dataparams?.amount || ''),
-        institution_code:dataparams?.accountname,
-         customer_id: storedata.id,
-         transaction_source:'manual'
+        institution_code: dataparams?.accountname,
+        customer_id: storedata.id,
+        transaction_source: 'manual'
       }
 
 
@@ -85,13 +86,14 @@ const Transactionform = ({ navigation, route }) => {
         affectreports: 'Yes',
         type: 'DEBIT',
         date: new Date(),
+        transacted_at: new Date(),
         customer_id: storedata.id,
-         transaction_source:'manual'
+        transaction_source: 'manual'
       }
 
     }
 
-    console.log(data)
+    console.log(route?.params?.data)
 
     setTransactionForm(data)
 
@@ -142,7 +144,7 @@ const Transactionform = ({ navigation, route }) => {
     setTransactionForm({ ...transactionForm, [name]: value });
   }
 
-      console.log(route?.params?.screen)
+
   const submit = async () => {
     setIsSubmitting(true)
 
@@ -153,24 +155,25 @@ const Transactionform = ({ navigation, route }) => {
 
       const account = await createTransaction(transactionForm, route?.params?.screen, dispatch);
 
-       if (route?.params?.screen !== 'budget') {
-                 const data = {
-                bankaccount: transactionForm?.bankaccount,
-                account_guid: transactionForm.account_guid,
-                account_id: transactionForm.account_id,
-                type: transactionForm.type,
-                accountname: transactionForm?.institution_code,
-                transaction_source: transactionForm?.transaction_source
-            }
+      if (route?.params?.screen !== 'budget') {
+        const data = {
+          bankaccount: transactionForm?.bankaccount,
+          account_guid: transactionForm.account_guid,
+          account_id: transactionForm.account_id,
+          type: transactionForm.type,
+          accountname: transactionForm?.institution_code,
+          transaction_source: transactionForm?.transaction_source
+        }
 
-                navigation.replace('Statement', data)
-              } else if (route?.params?.screen === 'budget') {
-                navigation.replace('Budget')
-              } else {
-                navigation.goBack()
-              }
 
-          
+        navigation.replace('Statement', data)
+      } else if (route?.params?.screen === 'budget') {
+        navigation.replace('Budget')
+      } else {
+        navigation.goBack()
+      }
+
+
 
       // Alert.alert(
       //   'Success',
@@ -231,6 +234,8 @@ const Transactionform = ({ navigation, route }) => {
     )
   }
 
+
+
   switch (state) {
     case FLOW_STATE.HIDDEN:
       return (
@@ -277,241 +282,241 @@ const Transactionform = ({ navigation, route }) => {
     case FLOW_STATE.SHOW_FEATURE:
       return (
         <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+          <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      <TopBar
-        title="Add Transaction"
-        showBack={true}
-        onBackPress={() => navigation.goBack()}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-
-
-
-        <ScrollView showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}>
-          <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            <View style={styles.formSection}>
-              <View style={[styles.formField, { paddingTop: 10 }]}>
-                <Text style={styles.fieldLabel}>
-                  Payee / Description <Text style={styles.requiredStar}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder={'Enter Payee / Description'}
-                  placeholderTextColor="#94A3B8"
-                  value={transactionForm.description}
-                  onChangeText={text =>
-                    handleInputChange('description', text)
-                  }
-                  {...register("description", {
-                    required: content.fieldrequire,
-                    validate: {
-                      noLongSpaces: (value) =>
-                        !/\s{2,}/.test(value) || "Multiple spaces are not allowed",
-
-                      noSpecialChars: (value) =>
-                        /^[a-zA-Z\s]*$/.test(value) || "Invalid characters in name",
-
-                      minTwoChars: (value) =>
-                        value.trim().length >= 2 || "Must contain at least 2 characters",
-                    },
-
-                  })}
-                />
-                {errors.description && (
-                  <Text style={styles.errortext}>{errors.description.message}</Text>
-                )}
-              </View>
-
-              <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>
-                  Amount <Text style={styles.requiredStar}>*</Text>
-                </Text>
-                <View style={styles.amountInputContainer}>
-                  <Text style={styles.currencySymbol}>{storedata?.currency}</Text>
-                  <TextInput
-                    style={styles.amountInput}
-                    placeholder="0.00"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="decimal-pad"
-                    value={transactionForm.amount}
-                    onChangeText={val => {
-                      const cleanedValue = val.replace(/[^0-9.]/g, "");
+          <TopBar
+            title={route?.params?.data?.description ? "Edit Transaction" : "Add Transaction"}
+            showBack={true}
+            onBackPress={() => navigation.goBack()}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
 
-                      const validValue = cleanedValue.split(".").length > 2
-                        ? cleanedValue.replace(/\.+$/, "")
-                        : cleanedValue;
 
-                      if (Number(validValue) >= 0 || validValue === "") {
-                        handleInputChange("amount", validValue);
+            <ScrollView showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}>
+              <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+                <View style={styles.formSection}>
+                  <View style={[styles.formField, { paddingTop: 10 }]}>
+                    <Text style={styles.fieldLabel}>
+                      Payee / Description <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder={'Enter Payee / Description'}
+                      placeholderTextColor="#94A3B8"
+                      value={transactionForm.description}
+                      onChangeText={text =>
+                        handleInputChange('description', text)
                       }
-                    }
+                      {...register("description", {
+                        required: content.fieldrequire,
+                        validate: {
+                          noLongSpaces: (value) =>
+                            !/\s{2,}/.test(value) || "Multiple spaces are not allowed",
 
-                    }
-                    {...register("amount", {
-                      required: content.fieldrequire,
-                      validate: (value) => {
-                        if (value === "" || value === null) return "Amount is required";
-                        if (isNaN(value)) return "Enter a valid number";
-                        if (Number(value) < 0) return "Amount cannot be negative";
-                        return true;
-                      }
-                    })}
-                  />
-                </View>
-                {errors.amount && (
-                  <Text style={styles.errortext}>{errors.amount.message}</Text>
-                )}
-              </View>
+                          noSpecialChars: (value) =>
+                            /^[a-zA-Z\s]*$/.test(value) || "Invalid characters in name",
 
-              <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>
-                  Account <Text style={styles.requiredStar}>*</Text>
-                </Text>
-                <Dropdown
-                  mode='auto'
-                  style={styles.selectField}
-                  placeholderStyle={{ color: 'gray' }}
-                  placeholderTextColor={"#000"}
-                  selectedTextStyle={styles.selectFieldText}
-                  search={true}
-                  itemTextStyle={styles.selectFieldText}
-                  itemContainerStyle={{ flex: 1, backgroundColor: themeColors?.inputprimary }}
-                  containerStyle={{
-                    height: 300, borderRadius: 10, bottom: 60, borderRadius: 12,
-                    backgroundColor: '#FFFFFF', zIndex: 1000
-                  }}
-                  data={0 < account?.length ? account : option}
-                  maxHeight={200}
-                  labelField="institution_code"
-                  valueField="bankaccount"
-                  placeholder="Select Account"
-                  searchPlaceholder="Search..."
-                  {...register("bankaccount", { required: content.fieldrequire })}
-                  value={transactionForm?.bankaccount}
-                  onChange={item => {
-                    setTransactionForm({ ...transactionForm, bankaccount: item.bankaccount, account_guid: item.account_guid, account_id: item.account_id })
-                  }}
-                />
-                {errors.bankaccount && (
-                  <Text style={styles.errortext}>{errors.bankaccount.message}</Text>
-                )}
-              </View>
+                          minTwoChars: (value) =>
+                            value.trim().length >= 2 || "Must contain at least 2 characters",
+                        },
 
-              <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>
-                  Category <Text style={styles.requiredStar}>*</Text>
-                </Text>
-                <Dropdown
-                  mode='modal'
-                  style={styles.selectField}
-                  placeholderStyle={{ color: 'gray' }}
-                  placeholderTextColor={"#000"}
-                  selectedTextStyle={styles.selectFieldText}
-                  search={true}
-                  itemTextStyle={styles.selectFieldText}
-                  itemContainerStyle={{ flex: 1, backgroundColor: themeColors?.inputprimary }}
-                  containerStyle={{
-                    height: 600, borderRadius: 10, bottom: 60, borderRadius: 12,
-                    backgroundColor: '#FFFFFF', zIndex: 1000
-                  }}
-                  data={0 < categoryarr?.length ? categoryarr : option}
-                  labelField="category"
-                  valueField="category_id"
-                  placeholder="Select category"
-                  searchPlaceholder="Search..."
-                  {...register("category_guid", { required: content.fieldrequire })}
-                  value={transactionForm?.category_guid}
-                  onChange={item => {
-                    var type = ''
-                    if (item.category_guid === '66485ea72e5caa5124e87fde') {
-                      type = 'CREDIT'
-                    } else {
-                      type = 'DEBIT'
-                    }
-                    setTransactionForm({ ...transactionForm, category_guid: item.category_guid, category_id: item.category_id, type: type, category: item.category })
-                  }}
-                />
-                {errors.category_guid && (
-                  <Text style={styles.errortext}>{errors.category_guid.message}</Text>
-                )}
-              </View>
-
-              <View style={styles.formField}>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={styles.fieldLabel}>Date <Text style={styles.requiredStar}>*</Text></Text>
-                </View>
-                <Pressable style={[styles.selectField, { flexDirection: 'row' }]} onPress={() => {
-                  setisDateShow(true)
-                }}>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Icon name="calendar" size={20} color="#94A3B8" />
-                  </View>
-                  <View style={{ justifyContent: 'center', flex: 1, marginStart: 10 }}>
-                    <Text style={{ color: transactionForm?.date ? "#0F172A" : "#94A3B8", fontSize: 16 }}
-                      {...register("date", { required: content.fieldrequire })}
-                    >{transactionForm?.date ? displayDate(transactionForm?.date) : storedata.format}</Text>
-
+                      })}
+                    />
+                    {errors.description && (
+                      <Text style={styles.errortext}>{errors.description.message}</Text>
+                    )}
                   </View>
 
-                </Pressable>
+                  <View style={styles.formField}>
+                    <Text style={styles.fieldLabel}>
+                      Amount <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <View style={styles.amountInputContainer}>
+                      <Text style={styles.currencySymbol}>{storedata?.currency}</Text>
+                      <TextInput
+                        style={styles.amountInput}
+                        placeholder="0.00"
+                        placeholderTextColor="#94A3B8"
+                        keyboardType="decimal-pad"
+                        value={transactionForm.amount}
+                        onChangeText={val => {
+                          const cleanedValue = val.replace(/[^0-9.]/g, "");
 
-                {errors.date && (
-                  <Text style={styles.errortext}>{errors.date.message}</Text>
-                )}
-              </View>
-            </View>
 
-            <SubmitBtn
-              text="Submit"
-              iconName={'arrow-right'}
-              submit={handleSubmit(submit)}
-              disabled={isSubmitting}
-              disableGradient={isSubmitting}
-            />
+                          const validValue = cleanedValue.split(".").length > 2
+                            ? cleanedValue.replace(/\.+$/, "")
+                            : cleanedValue;
 
+                          if (Number(validValue) >= 0 || validValue === "") {
+                            handleInputChange("amount", validValue);
+                          }
+                        }
 
-          </Animated.View>
+                        }
+                        {...register("amount", {
+                          required: content.fieldrequire,
+                          validate: (value) => {
+                            if (value === "" || value === null) return "Amount is required";
+                            if (isNaN(value)) return "Enter a valid number";
+                            if (Number(value) < 0) return "Amount cannot be negative";
+                            return true;
+                          }
+                        })}
+                      />
+                    </View>
+                    {errors.amount && (
+                      <Text style={styles.errortext}>{errors.amount.message}</Text>
+                    )}
+                  </View>
 
-        </ScrollView>
+                  <View style={styles.formField}>
+                    <Text style={styles.fieldLabel}>
+                      Account <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <Dropdown
+                      mode='default'
+                      style={styles.selectField}
+                      placeholderStyle={{ color: 'gray' }}
+                      placeholderTextColor={"#000"}
+                      selectedTextStyle={styles.selectFieldText}
+                      search={true}
+                      itemTextStyle={styles.selectFieldText}
+                      itemContainerStyle={{ flex: 1, backgroundColor: themeColors?.inputprimary }}
+                      containerStyle={{
+                        height: 300, borderRadius: 10, bottom: 60, borderRadius: 12,
+                        backgroundColor: '#FFFFFF', zIndex: 1000
+                      }}
+                      data={0 < account?.length ? account : option}
+                      maxHeight={200}
+                      labelField="institution_code"
+                      valueField="bankaccount"
+                      placeholder="Select Account"
+                      searchPlaceholder="Search..."
+                      {...register("bankaccount", { required: content.fieldrequire })}
+                      value={transactionForm?.bankaccount}
+                      onChange={item => {
+                        setTransactionForm({ ...transactionForm, bankaccount: item.bankaccount, account_guid: item.account_guid, account_id: item.account_id })
+                      }}
+                    />
+                    {errors.bankaccount && (
+                      <Text style={styles.errortext}>{errors.bankaccount.message}</Text>
+                    )}
+                  </View>
 
-        <Modal visible={isdateShow} transparent animationType="fade">
-          <View style={[styles.modalBackground,]}>
-            <View style={[styles.alertBox1, { padding: 15, width: '90%' }]}>
-              <View style={{ marginTop: 15 }}>
-                <CalendarPicker
-                  width={width * 0.85}
-                  initialDate={new Date()}
-                  selectedStartDate={new Date()}
-                  maxDate={new Date()}
-                  selectedDayColor={themeColors?.bgbtn}
-                  selectedDayTextColor={themeColors?.btn_text_color}
-                  todayBackgroundColor={themeColors?.bgbtn}
-                  textStyle={{ color: themeColors?.inputsecondary, fontSize: getFontSize(14) }}
-                  onDateChange={(value) => { handleInputChange('date', changeDateformat(value)), setisDateShow(false) }}
+                  <View style={styles.formField}>
+                    <Text style={styles.fieldLabel}>
+                      Category <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <Dropdown
+                      mode='default'
+                      style={styles.selectField}
+                      placeholderStyle={{ color: 'gray' }}
+                      placeholderTextColor={"#000"}
+                      selectedTextStyle={styles.selectFieldText}
+                      search={true}
+                      itemTextStyle={styles.selectFieldText}
+                      itemContainerStyle={{ flex: 1, backgroundColor: themeColors?.inputprimary }}
+                      containerStyle={{
+                        height: 600, borderRadius: 10, bottom: 60, borderRadius: 12,
+                        backgroundColor: '#FFFFFF', zIndex: 1000
+                      }}
+                      data={0 < categoryarr?.length ? categoryarr : option}
+                      labelField="category"
+                      valueField="category_id"
+                      placeholder="Select category"
+                      searchPlaceholder="Search..."
+                      {...register("category_guid", { required: content.fieldrequire })}
+                      value={transactionForm?.category_guid}
+                      onChange={item => {
+                        var type = ''
+                        if (item.category_guid === '66485ea72e5caa5124e87fde') {
+                          type = 'CREDIT'
+                        } else {
+                          type = 'DEBIT'
+                        }
+                        setTransactionForm({ ...transactionForm, category_guid: item.category_guid, category_id: item.category_id, type: type, category: item.category })
+                      }}
+                    />
+                    {errors.category_guid && (
+                      <Text style={styles.errortext}>{errors.category_guid.message}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.formField}>
+                    <View style={{ flexDirection: 'row' }}>
+                      <Text style={styles.fieldLabel}>Date <Text style={styles.requiredStar}>*</Text></Text>
+                    </View>
+                    <Pressable style={[styles.selectField, { flexDirection: 'row' }]} onPress={() => {
+                      setisDateShow(true)
+                    }}>
+                      <View style={{ justifyContent: 'center' }}>
+                        <Icon name="calendar" size={20} color="#94A3B8" />
+                      </View>
+                      <View style={{ justifyContent: 'center', flex: 1, marginStart: 10 }}>
+                        <Text style={{ color: transactionForm?.date ? "#0F172A" : "#94A3B8", fontSize: 16 }}
+                          {...register("date", { required: content.fieldrequire })}
+                        >{transactionForm?.date ? displayDate(transactionForm?.date) : storedata.format}</Text>
+
+                      </View>
+
+                    </Pressable>
+
+                    {errors.date && (
+                      <Text style={styles.errortext}>{errors.date.message}</Text>
+                    )}
+                  </View>
+                </View>
+
+                <SubmitBtn
+                  text="Submit"
+                  iconName={'arrow-right'}
+                  submit={handleSubmit(submit)}
+                  disabled={isSubmitting}
+                  disableGradient={isSubmitting}
                 />
 
+
+              </Animated.View>
+
+            </ScrollView>
+
+            <Modal visible={isdateShow} transparent animationType="fade">
+              <View style={[styles.modalBackground,]}>
+                <View style={[styles.alertBox1, { padding: 15, width: '90%' }]}>
+                  <View style={{ marginTop: 15 }}>
+                    <CalendarPicker
+                      width={width * 0.85}
+                      initialDate={transactionForm?.transacted_at ? new Date(transactionForm?.transacted_at) : new Date()}
+                      selectedStartDate={transactionForm?.transacted_at ? new Date(transactionForm?.transacted_at) : new Date()}
+                      maxDate={new Date()}
+                      selectedDayColor={themeColors?.bgbtn}
+                      selectedDayTextColor={'#fff'}
+                      todayBackgroundColor={themeColors?.bgbtn}
+                      textStyle={{ color: themeColors?.inputsecondary, fontSize: getFontSize(14) }}
+                      onDateChange={(value) => { setTransactionForm({ ...transactionForm, date: value, transacted_at: value }), setisDateShow(false) }}
+                    />
+
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
 
-        </Modal>
+            </Modal>
 
 
 
-      </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
 
-    </SafeAreaView>
-  );
-  default:
-    return (
-      <ScreenLayout title="Add Transaction">
-        <NotAvailableScreen title={title} description={message} />
-      </ScreenLayout>
-    );
+        </SafeAreaView>
+      );
+    default:
+      return (
+        <ScreenLayout title="Add Transaction">
+          <NotAvailableScreen title={title} description={message} />
+        </ScreenLayout>
+      );
   }
 };
 

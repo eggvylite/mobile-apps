@@ -6,12 +6,21 @@ import CommonFunction from '../../utill/CommonFunction';
 import { useDashboardUtils } from '../../hook/useDashboardUtils';
 import appLog from '../../constants/logger';
 import { fontsFamily } from '../../constants/fontsFamily';
+import { usegetAdvancepartialFlow } from '../../hook/getAdvancepartialhook';
+import useGeneralLabelsHook from '../../hook/Labels/useGenerallablehoo';
+import { getFontSize } from '../../constants/Font';
+import CommonIcon from '../../common_component/Commonicons';
 
 const { width, height } = Dimensions.get('window');
-const CashCard = ({ type, onClick, amount = 0, title }) => {
+const CashCard = ({ type, onClick, amount = 0, title, total = 0 }) => {
     const { cusDetails, cusloading } = useSelector((state) => state.customer);
     const { dashboardLabel } = useSelector((state) => state.labels || {});
     const { themeColors, storedata, formatAmount } = useDashboardUtils();
+    const { isAdvanceLimitExceeded, instantFundFee, getAdvanceLimitCount, pendingLast30DaysCount } = usegetAdvancepartialFlow()
+    const { advanceLimitSHowMessage, showLimtlables, advanceLimitButton, advanceCardUsed } = useGeneralLabelsHook()
+    var remaining = total ? amount - total : 0
+
+
     return (
         <View style={[styles.advanceCardContainer, type === 'subscribe' && { width: width * 0.93 }]}>
             <LinearGradient
@@ -30,40 +39,64 @@ const CashCard = ({ type, onClick, amount = 0, title }) => {
                         </View>
                     }
 
-                    <Text style={[styles.title,]}>
+                    <Text style={[styles.title, { marginBottom: 5 }]}>
                         {type === 'subscribe' || type === 'advance' || type === 'getadvance' ? `${dashboardLabel?.labels?.[3]?.message}\n${dashboardLabel?.labels?.[4]?.message}` :
                             type === 'nosuscribtion' ? dashboardLabel?.labels?.[1]?.message : type === 'bill' ? `${dashboardLabel?.labels?.[6]?.message}\n${dashboardLabel?.labels?.[7]?.message}` : ''}
                     </Text>
 
+                    {cusDetails?.subscription === 'Yes' &&
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                            <CommonIcon family={'Feather'} name="layers" size={12} color={themeColors?.primarColor} />
+                            <Text style={{ fontFamily: fontsFamily?.semiboldFont, paddingBottom: 3, color: '#2d2929', marginStart: 5, fontSize: 12 }}>{pendingLast30DaysCount}/{getAdvanceLimitCount} {advanceCardUsed}</Text>
+                        </View>
+
+                    }
 
                     {
+                        !isAdvanceLimitExceeded ? <View style={[styles.button, { backgroundColor: '#f1f1f1', paddingStart: 8, paddingEnd: 8 }]}
 
-                        type === 'nosuscribtion' || type === 'advance' || type === 'bill' ?
-                            <TouchableOpacity
-                                style={styles.button}
-                                activeOpacity={0.8}
-                                onPress={() => {
-                                    onClick()
-                                }}
+                        >
+
+
+                            <Text style={[styles.buttonText, { color: '#7B7B7B', fontWeight: 'bold' }]}>{showLimtlables}</Text>
+
+                        </View> :
+                            total === amount ? <View style={[styles.button, { backgroundColor: '#DFDFDF' }]}
+
                             >
-                                <Text style={styles.buttonText}>{type === 'nosuscribtion' ? dashboardLabel?.labels?.[2]?.message : type === 'advance' ? dashboardLabel?.labels?.[5]?.message : type === 'bill' ? dashboardLabel?.labels?.[8]?.message : ''}</Text>
-                            </TouchableOpacity> : <></>
+
+                                <Text style={[styles.buttonText, { color: '#7B7B7B', fontWeight: 'bold' }]}>{advanceLimitButton}</Text>
+
+                            </View> :
+
+                                type === 'nosuscribtion' || type === 'advance' || type === 'bill' ?
+                                    <TouchableOpacity
+                                        style={styles.button}
+                                        activeOpacity={0.8}
+                                        onPress={() => {
+                                            onClick()
+                                        }}
+                                    >
+                                        <Text style={styles.buttonText}>{type === 'nosuscribtion' ? dashboardLabel?.labels?.[2]?.message : type === 'advance' ? dashboardLabel?.labels?.[5]?.message : type === 'bill' ? dashboardLabel?.labels?.[8]?.message : ''}</Text>
+                                    </TouchableOpacity> : <></>
                     }
 
                 </View>
 
-                <View style={{ justifyContent: 'center', marginEnd: Platform.OS === 'ios' ? 40 : 5 }}>
+
+                <View style={{ justifyContent: 'center', marginEnd: Platform.OS === 'ios' ? 40 : 0 }}>
                     <View style={[styles.whiteCircle,]}>
-                        <Text style={styles.label}>{type === 'bill' ? dashboardLabel?.labels[9]?.message : dashboardLabel?.labels[5]?.message ?? 'Get Advance'}</Text>
+                        <Text style={styles.label}>{total === amount ? 'Used' : 0 < remaining ? 'Reamaing' : type === 'bill' ? dashboardLabel?.labels?.[9]?.message : dashboardLabel?.labels?.[5]?.message ?? 'Get Advance'}</Text>
                         <Text style={styles.amount}>{storedata?.currency}
-                            {CommonFunction.formatamount(amount ?? 0)}</Text>
+                            {CommonFunction.formatamount(amount - total)}
+                        </Text>
                         {
                             type !== 'bill' &&
                             <Text style={styles.label}>{'Limit'} </Text>
                         }
 
                     </View>
-                    <Image
+                    {/* <Image
                         source={require('../../../assets/images/money-1.png')}
                         style={[styles.cashIcon, styles.cashTopRight]}
                         resizeMode="contain"
@@ -77,7 +110,7 @@ const CashCard = ({ type, onClick, amount = 0, title }) => {
                         source={require('../../../assets/images/money-3.png')}
                         style={[styles.cashIcon, styles.cashBottomRight]}
                         resizeMode="contain"
-                    />
+                    /> */}
                 </View>
             </LinearGradient>
         </View>
@@ -96,7 +129,7 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
-        height: 125,
+        height: 140,
         borderRadius: 20,
         flexDirection: 'row',
         aligntypes: 'center',
@@ -120,8 +153,11 @@ const styles = StyleSheet.create({
     button: {
         backgroundColor: '#F3F6FD',
         borderRadius: 20,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
+        // paddingVertical: 10,
+        // paddingHorizontal: 16,
+        padding: 8,
+        end: 2,
+        paddingLeft: 15, paddingRight: 15,
         alignSelf: 'flex-start',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },

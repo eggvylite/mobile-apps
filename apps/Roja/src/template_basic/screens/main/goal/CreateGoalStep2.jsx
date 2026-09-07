@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Alert, Dimensions, } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, Dimensions, } from "react-native";
 import Icon from 'react-native-vector-icons/Feather';
+import MonthPicker from 'react-native-month-year-picker';
 import { useNavigation, useRoute } from "@react-navigation/native";
 import LinearGradient from 'react-native-linear-gradient';
 import TopBar from "../../../component/TopBar";
@@ -27,95 +28,36 @@ export default function CreateGoalStep2Screen() {
   const { goalList, goalaccount } = useSelector((state) => state.goal);
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
   const currentDate = new Date();
-  const [startShowDatePickerModal, setStartShowDatePickerModal] = useState(false);
-  const [selectedStartMonth, setselectedStartMonth] = useState(currentDate.getMonth());
-  const [selectedStartYear, setselectedStartYear] = useState(currentDate.getFullYear());
-  const [loading, setLoading] = useState(false)
 
-  const [endShowDatePickerModal, setEndShowDatePickerModal] = useState(false);
-  const [selectedEndMonth, setselectedEndMonth] = useState(currentDate.getMonth());
-  const [selectedEndYear, setselectedEndYear] = useState(currentDate.getFullYear());
+
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [loading, setLoading] = useState(false)
 
   const [flag, setflag] = useState(0)
   const accountListref = useRef()
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, setValue, watch, reset, trigger, formState: { errors } } = useForm();
   const [record, setRecord] = useState('');
   const { width, height } = Dimensions.get('window')
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() + i);
 
   function dateformt(date) {
     return moment(date).format("YYYY-MM");
   }
 
 
-  const getMonth = (date) => {
-    var mon = moment(date).format('MMM')
-    return mon
-  }
-
-  const getYear = (date) => {
-    var yr = moment(date).year()
-    return yr
-  }
-
-  const ITEM_HEIGHT = 44; // must match your styles.datePickerItem height
-
-  const monthStartScrollRef = useRef(null);
-  const yearStartScrollRef = useRef(null);
-
-  const monthEndScrollRef = useRef(null);
-  const yearEndScrollRef = useRef(null);
-
-  useEffect(() => {
-    if (startShowDatePickerModal) {
-      setTimeout(() => {
-        const monthIndex = months.indexOf(selectedStartMonth);
-        if (monthIndex >= 0 && monthStartScrollRef.current) {
-          monthStartScrollRef.current.scrollTo({
-            y: monthIndex * ITEM_HEIGHT,
-            animated: false,
-          });
-        }
-
-        const yearIndex = years.indexOf(yearStartScrollRef);
-        if (yearIndex >= 0 && yearStartScrollRef.current) {
-          yearStartScrollRef.current.scrollTo({
-            y: yearIndex * ITEM_HEIGHT,
-            animated: false,
-          });
-        }
-      }, 100);
-    }
-  }, [startShowDatePickerModal]);
-
-  useEffect(() => {
-    if (endShowDatePickerModal) {
-      setTimeout(() => {
-        const monthIndex = months.indexOf(selectedEndMonth);
-        if (monthIndex >= 0 && monthEndScrollRef.current) {
-          monthEndScrollRef.current.scrollTo({
-            y: monthIndex * ITEM_HEIGHT,
-            animated: false,
-          });
-        }
-
-        const yearIndex = years.indexOf(yearEndScrollRef);
-        if (yearIndex >= 0 && yearEndScrollRef.current) {
-          yearEndScrollRef.current.scrollTo({
-            y: yearIndex * ITEM_HEIGHT,
-            animated: false,
-          });
-        }
-      }, 100);
-    }
-  }, [endShowDatePickerModal]);
-
-
   useEffect(() => {
     dataload()
-    disableMenu()
+
   }, [selectedGoal])
+
+
+  useEffect(() => {
+    register('startdate', { required: content.fieldrequire });
+  }, [register]);
+
+  useEffect(() => {
+    register('targetdate', { required: record?.targetset ? content.fieldrequire : false });
+  }, [register, record?.targetset]);
 
   const dataload = async () => {
     var data = {}
@@ -154,17 +96,6 @@ export default function CreateGoalStep2Screen() {
         device_name: await CommonFunction.getdevicename(),
         ipaddress: await CommonFunction.getipaddress()
       }
-      var startMonth = getMonth(currentDate)
-      var strtYear = getYear(currentDate)
-      var endMonth = getMonth(endDate)
-      var endYear = getYear(endDate)
-      setselectedStartMonth(startMonth)
-      setselectedStartYear(strtYear)
-      setselectedEndMonth(endMonth)
-      setselectedEndYear(endYear)
-
-
-
     }
 
     setRecord(data)
@@ -183,16 +114,16 @@ export default function CreateGoalStep2Screen() {
       var dt = moment(date).format("MMM-YYYY");
       return dt
     }
-
+    return '-';
   }
 
 
-  const submit = async() => {
+  const submit = async () => {
     setLoading(true)
     try {
-      const goal =  await goalApi(record,navigation,edit)
+      const goal = await goalApi(record, navigation, edit)
     } catch (error) {
-        console.log(error)
+      console.log(error)
     } finally {
       setLoading(false)
     }
@@ -325,174 +256,75 @@ export default function CreateGoalStep2Screen() {
   };
 
 
-  const renderStartDatePickerModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={startShowDatePickerModal}
-      onRequestClose={() => setStartShowDatePickerModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Start By</Text>
-            <TouchableOpacity onPress={() => setStartShowDatePickerModal(false)}>
-              <Icon name="x" size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.datePickerContainer}>
-            <View style={styles.datePickerColumn}>
-              <Text style={styles.datePickerLabel}>Month</Text>
-              <ScrollView ref={monthStartScrollRef} style={styles.datePickerScroll}>
-                {months.map((month, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.datePickerItem,
-                      selectedStartMonth === month && styles.datePickerItemSelected
-                    ]}
-                    onPress={() => setselectedStartMonth(month)}
-                  >
-                    <Text style={[
-                      styles.datePickerItemText,
-                      selectedStartMonth === month && styles.datePickerItemTextSelected
-                    ]}>
-                      {month}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+  const monthStart = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
-            <View style={styles.datePickerColumn}>
-              <Text style={styles.datePickerLabel}>Year</Text>
-              <ScrollView ref={yearStartScrollRef} style={styles.datePickerScroll}>
-                {years.map((year) => {
-                  return (
-                    <TouchableOpacity
-                      key={year}
-                      style={[
-                        styles.datePickerItem,
-                        selectedStartYear === year && styles.datePickerItemSelected
-                      ]}
-                      onPress={() => setselectedStartYear(year)}
-                    >
-                      <Text style={[
-                        styles.datePickerItemText,
-                        selectedStartYear === year && styles.datePickerItemTextSelected
-                      ]}>
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                })}
-              </ScrollView>
-            </View>
-          </View>
 
-          <TouchableOpacity
-            style={styles.dateConfirmButton}
-            onPress={() => {
-              const month = months.indexOf(selectedStartMonth) + 1;
-              handleInputChange('startdate', `${selectedStartYear}-${month}`)
-              setStartShowDatePickerModal(false)
-            }}
-          >
-            <Text style={styles.dateConfirmButtonText}>Confirm Date</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
+  const toLocalMonthDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [y, m] = dateStr.split('-');
+    if (!y || !m) return null;
+    return new Date(Number(y), Number(m) - 1, 1);
+  };
 
-  const renderEndDatePickerModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={endShowDatePickerModal}
-      onRequestClose={() => setEndShowDatePickerModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>End By</Text>
-            <TouchableOpacity onPress={() => setEndShowDatePickerModal(false)}>
-              <Icon name="x" size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
+  const isBeforeMonth = (a, b) =>
+    a.getFullYear() < b.getFullYear() ||
+    (a.getFullYear() === b.getFullYear() && a.getMonth() < b.getMonth());
 
-          <View style={styles.datePickerContainer}>
-            <View style={styles.datePickerColumn}>
-              <Text style={styles.datePickerLabel}>Month</Text>
-              <ScrollView ref={monthEndScrollRef} style={styles.datePickerScroll}>
-                {months.map((month, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.datePickerItem,
-                      selectedEndMonth === month && styles.datePickerItemSelected
-                    ]}
-                    onPress={() => setselectedEndMonth(month)}
-                  >
-                    <Text style={[
-                      styles.datePickerItemText,
-                      selectedEndMonth === month && styles.datePickerItemTextSelected
-                    ]}>
-                      {month}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+  const isAfterMonth = (a, b) => isBeforeMonth(b, a);
 
-            <View style={styles.datePickerColumn}>
-              <Text style={styles.datePickerLabel}>Year</Text>
-              <ScrollView ref={yearEndScrollRef} style={styles.datePickerScroll}>
-                {years.map((year) => {
-                  return (
-                    <TouchableOpacity
-                      key={year}
-                      style={[
-                        styles.datePickerItem,
-                        selectedEndYear === year && styles.datePickerItemSelected
-                      ]}
-                      onPress={() => setselectedEndYear(year)}
-                    >
-                      <Text style={[
-                        styles.datePickerItemText,
-                        selectedEndYear === year && styles.datePickerItemTextSelected
-                      ]}>
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                })}
-              </ScrollView>
-            </View>
-          </View>
+  const startPickerMinDate = monthStart(currentDate);
+  const startPickerMaxDate = (record?.targetset && record?.targetdate)
+    ? toLocalMonthDate(record.targetdate)
+    : undefined;
 
-          <TouchableOpacity
-            style={styles.dateConfirmButton}
-            onPress={() => {
-              const month = months.indexOf(selectedEndMonth) + 1;
-              handleInputChange('targetdate', `${selectedEndYear}-${month}`)
-              setEndShowDatePickerModal(false)
-            }}
-          >
-            <Text style={styles.dateConfirmButtonText}>Confirm Date</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
+
+  const rawStartValue = record?.startdate ? toLocalMonthDate(record.startdate) : startPickerMinDate;
+  const startPickerValue = isBeforeMonth(rawStartValue, startPickerMinDate)
+    ? startPickerMinDate
+    : (startPickerMaxDate && isAfterMonth(rawStartValue, startPickerMaxDate) ? startPickerMaxDate : rawStartValue);
+
+
+  const endPickerMinDate = record?.startdate ? toLocalMonthDate(record.startdate) : startPickerMinDate;
+  const rawEndValue = record?.targetdate ? toLocalMonthDate(record.targetdate) : endPickerMinDate;
+  const endPickerValue = isBeforeMonth(rawEndValue, endPickerMinDate) ? endPickerMinDate : rawEndValue;
+
+  const onStartDateChange = (event, newDate) => {
+    setShowStartPicker(false);
+    if (event !== 'dateSetAction' || !newDate) return;
+
+    if (isBeforeMonth(newDate, startPickerMinDate)) {
+      Alert.alert('Invalid Start Date', 'Start date cannot be a previous month.');
+      return;
+    }
+    if (startPickerMaxDate && isAfterMonth(newDate, startPickerMaxDate)) {
+      Alert.alert('Invalid Start Date', 'Start date cannot be later than the End date.');
+      return;
+    }
+
+    handleInputChange('startdate', dateformt(newDate));
+    setValue('startdate', dateformt(newDate), { shouldValidate: true });
+  };
+
+  const onEndDateChange = (event, newDate) => {
+    setShowEndPicker(false);
+    if (event !== 'dateSetAction' || !newDate) return;
+
+    if (isBeforeMonth(newDate, endPickerMinDate)) {
+      Alert.alert('Invalid End Date', 'End date cannot be earlier than the Start date.');
+      return;
+    }
+
+    handleInputChange('targetdate', dateformt(newDate));
+    setValue('targetdate', dateformt(newDate), { shouldValidate: true });
+  };
 
 
 
   return (
-    <SafeAreaView style={styles.container} edges={['left','right','top']} >
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']} >
 
-      <TopBar title={edit ?  "Edit Goal" :"Create Goal"} showBack={true} onBackPress={() => {
+      <TopBar title={edit ? "Edit Goal" : "Create Goal"} showBack={true} onBackPress={() => {
         navigation.goBack()
       }} />
 
@@ -642,14 +474,16 @@ export default function CreateGoalStep2Screen() {
               <Text style={styles.formLabel}>Start By <Text style={styles.require}>*</Text></Text>
               <TouchableOpacity
                 style={styles.datePicker}
-                onPress={() => setStartShowDatePickerModal(true)}
+                onPress={() => setShowStartPicker(true)}
               >
                 <Text style={styles.dateText}>
                   {displayDate(record?.startdate)}
                 </Text>
                 <Icon name="calendar" size={20} color="#666" />
               </TouchableOpacity>
-
+              {errors.startdate && (
+                <Text style={styles.errortext}>{errors.startdate.message}</Text>
+              )}
 
             </View>
           </View>
@@ -661,14 +495,26 @@ export default function CreateGoalStep2Screen() {
                 <Text style={styles.formLabel}>End By <Text style={styles.require}>*</Text></Text>
                 <TouchableOpacity
                   style={styles.datePicker}
-                  onPress={() => setEndShowDatePickerModal(true)}
+                  onPress={() => {
+                    // Start By must be chosen first - End By's own valid range
+                    // (minimumDate) is derived from it, so opening it early would
+                    // have nothing sensible to clamp against.
+                    if (!record?.startdate) {
+                      trigger('startdate');
+                      Alert.alert('Select Start Date', 'Please select the Start date before choosing an End date.');
+                      return;
+                    }
+                    setShowEndPicker(true);
+                  }}
                 >
                   <Text style={styles.dateText}>
                     {displayDate(record?.targetdate)}
                   </Text>
                   <Icon name="calendar" size={20} color="#666" />
                 </TouchableOpacity>
-
+                {errors.targetdate && (
+                  <Text style={styles.errortext}>{errors.targetdate.message}</Text>
+                )}
 
               </View>
             </View>
@@ -951,7 +797,7 @@ export default function CreateGoalStep2Screen() {
 
           <View style={{ margin: 20, marginTop: 40 }}>
             <SubmitBtn
-              text={edit ? 'Update Goal' :'Create Goal'}
+              text={edit ? 'Update Goal' : 'Create Goal'}
               disabled={loading}
               disableGradient={loading}
               submit={handleSubmit(submit)}
@@ -1037,8 +883,24 @@ export default function CreateGoalStep2Screen() {
 
           </RBSheet>
         </ScrollView>
-        {renderStartDatePickerModal()}
-        {renderEndDatePickerModal()}
+        {showStartPicker && (
+          <MonthPicker
+            onChange={onStartDateChange}
+            value={startPickerValue}
+            minimumDate={startPickerMinDate}
+            maximumDate={startPickerMaxDate}
+            locale="en"
+          />
+        )}
+
+        {showEndPicker && (
+          <MonthPicker
+            onChange={onEndDateChange}
+            value={endPickerValue}
+            minimumDate={endPickerMinDate}
+            locale="en"
+          />
+        )}
       </KeyboardAvoidingView>
 
 
@@ -1049,4 +911,3 @@ export default function CreateGoalStep2Screen() {
     </SafeAreaView>
   );
 }
-

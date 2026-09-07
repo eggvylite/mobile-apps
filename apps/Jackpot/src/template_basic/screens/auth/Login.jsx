@@ -24,6 +24,9 @@ import { useIsFocused } from '@react-navigation/native';
 import { getFcmToken } from '../../../service/NotificationServices';
 import SubmitBtn from '../../component/SubmitBtn';
 import useLoginLabels from '../../../hook/Labels/useLoginLabels';
+import { useDispatch } from 'react-redux';
+import { fetchmenuSevice } from '../../../redux/slices/menuiconSlice';
+import { fetchLabel } from '../../../redux/slices/labelSlice';
 
 
 
@@ -33,15 +36,17 @@ const Login = ({ navigation }) => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isLoading, setIsLoding] = useState(false)
     const { changeErrmsg } = useContext(ErrorContext);
-    const {title,description,btnName,navigateContent,navigateLinkName,label } = useLoginLabels()
+    const { loginContent,loadingmsg } = useLoginLabels()
     const isFoucused = useIsFocused()
+    const dispatch = useDispatch()
 
 
 
     useEffect(() => {
-
+        dispatch(fetchmenuSevice())
+        dispatch(fetchLabel())
         setIsLoding(false)
-    }, [isFoucused])
+    }, [isFoucused, dispatch])
 
     const getDetails = () => {
         setIsLoding(false)
@@ -102,11 +107,14 @@ const Login = ({ navigation }) => {
 
 
                 <View style={styles.card}>
-                    <Text style={styles.title}>{title}</Text>
-                    <Text style={styles.subtitle}>{description}</Text>
+                    <Text style={styles.title}>{loginContent.title}</Text>
+                    <Text style={styles.subtitle}>{loginContent.description}</Text>
 
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>{label}</Text>
+                        <View style={{ flexDirection: 'row' }}>
+                            <Text style={styles.label}>{loginContent.label}</Text>
+                            <Text style={styles.require}>*</Text>
+                        </View>
 
                         <View style={styles.phoneInputWrapper}>
                             <View style={styles.flagContainer}>
@@ -129,20 +137,20 @@ const Login = ({ navigation }) => {
                     </View>
 
                     <SubmitBtn
-                        text={isLoading ? 'Loading ...' : btnName}
+                        text={isLoading ? loadingmsg : loginContent.btnName}
                         disabled={isLoading}
                         disableGradient={isLoading}
                         submit={handleSignIn}
                     />
 
-                  
+
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>{navigateContent}</Text>
+                        <Text style={styles.footerText}>{loginContent.navigateContent}</Text>
                         <TouchableOpacity
                             onPress={() => navigation.navigate('Register')}
                             disabled={isLoading}
                         >
-                            <Text style={styles.signUpLink}> {navigateLinkName}</Text>
+                            <Text style={styles.signUpLink}> {loginContent.navigateLinkName}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -156,6 +164,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: themeColors.backgroudColor
+    },
+    require: {
+        color: themeColors?.negativeColor,
+        fontSize: getFontSize(14)
     },
     flexContainer: {
         flex: 1,

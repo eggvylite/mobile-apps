@@ -18,6 +18,7 @@ import { fontsFamily } from '../../../../../constants/fontsFamily';
 import CommonFunction from '../../../../../utill/CommonFunction';
 import { themeColors } from '../../../../Common';
 import { useUser } from '../../../../../context/UserContext';
+import useDashboardLablehook from '../../../../../hook/Labels/useDashboardLablehook';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = 176;
@@ -46,7 +47,7 @@ export default function RecommendedSection(props) {
   const { userId, setUserId, userName, setUserName } = useUser();
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
   const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
-
+    const { marketlabels } = useDashboardLablehook()
 
   const visibleOffers = (advanceOffer || []).slice(0, 4);
 
@@ -119,6 +120,10 @@ export default function RecommendedSection(props) {
     },
   ];
 
+  const progressColor=[
+   'rgb(228, 165, 18)' ,'#5f5ff0' ,'#e9d222' ,'#5edcd2'
+  ]
+
   const getShortDescription = (description) => {
     if (!description) return '';
     return description.length > DESCRIPTION_LIMIT
@@ -136,9 +141,10 @@ export default function RecommendedSection(props) {
 
 
 
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{marketPlaceLabel?.labels?.[2]?.message}</Text>
+      <Text style={styles.title}>{marketlabels?.recommended}</Text>
 
       <View style={[styles.cardsWrapper, { marginTop: 5 }]}>
         <Animated.ScrollView
@@ -161,7 +167,7 @@ export default function RecommendedSection(props) {
               const palette = categoryDetails?.card_bg
               const progressWidth = cards[index].progressWidth ?? 0;
 
-
+               const frontendColor = progressColor[index]
               return (
                 <TouchableOpacity
                   key={index}
@@ -202,7 +208,7 @@ export default function RecommendedSection(props) {
                           styles.progressBarFill,
                           {
                             width: `${progressWidth}%`,
-                            backgroundColor: cards[index]?.progressColor
+                            backgroundColor: frontendColor
                           }
                         ]}
                       />

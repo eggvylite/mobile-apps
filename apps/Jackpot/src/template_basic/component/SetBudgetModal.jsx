@@ -19,7 +19,7 @@ const SetBudgetModal = ({ visible, onClose, category, onSave, loading }) => {
 
   const handleSave = () => {
     if (!budgetAmount || parseFloat(budgetAmount) < 0) {
-      Alert.alert('Error', 'Please enter a valid budget amount');
+      Alert.alert('Alert', 'Please enter a valid budget amount');
       return;
     }
 

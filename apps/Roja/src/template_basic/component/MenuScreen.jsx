@@ -21,6 +21,8 @@ import { useConnectBankWorkFlow } from "../../hook/useConnectBankWorkFlow";
 import { useSelector } from "react-redux";
 import { WORKFLOW_CONSTANT } from "../../constants/workflowConstents";
 import useFeatureFlow from "../../hook/useFeatureGate";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import appLog from "../../constants/logger";
 
 
 
@@ -32,7 +34,7 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
   const navigation = useNavigation();
   const { formatDate, formatTime } = useDashboardUtils();
   const { workflow } = useFeatureFlow(WORKFLOW_CONSTANT.GETSTATEMENT)
-
+   const insets = useSafeAreaInsets();
   const {
     slideAnim,
     fadeAnim,
@@ -86,6 +88,9 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
     return settingmenu.find((obj) => obj.id === '6748267bb2253a1fd8a5b83f');
   }, [settingmenu]);
 
+
+
+
   const renderMenuItems = () => {
     return (
       <View>
@@ -114,16 +119,6 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
                         {disabled ? DISABLED_FEATURE_MESSAGE : subvalue.description}
                       </Text>
                     </View>
-                    {
-                      disabled && 
-
-                       <Feather
-                              name={'lock' }
-                              size={18}
-                              color="#94A3B8"
-                            />
-                    }
-
                   </View>
                 </TouchableOpacity>
                 <View style={styles.divider} />
@@ -391,7 +386,7 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
 
   return (
     <Modal animationType="none" transparent={true} visible={visible} onRequestClose={onClose} statusBarTranslucent={true}>
-      <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.modalOverlay, ]}>
         <Pressable style={styles.overlayTouchable} onPress={onClose} />
         <Animated.View style={[styles.menuContainer, { width: menuWidth, transform: [{ translateX: slideAnim }] }]}>
           <Pressable style={styles.menuTouchable} onPress={(e) => e.stopPropagation()}>
@@ -420,12 +415,12 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
               </View>
             </LinearGradient>
 
-            <ScrollView style={styles.menuList} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView style={styles.menuList} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent]}>
               <View style={{ marginTop: 10, marginBottom: 10 }}>
                 {renderMenuItems()}
               </View>
 
-              <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
+              <TouchableOpacity onPress={handleLogout} activeOpacity={0.7 } style={{paddingBottom:insets.bottom}}>
                 <LinearGradient colors={['#FEF2F2', '#FEE2E2']} style={styles.logoutGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                   <View style={styles.logoutContent}>
                     <View style={styles.logoutIconContainer}>

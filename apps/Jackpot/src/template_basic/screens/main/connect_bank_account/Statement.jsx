@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, TextInput,
 import Feather from 'react-native-vector-icons/Feather';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TopBar from '../../../component/TopBar';
@@ -28,8 +28,10 @@ import { content } from '../../../../constants/content';
 import { unLinkReminder, unLinkTransaction } from '../../../../constants/Reminderapi';
 import XLSX from "xlsx";
 import PromptModel from '../../../component/PromptModel';
-import { deleteTransaction } from '../../../../constants/Accountapi';
+import { deleteAccount, deleteTransaction } from '../../../../constants/Accountapi';
 import ErrorView from '../../../component/ErrorView';
+import Icon from 'react-native-vector-icons/Feather';
+import SkeletonPlaceholder from "react-native-skeleton-placeholder";
 
 
 const tabs = ['All', 'Credit', 'Debit'];
@@ -70,6 +72,8 @@ export default function Statement(props) {
     const [data, setData] = useState([])
     const [isDelete, setIsdelete] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [isDeleteAccount, setIsDeleteAccount] = useState(false)
+    const isFocused = useIsFocused()
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
@@ -78,7 +82,7 @@ export default function Statement(props) {
             useNativeDriver: true,
         }).start();
         getDetails()
-    }, []);
+    }, [isFocused]);
 
 
 
@@ -95,6 +99,7 @@ export default function Statement(props) {
                 accountname: dataparams?.accountname,
                 date: new Date()
             }
+
             setData(params)
 
         }
@@ -721,7 +726,7 @@ export default function Statement(props) {
                                             <View style={{ flexDirection: 'row', }}>
                                                 <Pressable style={{ marginStart: 10, borderWidth: 1, padding: 8, borderRadius: 30, borderColor: themeColors?.primarColor }}
                                                     onPress={() => {
-                                                        props.navigation.navigate('Transactionform', { data: selectedTransaction, screen: 'edit', type: dataparams?.type })
+                                                        props.navigation.navigate('Transactionform', { data: {...selectedTransaction,...data}, screen: 'edit', type: dataparams?.type })
                                                         clearModelDetails()
                                                     }}>
                                                     <Feather name="edit" color={themeColors.primarColor} size={16} />
@@ -1094,6 +1099,7 @@ export default function Statement(props) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={!props.screen && styles.listContent}
                 ListEmptyComponent={
+                      !stloading &&
                     <View style={styles.emptyContainer}>
                         <Feather name="inbox" size={48} color="#94A3B8" />
                         <Text style={styles.emptyTitle}>No Transactions Found</Text>
@@ -1104,6 +1110,106 @@ export default function Statement(props) {
         )
 
     }
+
+
+
+
+    const deleteBankAccount = async () => {
+        setLoading(true)
+        try {
+            const deleteTrans = await deleteAccount(dataparams?.bankaccount, dispatch)
+            navigation.replace('BankAccountSummary');
+            enableMenu()
+        } catch (eror) {
+            console.log(eror)
+        } finally {
+            setLoading(false)
+            clearModelDetails()
+        }
+    }
+
+
+    const CardSkeleton = () => {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <TopBar
+                    title="Bank Statement"
+                    showBack={true}
+                    onBackPress={() => {
+                        navigation.navigate('Dashboard'),
+                            enableMenu()
+                    }}
+                />
+                <View style={{ margin: 10 }}>
+
+                    <SkeletonPlaceholder
+                        backgroundColor={themeColors?.cardbg}
+                    >
+
+                        <View style={{}}>
+                            <View style={{ flexDirection: 'row', }}>
+                                <View style={{ flex: 1, flexDirection: 'row' }}>
+
+                                    <SkeletonPlaceholder.Item marginTop={10}>
+                                        <SkeletonPlaceholder.Item width={150} height={20} borderRadius={4} />
+
+                                    </SkeletonPlaceholder.Item>
+                                </View>
+                                <View style={{ flexDirection: 'row', marginEnd: 10 }}>
+                                    <View>
+                                        <SkeletonPlaceholder.Item width={35} height={35} borderRadius={50} />
+                                    </View>
+                                    <View style={{ marginStart: 10 }}>
+                                        <SkeletonPlaceholder.Item width={35} height={35} borderRadius={50} />
+                                    </View>
+                                    <View style={{ marginStart: 10 }}>
+                                        <SkeletonPlaceholder.Item width={35} height={35} borderRadius={50} />
+                                    </View>
+
+                                </View>
+                            </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 }}>
+                            <View>
+                                <SkeletonPlaceholder.Item width={100} height={35} borderRadius={5} />
+                            </View>
+                            <View style={{ marginStart: 10 }}>
+                                <SkeletonPlaceholder.Item width={100} height={35} borderRadius={5} />
+                            </View>
+                            <View style={{ marginStart: 10 }}>
+                                <SkeletonPlaceholder.Item width={100} height={35} borderRadius={5} />
+                            </View>
+
+                        </View>
+                        <SkeletonPlaceholder.Item
+
+                            marginTop={10}
+                            borderRadius={10}
+                        />
+                        {[...Array(10)].map((_, index) => (
+                            <View
+                                key={index}
+                                style={{ flexDirection: 'row', marginTop: 20 }}
+                            >
+                                <View style={{ width: '100%', height: 80, borderRadius: 10 }} />
+
+
+                            </View>
+                        ))}
+                    </SkeletonPlaceholder>
+                </View>
+            </SafeAreaView>
+
+
+        );
+    };
+
+    if (stloading) {
+        return (
+            <CardSkeleton />
+        )
+    }
+
 
 
     if (props?.screen) {
@@ -1156,7 +1262,7 @@ export default function Statement(props) {
 
 
 
-                <Animated.View style={[styles.container, { opacity: fadeAnim }, props?.screen && { paddingHorizontal: 10 }]}>
+                <Animated.View style={[styles.container, props?.screen && { paddingHorizontal: 10 }]}>
                     {
                         !props?.screen &&
                         <View>
@@ -1164,7 +1270,10 @@ export default function Statement(props) {
                             <View style={[styles.resultsContainer, { marginTop: 15 }]}>
                                 <Pressable style={[styles.formInput, { flex: 1, marginEnd: 15, justifyContent: 'center' }]}
                                     onPress={() => {
-                                        setIsAccount(true)
+                                        if (!props?.route?.params) {
+                                            setIsAccount(true)
+                                        }
+
                                     }}>
 
                                     <View style={{ flexDirection: 'row' }}>
@@ -1224,23 +1333,10 @@ export default function Statement(props) {
 
 
                     {
-                         renderStatement()
+                        renderStatement()
                     }
 
-                    {/* <FlatList
-                        data={filteredTransactions}
-                        renderItem={renderTransactionItem}
-                        keyExtractor={(item) => item.id}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={!props.screen && styles.listContent}
-                        ListEmptyComponent={
-                            <View style={styles.emptyContainer}>
-                                <Feather name="inbox" size={48} color="#94A3B8" />
-                                <Text style={styles.emptyTitle}>No Transactions Found</Text>
-                                <Text style={styles.emptySubtitle}>Try adjusting your filter</Text>
-                            </View>
-                        }
-                    /> */}
+
                 </Animated.View>
 
 
@@ -1262,28 +1358,61 @@ export default function Statement(props) {
 
                 {
                     dataparams?.transaction_source === 'manual' &&
-                    <View style={{ marginStart: 30, marginEnd: 30, marginTop: 20 }}>
+                    <View style={{ marginStart: 20, marginEnd: 20, marginTop: 20, flexDirection: 'row' }}>
 
-                        <SubmitBtn text={'Add Transaction'} submit={() => {
-                            console.log(data)
-                            navigation.navigate('Transactionform', { data: data, screen: 'add' })
-                        }} />
+                        <TouchableOpacity
+                            style={[{
+                                flex: 1,
+                                borderRadius: 8,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }, { backgroundColor: 'white', borderColor: "#FF6B6B", borderWidth: 1, marginEnd: 10 }]}
+                            onPress={() => {
+                                setIsDeleteAccount(true)
+                            }}
+                            activeOpacity={0.9}>
+                            <View style={{ flexDirection: 'row' }}>
+                                <Icon name="edit" size={18} color="#FF6B6B" />
+                                <Text style={[{
+                                    fontSize: 15,
+                                    marginStart: 5,
+                                    fontFamily: fontsFamily.boldFont, // was: fontWeight: '700', no fontFamily
+                                    letterSpacing: 0.3,
+                                }, { color: "#FF6B6B" }]}>Delete</Text>
+                            </View>
+
+                        </TouchableOpacity>
+
+                        <View style={{ flex: 1 }}>
+
+                            <SubmitBtn text={'Add Transaction'} style={{ height: 45 }} submit={() => {
+                                console.log(data)
+                                navigation.navigate('Transactionform', { data: data, screen: 'add' })
+                            }} />
+                        </View>
+
                     </View>
                 }
 
 
                 <PromptModel
-                    visible={isDelete}
+                    visible={isDelete || isDeleteAccount}
                     loading={loading}
-                    head={'Delete Transaction'}
-                    subhead={'Are you sure you want to delete this transaction?'}
+                    head={isDeleteAccount ? 'Delete Account' : 'Delete Transaction'}
+                    subhead={isDeleteAccount ? 'Are you sure you want to delete this accouunt?' : 'Are you sure you want to delete this transaction?'}
 
                     onClose={() => {
+                        setIsDeleteAccount(false)
                         setIsdelete(false)
                         clearModelDetails()
                     }}
                     onSubmit={() => {
-                        deletetrans()
+                        if (isDeleteAccount) {
+                            deleteBankAccount()
+                        } else {
+                            deletetrans()
+
+                        }
 
                     }}
                 />

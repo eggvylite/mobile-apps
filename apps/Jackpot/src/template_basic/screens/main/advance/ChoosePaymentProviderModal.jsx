@@ -17,6 +17,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import CommonFunction from '../../../../utill/CommonFunction';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +28,9 @@ const ChoosePaymentProviderModal = ({
     fromSubscription = false,
     onSubscribe = false,
     fromAdvance = true,
-    type =false
+    type = false,
+    amount = 0,
+    currency = '$'
 }) => {
     const navigation = useNavigation();
     const [selectedProvider, setSelectedProvider] = useState(null);
@@ -206,6 +209,18 @@ const ChoosePaymentProviderModal = ({
                             {getModalSubtitle()}
                         </Text>
 
+                        {/* Amount Summary Section */}
+                        {(amount > 0) && (
+                            <View style={styles.amountSummaryCard}>
+                                <Text style={styles.amountSummaryLabel}>
+                                    {fromAdvance ? 'Advance Amount' : 'Repayment Amount'}
+                                </Text>
+                                <Text style={styles.amountSummaryValue}>
+                                    {currency}{CommonFunction.formatamount(amount)}
+                                </Text>
+                            </View>
+                        )}
+
                         {paymentMethods.map((method) => {
                             const isSelected = selectedProvider === method.id;
 
@@ -378,6 +393,27 @@ const styles = StyleSheet.create({
         color: '#64748B',
         marginBottom: 16,
         fontWeight: '400',
+    },
+    amountSummaryCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        alignItems: 'center',
+    },
+    amountSummaryLabel: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    amountSummaryValue: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#4F46E5',
     },
     providerCard: {
         backgroundColor: '#FFFFFF',

@@ -10,23 +10,35 @@ import { DASHBOARD_MENU_IDS } from '../../../../constants/DashboardMenuConstants
 import appLog from '../../../../constants/logger';
 import BenefitsGrids from './componets/BenefitsGrids';
 import PetCare from './componets/PetCare';
+import RecommendedSection from './componets/RecommendedSection';
+import PicksForYou from './componets/PicksForYou';
+import CreditScoreCard from './componets/CreditScoreCard';  
+import TravelInsurance from './componets/TravelInsurance';
+import Comprehensive from './componets/Comprehensive';
+import Healthcare from './componets/Healthcare';
+import FuelDiscount from './componets/FuelDiscount';
+import AccountCards from '../../../component/AccountCards';
+import BillsSection from '../../../component/BillsSection';
+import RecentTransaction from '../../../component/RecentTransaction';
+import WageVerificationScreen from '../../../widgets/WageVerificationScreen';
+import InstantFunds from '../../../component/InstantFunds';
+import AdvanceLimitCard from '../../../component/AdvanceLimitCard';
 
 
 // Lazy loaded components
-const AdvanceLimitCard = lazy(() => import('../../../component/AdvanceLimitCard'));
-const AccountCards = lazy(() => import('../../../component/AccountCards'));
-const BillsSection = lazy(() => import('../../../component/BillsSection'));
-const WageVerificationScreen = lazy(() => import('../../../widgets/WageVerificationScreen'));
-const RecentTransaction = lazy(() => import('../../../component/RecentTransaction'));
-const InstantFunds = lazy(() => import('../../../component/InstantFunds'));
+// const AdvanceLimitCard = lazy(() => import('../../../component/AdvanceLimitCard'));
+// const AccountCards = lazy(() => import('../../../component/AccountCards'));
+// const BillsSection = lazy(() => import('../../../component/BillsSection'));
 
-const PicksForYou = lazy(() => import('./componets/PicksForYou'));
-const RecommendedSection = lazy(() => import('./componets/RecommendedSection'));
-const CreditScoreCard = lazy(() => import('./componets/CreditScoreCard'));
-const TravelInsurance = lazy(() => import('./componets/TravelInsurance'));
-const Comprehensive = lazy(() => import('./componets/Comprehensive'));
-const Healthcare = lazy(() => import('./componets/Healthcare'));
-const FuelDiscount = lazy(() => import('./componets/FuelDiscount'));
+// const RecentTransaction = lazy(() => import('../../../component/RecentTransaction'));
+
+// const PicksForYou = lazy(() => import('./componets/PicksForYou'));
+// const RecommendedSection = lazy(() => import('./componets/RecommendedSection'));
+// const CreditScoreCard = lazy(() => import('./componets/CreditScoreCard'));
+// const TravelInsurance = lazy(() => import('./componets/TravelInsurance'));
+// const Comprehensive = lazy(() => import('./componets/Comprehensive'));
+// const Healthcare = lazy(() => import('./componets/Healthcare'));
+// const FuelDiscount = lazy(() => import('./componets/FuelDiscount'));
 
 const SectionLoader = () => (
     <View style={styles.loaderContainer}>
@@ -164,6 +176,7 @@ const DashboardFeatureContent = ({
     return (
         <View style={{ flex: 1 }}>
             <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+
                 <View style={{ marginBottom: 20 }}>
                     <Suspense fallback={<SectionLoader />}>
                         <AdvanceLimitCard navigation={navigation} />
@@ -171,7 +184,7 @@ const DashboardFeatureContent = ({
                 </View>
 
 
-                {dashboardmenudata.map((value, key) => {
+                {dashboardmenudata?.map((value, key) => {
                     const renderItem = () => {
                         switch (value.id) {
                             case DASHBOARD_MENU_IDS.REMINDER:
@@ -185,7 +198,9 @@ const DashboardFeatureContent = ({
                                 if (storedata?.chirp !== "Yes") return null;
                                 return (
                                     <Suspense fallback={<SectionFallback />}>
+
                                         <AccountCards />
+
                                         <RecentTransaction
                                             navigation={navigation} />
                                     </Suspense>

@@ -140,7 +140,7 @@ export default function Healthcare(props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+ container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
     paddingTop: 20,
@@ -149,10 +149,10 @@ const styles = StyleSheet.create({
   heroSection: {
     backgroundColor: "#4A90A4",
     borderRadius: 16,
-    margin: 10,
+    margin: 5,
     marginTop: 10,
     marginBottom: 24,
-    padding: 24,
+    padding: 20,
     minHeight: 160,
     position: "relative",
     overflow: "visible",
@@ -178,11 +178,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   heroDescription: {
-    fontSize: 13,
+    fontSize: 12,
 
     fontFamily: fontsFamily.mediumFont,
     color: "#FFFFFF",
-    lineHeight: 20,
+    lineHeight: 18,
     marginBottom: 24,
     opacity: 0.9,
   },
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignSelf: "flex-start",
   },
   ctaButtonText: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   heroImageOuterContainer: {
     position: "absolute",
     right: -15,
-    bottom: -15,
+    bottom: -22,
     width: 160,
     height: 300,
     zIndex: 1,
@@ -216,10 +216,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   servicesTitle: {
-        fontSize: getFontSize(20),
+       fontSize: getFontSize(18),
         fontFamily: fontsFamily.semiboldFont,
+        fontWeight: '600',
         color: '#1b1b1b',
-    letterSpacing: -0.3,
   },
   serviceCardsContainer: {
     margin: 10,

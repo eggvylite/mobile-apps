@@ -16,6 +16,7 @@ import Svg, {
   Path,
 } from 'react-native-svg';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
+import useDashboardLablehook from '../../../../../hook/Labels/useDashboardLablehook';
 
 
 const theme = {
@@ -90,13 +91,7 @@ const generateRealisticUSScore = () => {
 };
 
 // Get score category
-const getScoreCategory = (score) => {
-  if (score <= 579) return { label: 'Poor', emoji: '' };
-  if (score <= 669) return { label: 'Fair', emoji: '' };
-  if (score <= 739) return { label: 'Good', emoji: '' };
-  if (score <= 799) return { label: 'Very Good', emoji: '' };
-  return { label: 'Excellent', emoji: '' };
-};
+
 
 // ============================================================
 // MAIN COMPONENT
@@ -117,6 +112,8 @@ const CreditScoreCard = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+    const { creditreport } = useDashboardLablehook()
+
   // ── Helpers ──
   const scoreFraction = (s) => {
     const clamped = Math.min(Math.max(s, 300), 850);
@@ -126,6 +123,14 @@ const CreditScoreCard = () => {
   const needleAngleForScore = (s) => {
     return -90 + scoreFraction(s) * 180;
   };
+
+  const getScoreCategory = (score) => {
+  if (score <= 579) return { label: creditreport.poor, emoji: '' };
+  if (score <= 669) return { label: creditreport.fair, emoji: '' };
+  if (score <= 739) return { label: creditreport.good, emoji: '' };
+  if (score <= 799) return { label: creditreport.verygood, emoji: '' };
+  return { label: creditreport.excellent, emoji: '' };
+};
 
   // ── Animation ──
   const animateToScore = (newScore, duration = 1200) => {
@@ -216,18 +221,18 @@ const CreditScoreCard = () => {
           style={styles.pillContainer}
           onPress={() => {
             Alert.alert(
-              'Refresh Credit Report',
-              'This will pull a new US credit report from all 3 bureaus (Equifax, Experian, TransUnion).',
+              creditreport.refreshalert,
+              creditreport.refreshalertmsg,
               [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Refresh', onPress: refreshReport },
+                { text: creditreport.refreshtextcancel, style: 'cancel' },
+                { text: creditreport.refreshtextrefresh, onPress: refreshReport },
               ]
             );
           }}
           activeOpacity={0.7}
         >
           <Text style={styles.pillText}>
-            Next refresh in 10d 20h 54m
+          {creditreport.nextrefresh} 10d 20h 54m
           </Text>
         </TouchableOpacity>
 
@@ -296,8 +301,8 @@ const CreditScoreCard = () => {
 
 
           <View style={styles.rangeLabels}>
-            <Text style={styles.rangeLabel}>300</Text>
-            <Text style={styles.rangeLabel}>850</Text>
+            <Text style={styles.rangeLabel}>{creditreport.creditfrom}</Text>
+            <Text style={styles.rangeLabel}>{creditreport.creditto}</Text>
           </View>
         </View>
 
@@ -314,52 +319,52 @@ const CreditScoreCard = () => {
           {displayScore}
         </Animated.Text>
         <Text style={styles.scoreLabel}>
-          {category.emoji} Your Score is {category.label}
+          {category.emoji} {creditreport.yourscore} {category.label}
         </Text>
 
 
         <View style={styles.summaryContainer}>
           <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>Credit Report Summary</Text>
-            <Text style={styles.summarySubtitle}>FICO® Score 8</Text>
+            <Text style={styles.summaryTitle}>{creditreport.creditreportsummery}</Text>
+            <Text style={styles.summarySubtitle}>{creditreport.ficoscore} 8</Text>
           </View>
 
           <View style={styles.summaryRow}>
             <View style={[styles.summaryCol, styles.summaryColLeft]}>
-              <Text style={styles.colLabel}>Total Loan Amount</Text>
+              <Text style={styles.colLabel}>{creditreport.totalloanamount}</Text>
               <Text style={styles.colValue}>{formatCurrencyNoCents(loanAmount)}</Text>
             </View>
             <View style={styles.summaryCol}>
-              <Text style={styles.colLabel}>Total Debt</Text>
+              <Text style={styles.colLabel}>{creditreport.totaldebit}</Text>
               <Text style={styles.colValue}>{formatCurrencyNoCents(totalDebt)}</Text>
             </View>
           </View>
 
           <View style={styles.summaryRow}>
             <View style={[styles.summaryCol, styles.summaryColLeft]}>
-              <Text style={styles.colLabel}>Accounts</Text>
+              <Text style={styles.colLabel}>{creditreport.accounts}</Text>
               <Text style={styles.colValue}>{accounts}</Text>
             </View>
             <View style={styles.summaryCol}>
-              <Text style={styles.colLabel}>Inquiries</Text>
+              <Text style={styles.colLabel}>{creditreport.inquiries}</Text>
               <Text style={styles.colValue}>{inquiries}</Text>
             </View>
           </View>
 
           <View style={styles.summaryRow}>
             <View style={[styles.summaryCol, styles.summaryColLeft]}>
-              <Text style={styles.colLabel}>Utilization</Text>
+              <Text style={styles.colLabel}>{creditreport.utilization}</Text>
               <Text style={styles.colValue}>{utilization}%</Text>
             </View>
             <View style={styles.summaryCol}>
-              <Text style={styles.colLabel}>Bureaus</Text>
+              <Text style={styles.colLabel}>{creditreport.bureaus}</Text>
               <Text style={[styles.colValue, { fontSize: 11 }]}>E✕ EQ TU</Text>
             </View>
           </View>
 
           <View style={styles.usNote}>
             <Text style={styles.usNoteText}>
-              Based on US FICO® Score model (300-850)
+              {creditreport.basedon} ({creditreport.creditfrom}-{creditreport.creditto}) 
             </Text>
           </View>
         </View>
@@ -369,7 +374,7 @@ const CreditScoreCard = () => {
           style={styles.refreshHint}
           onPress={refreshReport}
           activeOpacity={0.6}>
-          <Text style={styles.refreshHintText}>↻ Tap pill above to refresh with new data</Text>
+          <Text style={styles.refreshHintText}>{creditreport.tappill}</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>

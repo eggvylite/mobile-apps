@@ -129,7 +129,7 @@ export default function Faq() {
         </View>
 
         {/* Still Need Help */}
-        <View style={styles.helpCard}>
+        {/* <View style={styles.helpCard}>
           <View style={{ alignItems: 'center', }}>
             <View style={styles.helpIconContainer}>
               <Feather name="message-circle" size={24} color="#0a0a6d" />
@@ -143,7 +143,7 @@ export default function Faq() {
 
           <SubmitBtn text="Contact Support" />
 
-        </View>
+        </View> */}
 
 
         <View style={styles.bottomPadding} />

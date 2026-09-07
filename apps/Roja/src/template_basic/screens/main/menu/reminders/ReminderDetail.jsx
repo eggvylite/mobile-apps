@@ -42,10 +42,12 @@ export default function ReminderDetail({ }) {
   const deleteContent = "Once it's deleted, you won't be able to recover it"
 
 
-  const getReminderStatus = () => reminder?.status || 'Active';
+  const getReminderStatus = () => reminder?.status || ''
   const reminderStatus = getReminderStatus();
   const statusBgColor = reminderStatus.toLowerCase() === 'active' ? '#D1FAE5' : '#F1F5F9';
-  const statusTextColor = reminderStatus.toLowerCase() === 'active' ? '#10B981' : '#64748B';
+  // const statusTextColor = reminderStatus.toLowerCase() === 'active' ? '#10B981' : '#64748B';
+
+
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -54,6 +56,12 @@ export default function ReminderDetail({ }) {
       useNativeDriver: true,
     }).start();
   }, []);
+
+
+  const statusTextColor =useMemo(()=>{
+      return details?.status?.toLowerCase() === 'active' ? '#10B981' : '#64748B';
+  },[details?.status])
+
 
   useEffect(() => {
     const billone = billdata?.find((item) => item?._id === reminder?.bill_id || item?._id === reminder?._id)
@@ -100,6 +108,8 @@ export default function ReminderDetail({ }) {
     }
 
   }
+
+    console.log(details)
 
 
   const handleMarkAsPaid = (value) => {
@@ -273,7 +283,7 @@ export default function ReminderDetail({ }) {
 
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
+    <SafeAreaView style={styles.safeArea} >
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
@@ -400,7 +410,7 @@ export default function ReminderDetail({ }) {
             <Text style={styles.sectionTitle}>Reminder Details</Text>
             <View style={[styles.statusBadge, { backgroundColor: statusBgColor }]}>
               <View style={[styles.statusDot, { backgroundColor: statusTextColor }]} />
-              <Text style={[styles.statusBadgeText, { color: statusTextColor }]}>{reminderStatus}</Text>
+              <Text style={[styles.statusBadgeText, { color: statusTextColor }]}>{details?.status}</Text>
             </View>
           </View>
 
@@ -506,7 +516,8 @@ export default function ReminderDetail({ }) {
         subhead={isCancel ? 'Are you sure you want to cancel this reminder?' : 'Are you sure you want to delete this reminder?'}
         content={isCancel ? cancelContent : deleteContent}
         onClose={() => {
-
+          setIsCancel(false)
+           setIsDelete(false)
         }}
         onSubmit={() => {
           isCancel ? handleCancel() : handleDelete()
@@ -777,16 +788,15 @@ const styles = StyleSheet.create({
   },
   // Fixed Action Buttons
   fixedActionContainer: {
-
+  marginTop:10,
     marginStart: 15,
     marginEnd: 15,
-    marginBottom: 10,
     flexDirection: 'row',
 
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 14,
+    padding:14,
     borderRadius: 14,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',

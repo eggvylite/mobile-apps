@@ -12,7 +12,7 @@ export const useDashboardUtils = () => {
 
     const formatTime = useCallback((date) => {
         if (!date || !storedata?.zone) return '';
-        return timezone(date).tz(storedata.zone).format('hh:mm a');
+        return timezone(date).tz(storedata.zone).format('hh:mm A');
     }, [storedata?.zone]);
 
 

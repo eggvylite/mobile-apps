@@ -4,6 +4,7 @@ import { getLoginInfo } from "./storage";
 import CommonFunction from "../utill/CommonFunction";
 import appLog from "../constants/logger";
 import { resetToLogin } from "../template_basic/navigation/NavigationService";
+import uuid from "react-native-uuid";
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -20,6 +21,7 @@ api.interceptors.request.use(
             config.headers.user = logInfo.id;
             config.headers["x-device-id"] = deviceid;
             config.headers["Accept"] = "application/json";
+            config.headers["idempotency-key"] = uuid.v4();
         }
 
         // Save request start time
@@ -29,7 +31,7 @@ api.interceptors.request.use(
 
         if (__DEV__) {
             appLog.info("========================================");
-            // appLog.info(`🚀 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+            appLog.info(`🚀 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
             // appLog.debug("Headers:", config.headers);
             // appLog.debug("Request:", config.data);
         }
@@ -49,7 +51,7 @@ api.interceptors.response.use(
             new Date().getTime() - response.config.metadata.startTime;
 
         if (__DEV__) {
-            // appLog.info(`✅ ${response.config.url}`);
+            appLog.info(`✅ ${response.config.url}`);
             // appLog.info(`Status : ${response.status}`);
             // appLog.info(`Time   : ${duration} ms`);
             // appLog.debug("Response:", response.data);
@@ -65,7 +67,7 @@ api.interceptors.response.use(
                 : 0;
 
         if (__DEV__) {
-            // appLog.error("========================================");
+            appLog.error("========================================");
             // appLog.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
             // appLog.error(`Status : ${error.response?.status || "No Response"}`);
             // appLog.error(`Time   : ${duration} ms`);
@@ -78,9 +80,9 @@ api.interceptors.response.use(
 
             // appLog.error("========================================");
         }
-         if (error.response?.status === 401) {
-                    resetToLogin();
-                }
+        if (error.response?.status === 401) {
+            resetToLogin();
+        }
 
         return Promise.reject(error);
     }

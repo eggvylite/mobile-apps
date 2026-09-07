@@ -7,6 +7,10 @@ const { width, height } = Dimensions.get('window');
 import { themeColors } from '../Common';
 
 const goalStyles = StyleSheet.create({
+    container: { alignItems: 'center', justifyContent: 'center' },
+  percentageContainer: { position: 'absolute', alignItems: 'center' },
+  percentageText: { fontSize: 22, fontWeight: '700' },
+  percentageLabel: { fontSize: 12, color: '#94A3B8' },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -812,13 +816,14 @@ const goalStyles = StyleSheet.create({
     flex: 1,
   },
   accountGoalName: {
-    fontSize: getFontSize(14),
+    fontSize: getFontSize(15),
     fontFamily: fontsFamily.boldFont, // was: regularFont + fontWeight:'600'
     color: '#0F172A',
     marginBottom: 2,
   },
   accountGoalProgress: {
-    fontSize: getFontSize(12),
+    fontSize: getFontSize(13),
+    marginTop:5,
     fontFamily: fontsFamily.regularFont,
     color: '#64748B',
   },
@@ -832,9 +837,9 @@ const goalStyles = StyleSheet.create({
     fontFamily: fontsFamily.boldFont, // was: regularFont + fontWeight:'600'
   },
   accountGoalBar: {
-    height: 4,
+    height: 10,
     backgroundColor: '#F1F5F9',
-    borderRadius: 2,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   accountGoalFill: {

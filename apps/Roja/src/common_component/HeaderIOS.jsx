@@ -8,7 +8,6 @@ export default function HeaderIOS() {
     const { themedata } = useSelector((state) => state.appcolor);
     var { width, height } = Dimensions.get('window');
 
-
     return (
         <View>
             {
@@ -20,7 +19,7 @@ export default function HeaderIOS() {
                     <Image source={require('../../assets/images/app-logo.png')} resizeMode={'contain'} style={{ width: width * 0.4, height: height * 0.1 }} />
             }
 
-         
+
 
         </View>
     )

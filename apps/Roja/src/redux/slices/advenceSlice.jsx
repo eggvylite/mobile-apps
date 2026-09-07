@@ -45,7 +45,7 @@ export const fetchadvanceOnedetails = createAsyncThunk(
 
         try {
             const response = await api.get('advances/one/' + currentid);
-            console.log(response.data,'--=====')
+
             return response.data;
 
         } catch (error) {

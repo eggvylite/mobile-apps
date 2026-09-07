@@ -50,7 +50,7 @@ export default function TransactionHistory() {
     const ch = transdata.filter(item => {
       const txDate = changeformat(item.txndate);
       const matchPayment = activeTab !== 'All' ? activeTab?.toLowerCase() === item.payment?.toLowerCase() : true;
-       const matchType = selectedFilter && selectedFilter?.type !== 'All' ? selectedFilter?.type?.toLowerCase() === item.type?.toLowerCase() : true;
+      const matchType = selectedFilter && selectedFilter?.type !== 'All' ? selectedFilter?.type?.toLowerCase() === item.type?.toLowerCase() : true;
       const matchStatus = selectedFilter && selectedFilter?.status !== 'All' ? selectedFilter?.status === item.status : true;
       const matchDate = selectedFilter && selectedFilter?.timeline ? (txDate >= selectedFilter?.begin && txDate <= selectedFilter?.end) : true;
 
@@ -231,7 +231,7 @@ export default function TransactionHistory() {
               <Text>:</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.valueTxt,{color:getStatusColor(data)}]}>{data?.status}</Text>
+              <Text style={[styles.valueTxt, { color: getStatusColor(data) }]}>{data?.status}</Text>
             </View>
 
           </View>
@@ -248,12 +248,12 @@ export default function TransactionHistory() {
               <Text>:</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.valueTxt,{color:getStatusColor(data)}]}>{data?.payment}</Text>
+              <Text style={[styles.valueTxt, { color: getStatusColor(data) }]}>{data?.payment}</Text>
             </View>
 
           </View>
 
-          <View style={{ flexDirection: 'row', marginTop: 10 }}>
+          {/* <View style={{ flexDirection: 'row', marginTop: 10 }}>
             <View style={{ flex: 1 }}>
               <Text style={styles.labelText}>{data?.type === "Advance" ? 'Advance.ID' : 'Subscription.ID'}</Text>
             </View>
@@ -264,7 +264,7 @@ export default function TransactionHistory() {
               <Text style={styles.valueTxt}>{data?.type === "Advance" ? data?.advance_id?.advance_id || '-' : data?.typeid || '-'}</Text>
             </View>
 
-          </View>
+          </View> */}
 
           <View style={{ flexDirection: 'row', marginTop: 10 }}>
             <View style={{ flex: 1 }}>
@@ -314,7 +314,7 @@ export default function TransactionHistory() {
 
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left','right','top']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar

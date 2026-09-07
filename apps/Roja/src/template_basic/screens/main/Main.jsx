@@ -59,43 +59,40 @@ import { fetchmanualAccount } from '../../../redux/slices/manualaccountSlice';
 import { fetchFaq } from '../../../redux/slices/faqSlice';
 import { fetchWorkflowLabels, fetchWorkflowSettings, fetchWorkflowInfoLabels } from '../../../redux/slices/workflowlableSilce';
 import { fetchScreenLabels } from '../../../redux/slices/applabelsSlice';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchMarketplaceHandPickOffer } from '../../../redux/slices/merketplaceSlice';
+import appLog from '../../../constants/logger';
 
 
 const Tab = createBottomTabNavigator();
-const screenHeight = Dimensions.get("window").height
+const screenHeight = Dimensions.get('window').height;
 
 const AnimatedTabIcon = ({ item, focused, renderIcon }) => {
-    const animatedWidth = useSharedValue(focused ? 80 : 0);
+    const animatedWidth = useSharedValue(focused ? 26 : 0);
 
     useEffect(() => {
-        animatedWidth.value = withTiming(focused ? 80 : 0, { duration: 450 });
+        animatedWidth.value = withTiming(focused ? 26 : 0, { duration: 450 });
     }, [focused]);
 
-    const animatedStyle = useAnimatedStyle(() => {
-        return {
-            width: animatedWidth.value / 3,
-            opacity: animatedWidth.value / 80,
-        };
-    });
+    const animatedStyle = useAnimatedStyle(() => ({
+        width: animatedWidth.value,
+        opacity: animatedWidth.value / 26,
+    }));
 
     return (
-        <View style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            flex: 1,
-            top: 1
-        }}>
-            <Animated.View style={[
-                {
-                    height: 2,
-                    backgroundColor: themeColors.primarColor,
-                    position: 'absolute',
-                    top: Platform.OS === 'iOS' ? -4 : -6,
-                    borderRadius: 1
-                },
-                animatedStyle
-            ]} />
+        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, top: 1 }}>
+            <Animated.View
+                style={[
+                    {
+                        height: 2,
+                        backgroundColor: themeColors.primarColor,
+                        position: 'absolute',
+                        top: Platform.OS === 'ios' ? -4 : -6, // fixed: lowercase 'ios'
+                        borderRadius: 1,
+                    },
+                    animatedStyle,
+                ]}
+            />
             {renderIcon(item, focused)}
         </View>
     );
@@ -118,7 +115,6 @@ export default function Main(props) {
     const { dashboardmenudata, dashboardmenuloading, dashboardmenuerror } = useSelector((state) => state.dashboardmenu);
     const { notificationcustomdata, notificationcustomloading, notificationcustomerror } = useSelector((state) => state.notificationcustom);
     const { transdata, transpage, transtotalpage, transSize, timeline, transtotalitem, transloading, transerror, } = useSelector((state) => state.transaction);
-     const { marketplacedata, marketPlaceCategory, marketplaceFeature,marketplaceFlag } = useSelector((state) => state.marketplace);
     const { advhistory, advpage, advtotalPages, advloading, advtotalItems, advsize } = useSelector((state) => state.advancehistory);
     const { scoredata, scoreloading, scorerror } = useSelector((state) => state.creditScore);
     const { handpickdata, handpickloading, handpickerror } = useSelector((state) => state.handpicks);
@@ -126,6 +122,7 @@ export default function Main(props) {
     const { goalhisdata } = useSelector((state) => state.goalhistrory);
     const { label } = useSelector((state) => state.labels);
     // const [backPressCount, setBackPressCount] = useState(0);
+    const insets = useSafeAreaInsets();
 
     const isSmallDevice = screenHeight < 700;
 
@@ -156,6 +153,7 @@ export default function Main(props) {
                 var firstdata = records[records.length - 1]
                 dispatch(updateFirstTransDate(firstdata?.transacted_at))
             }
+            enableMenu()
 
         };
 
@@ -202,6 +200,7 @@ export default function Main(props) {
 
     const getDetails = async () => {
         await AsyncStorage.setItem('main', 'mainscreen')
+        const info = await getLoginInfo()
 
 
 
@@ -211,13 +210,19 @@ export default function Main(props) {
         dispatch(fetchScreenLabels())
 
         dispatch(fetchadvanceActiveSubscription())
-        dispatch(fetchOutstanding())
-        dispatch(fetchFaq())
 
+        dispatch(fetchFaq())
+        dispatch(fetchMarketplaceHandPickOffer())
 
         dispatch(fetchCustomer())
 
         dispatch(fetchOffers())
+
+        if (info?.plan === 'Yes') {
+            dispatch(fetchadvanceActiveSubscription())
+            dispatch(fetchOutstanding())
+        }
+
 
         dispatch(fetchReminder())
 
@@ -231,10 +236,6 @@ export default function Main(props) {
         dispatch(fetchWorkflowLabels())
         dispatch(fetchWorkflowSettings())
         dispatch(fetchWorkflowInfoLabels())
-
-         if (!marketplaceFlag) {
-            dispatch(fetchMarketplaceHandPickOffer())
-        }
 
 
         dispatch(fetchBills())
@@ -264,8 +265,10 @@ export default function Main(props) {
         }
 
 
+        if (cusDetails?.subscription === 'Yes') {
+            dispatch(fetchOutstanding())
+        }
 
-        dispatch(fetchOutstanding())
         // dispatch(fetchadvanceActiveSubscription())
 
         dispatch(fetchcurrentsubscription())
@@ -291,11 +294,7 @@ export default function Main(props) {
         dispatch(fetchLabel())
 
 
-
-
-        if (Object.keys(plandata).length === 0) {
-            dispatch(fetchChoosePlan())
-        }
+        dispatch(fetchChoosePlan())
 
 
         if (!goalhisdata) {
@@ -334,7 +333,7 @@ export default function Main(props) {
 
             if (Platform.OS === 'android') {
                 const exists = await Keychain.getAllGenericPasswordServices();
-                console.log(exists, '----->')
+
                 if (exists && exists.length === 0) {
                     console.log('notoken', exists.length)
                     saveTokenWithBiometric()
@@ -358,7 +357,9 @@ export default function Main(props) {
 
 
     const saveTokenWithBiometric = async () => {
+
         var store = await getLoginInfo()
+
         try {
 
             await Keychain.setGenericPassword('user', store.id, {
@@ -384,7 +385,7 @@ export default function Main(props) {
             }
 
             const response = await api.post(`customer/updatebiometric/${store.id}`, payload)
-            console.log('✅ Biometric login enabled');
+
         } catch (error) {
             console.log('Error enabling biometric:', error);
 
@@ -438,58 +439,65 @@ export default function Main(props) {
         }
     };
 
-    return (
-        <View style={{ flex: 1 }}>
-            <Tab.Navigator
-                initialRouteName="DashboardRoute"
-                backBehavior="initialRoute"
-                screenOptions={{
-                    headerShown: false,
-                    tabBarStyle: [{ borderTopWidth: 0 }],
-                    tabBarItemStyle: { flexDirection: 'column', },
-                    tabBarVisibilityAnimationConfig: true,
-                    tabBarActiveTintColor: themeColors.primarColor,
-                    tabBarInactiveTintColor: '#000',
-                    headerShown: false,
-                    tabBarStyle: [styles.bottomNav, { display: isMenu ? 'flex' : 'none', height: isSmallDevice ? 60 : 70 }],
-                    tabBarLabelStyle: [styles.navText]
-                }}
-            >
-                {buttomnavigationbar.map((item) => {
-                    if (
-                        item.id === '67f7a30fb2fd34460818bb9a' ||
-                        item.id === '68034215a37b714ea493f176'
-                    ) {
-                        return null;
-                    }
+    if (0 < buttomnavigationbar?.length)
+        return (
+            <View style={{ flex: 1 }}>
+                <Tab.Navigator
+                    initialRouteName="DashboardRoute"
+                    backBehavior="initialRoute"
+                    screenOptions={{
+                        headerShown: false,
+                        tabBarItemStyle: { flexDirection: 'column' },
+                        tabBarVisibilityAnimationConfig: true,
+                        tabBarActiveTintColor: themeColors.primarColor,
+                        tabBarInactiveTintColor: '#000',
+                        tabBarStyle: [
+                            styles.bottomNav,
+                            {
+                                display: 'flex',
+                                height: (isSmallDevice ? 60 : 70) + (Platform.OS === 'android' ? insets.bottom : 0),
+                                paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+                            },
+                        ],
+                        tabBarLabelStyle: styles.navText,
+                    }}
+                >
+                    {buttomnavigationbar?.map((item) => {
+                        if (
+                            item.id === '67f7a30fb2fd34460818bb9a' ||
+                            item.id === '68034215a37b714ea493f176'
+                        ) {
+                            return null;
+                        }
 
-                    const route = routeMap[item.id];
-                    if (!route) return null;
+                        const route = routeMap[item.id];
+                        if (!route) return null;
 
-                    return (
-                        <Tab.Screen
-                            key={item.id}
-                            name={route.name}
-                            component={route.component}
-                            options={{
-                                popToTopOnBlur: true,
-                                tabBarLabel: item.name,
-                                tabBarIcon: ({ focused }) => (
-                                    <AnimatedTabIcon item={item} focused={focused} renderIcon={renderIcon} />
-                                ),
-                            }}
-                        />
-                    );
-                })}
-            </Tab.Navigator>
-        </View>
-    );
+                        return (
+                            <Tab.Screen
+                                key={item.id}
+                                name={route.name}
+                                component={route.component}
+                                options={{
+                                    popToTopOnBlur: true,
+                                    tabBarLabel: item.name,
+                                    tabBarIcon: ({ focused }) => (
+                                        <AnimatedTabIcon item={item} focused={focused} renderIcon={renderIcon} />
+                                    ),
+                                }}
+                            />
+                        );
+                    })}
+                </Tab.Navigator>
+            </View>
+        );
 }
 
 const styles = StyleSheet.create({
     bottomNav: {
         backgroundColor: '#FFFFFF',
         borderTopColor: '#F0F0F0',
+        borderTopWidth: 0,
         alignItems: 'center',
         justifyContent: 'space-around',
         paddingHorizontal: 8,

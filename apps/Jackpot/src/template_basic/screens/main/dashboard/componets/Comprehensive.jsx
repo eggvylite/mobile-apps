@@ -19,7 +19,7 @@ import CommonFunction from '../../../../../utill/CommonFunction';
 import { themeColors } from '../../../../Common';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_WIDTH = 341;
+const CARD_WIDTH = 301;
 const CARD_HEIGHT = 108;
 const CARD_GAP = 10;
 
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     left: 15,
     top: 17,
     fontSize: getFontSize(17),
-    fontFamily: fontsFamily.mediumFont,
+    fontFamily: fontsFamily.semiboldFont,
     color: '#1b1b1b',
     width: 165,
   },
@@ -190,8 +190,9 @@ const styles = StyleSheet.create({
     left: 11,
     top: 43,
     fontSize: getFontSize(12),
-    fontFamily: fontsFamily.regularFont,
-    color: '#676767',
+    fontFamily: fontsFamily.mediumFont,
+    fontWeight: '500',
+    color: '#848484',
     width: 200,
     lineHeight: 18,
   },

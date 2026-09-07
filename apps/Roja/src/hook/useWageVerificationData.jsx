@@ -12,6 +12,7 @@ import api from '../service/api';
 import { fetchAuth } from '../redux/slices/authSlice';
 import { fetchCustomer } from '../redux/slices/customerSlice';
 import { useDashboardUtils } from './useDashboardUtils';
+import useBankConnectionLabelFlow from './Labels/useBankConnectionMagemntLableHook';
 
 export const STATUS_COLORS = {
     completed: '#2FA948',
@@ -39,6 +40,10 @@ const useWageVerificationData = () => {
     const connectedRecord = useMemo(() => {
         return bankdata?.records?.find((item) => item?.chirp_request_status === 'Yes');
     }, [bankdata]);
+
+        const { bankAccountDataLabel, wageConnectionLabelData } = useBankConnectionLabelFlow()
+
+
 
     const DEFAULT_STEPS = useMemo(() => [
         {

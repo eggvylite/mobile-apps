@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
@@ -21,6 +20,8 @@ import CommonFunction from '../../../utill/CommonFunction';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generatePIN } from '../../../constants/Loginapi';
 import SubmitBtn from '../../component/SubmitBtn';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import useRegisterLabels from '../../../hook/Labels/useRegisterLabels';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ const CreatePIN = ({ navigation, route }) => {
   const pinInputRefs = useRef([]);
   const confirmInputRefs = useRef(null);
   const [isLoading, setIsLoading] = useState(false)
+  const { registerContent } = useRegisterLabels()
   const info = route?.params
 
 
@@ -50,8 +52,8 @@ const CreatePIN = ({ navigation, route }) => {
 
   const resetPIN = () => {
     Alert.alert(
-      'PIN Mismatch',
-      'The PIN and Confirm PIN do not match.',
+      registerContent.pinmismatch,
+      registerContent.pindoesnotmatch,
       [
         {
           text: 'OK',
@@ -83,9 +85,9 @@ const CreatePIN = ({ navigation, route }) => {
 
     try {
       await generatePIN(navigation, payload)
-        setIsLoading(false)
+      setIsLoading(false)
     } catch (error) {
-       setIsLoading(false)
+      setIsLoading(false)
       console.log(error?.response?.data)
     }
 
@@ -291,18 +293,18 @@ const CreatePIN = ({ navigation, route }) => {
         {/* PIN Card */}
         <View style={styles.card}>
           <Text style={styles.title}>
-            {step === 1 ? 'Create Your PIN' : 'Confirm Your PIN'}
+            {step === 1 ? registerContent.createyourpin : registerContent.confirmyourpin}
           </Text>
           <Text style={styles.subtitle}>
             {step === 1
-              ? 'Set a 6-digit PIN for quick access'
-              : 'Enter the same PIN again to confirm'}
+              ? registerContent.setpinquickaccess
+              : registerContent.enter_same_pin_to_confirm}
           </Text>
 
           <View style={styles.inputContainer}>
             <View style={styles.pinHeader}>
               <Text style={styles.label}>
-                {step === 1 ? 'Create PIN' : 'Confirm PIN'}
+                {step === 1 ? registerContent.createpin : registerContent.confirmpin}
               </Text>
               <TouchableOpacity onPress={() => setShowPin(!showPin)}>
                 <Icon
@@ -321,7 +323,7 @@ const CreatePIN = ({ navigation, route }) => {
 
           {step === 2 && (
             <SubmitBtn
-              text={isLoading ? 'Loading' : 'Set PIN & Continue'}
+              text={isLoading ? 'Loading' : registerContent.setcontinue}
               submit={handleSetPin}
               disabled={isLoading}
               disableGradient={isLoading}

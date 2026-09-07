@@ -81,6 +81,7 @@ const ChangePIN = ({ navigation, route }) => {
                     const verifiPIN = await checkCurrentpin(storedata?.id, paylod)
                     setStep(2)
                 } catch (error) {
+                     setPin(['', '', '', '', '', ''])
                     console.log(error)
                 }
             } else if (type === 'generatePIN') {

@@ -18,6 +18,7 @@ import CommonFunction from '../../../../../utill/CommonFunction';
 import Filter from '../../../../component/Filter';
 import { commontimeline } from '../../../../../utill/Utills';
 import { useBackHandler } from '@react-native-community/hooks';
+import appLog from '../../../../../constants/logger';
 
 
 
@@ -201,6 +202,7 @@ const AdvacnceHistory = (props) => {
             </TouchableOpacity>
         )
     }
+
 
 
 

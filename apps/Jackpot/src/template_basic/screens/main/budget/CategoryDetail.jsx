@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions, Image, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -12,7 +12,7 @@ import moment from 'moment';
 import timezone from 'moment-timezone'
 import api from '../../../../service/api';
 import { deftransactionimg } from '../../../../constants/content';
-import { deleteMovebudget, setBudget } from '../../../../constants/Budgetapi';
+import { deleteMovebudget, editCategory, setBudget } from '../../../../constants/Budgetapi';
 import CustomModal from '../../../component/CustomModal';
 import { themeColors } from '../../../Common';
 import { useDispatch } from 'react-redux';
@@ -23,6 +23,7 @@ import { useContext } from 'react';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import CategoryDetailSkeleton from '../../../component/CategoryDetailSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddCategoryModal from '../../../component/AddCategoryModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,6 +35,8 @@ const CategoryDetail = ({ navigation, route }) => {
   const { brandata, brandloading, branderror } = useSelector((state) => state.brandlogo);
   const { records } = useSelector((state) => state.statement);
   const { enableMenu, disableMenu } = useContext(BottomContext);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
+  const [catName, setCatname] = useState('')
   const [isCustomModel, setIsCustomModel] = useState(false)
   const dispatch = useDispatch()
   const [isLoading, setIsloading] = useState(false)
@@ -43,6 +46,14 @@ const CategoryDetail = ({ navigation, route }) => {
     const df = moment(new Date(date)).format("YYYY-MM")
     return df
   }
+
+
+
+  useEffect(() => {
+    setCatname(categoryData?.name)
+
+  }, [categoryData])
+
 
 
   useEffect(() => {
@@ -109,6 +120,7 @@ const CategoryDetail = ({ navigation, route }) => {
     try {
       const delMovebydget = await deleteMovebudget(categoryData?.categoryid, type, payload, dispatch)
       setIsCustomModel(false)
+      enableMenu()
       navigation.goBack();
     } catch (error) {
       setIsCustomModel(false)
@@ -132,6 +144,39 @@ const CategoryDetail = ({ navigation, route }) => {
 
   }, [records])
 
+  const updateCategory = async (data) => {
+
+    if (data) {
+
+      const payload = {
+        id: categoryData?.category_id,
+        category: data,
+        plan_id: categoryData.plan_id,
+        category_id: categoryData?.category_id,
+        entry_type: categoryData?.entry_type,
+        customer_id: storedata?.id,
+        type: "category",
+        device_name: await CommonFunction.getdevicename(),
+        entry_type: 'Manual',
+        ipaddress: await CommonFunction.getipaddress()
+      }
+
+
+      try {
+        const edit = await editCategory(payload, dispatch)
+        setCatname(data)
+      } catch (error) {
+        console.log(error)
+      } finally {
+        setIsloading(false)
+      }
+
+    }
+
+
+
+  }
+
   const spent = categoryData.spentamt || 0;
   const budget = categoryData.budget || 0;
   const remaining = budget - spent;
@@ -139,7 +184,7 @@ const CategoryDetail = ({ navigation, route }) => {
   const isOverBudget = spent > budget && budget > 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['left','right','top']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <TopBar title={'Category Details'} showBack={true} onBackPress={handleBackPress} />
 
 
@@ -159,7 +204,18 @@ const CategoryDetail = ({ navigation, route }) => {
                 <View style={[styles.categoryIcon, { backgroundColor: '#3F2B9610' }]}>
                   <Icon name="folder" size={32} color="#3F2B96" />
                 </View>
-                <Text style={styles.heroTitle}>{categoryData?.name}</Text>
+                <View style={{ flexDirection: 'row' }}>
+                  <Text style={styles.heroTitle}>{catName}</Text>
+                  {
+                    categoryData?.entry_type === "Manual" &&
+                    <Pressable style={{ justifyContent: 'center', marginStart: 8 }} onPress={() => {
+                      setShowAddCategoryModal(true)
+                    }}>
+                      <Icon name={'edit'} size={16} color={themeColors.primarColor} />
+                    </Pressable>
+                  }
+
+                </View>
                 {transactions.length > 0 && (
                   <View style={styles.transactionCountBadge}>
                     <Icon name="list" size={14} color="#64748B" />
@@ -182,13 +238,22 @@ const CategoryDetail = ({ navigation, route }) => {
                 <View style={styles.statDivider} />
                 <View style={styles.mainStatItem}>
                   <Text style={styles.mainStatLabel}>Left to Spend</Text>
-                  <Text
-                    style={[
-                      styles.mainStatValue,
-                      remaining >= 0 ? styles.positiveText : styles.negativeText,
-                    ]}>
-                    {storedata?.currency}{CommonFunction.formatamount(remaining)}
-                  </Text>
+                  {
+                    remaining >= 0 ? <Text
+                      style={[
+                        styles.mainStatValue,
+                        remaining >= 0 ? styles.positiveText : styles.negativeText,
+                      ]}>
+                      {storedata?.currency}{CommonFunction.formatamount(remaining)}
+                    </Text> : <Text
+                      style={[
+                        styles.mainStatValue,
+                        remaining >= 0 ? styles.positiveText : styles.negativeText,
+                      ]}>
+                      -{storedata?.currency}{CommonFunction.formatamount(Math.abs(remaining))}
+                    </Text>
+                  }
+
                 </View>
               </View>
 
@@ -293,6 +358,18 @@ const CategoryDetail = ({ navigation, route }) => {
               }
 
             </View>
+
+            <AddCategoryModal
+              visible={showAddCategoryModal}
+              onClose={() => {
+                setShowAddCategoryModal(false);
+              }}
+              catname={catName}
+              loading={isLoading}
+              onSave={updateCategory}
+              groupId={categoryData?.group_id}
+              groupName={categoryData.group_name}
+            />
 
 
 
@@ -592,15 +669,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
+    marginBottom: 10,
+    // backgroundColor: '#FFFFFF',
+    // borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 5,
+
   },
   actionButton: {
     flex: 1,

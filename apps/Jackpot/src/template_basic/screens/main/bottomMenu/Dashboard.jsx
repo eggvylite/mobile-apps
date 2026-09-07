@@ -1,6 +1,6 @@
-import React, { useState, useCallback, lazy, useEffect } from 'react';
-import { StyleSheet, View, Platform, UIManager } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback, lazy, useEffect, useRef } from 'react';
+import { StyleSheet, View, Platform, UIManager, BackHandler, ToastAndroid } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MenuScreen from '../../../component/MenuScreen';
 import TopBar from '../../../component/TopBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -54,6 +54,7 @@ const Dashboard = (props) => {
     const { stloading, stateMentError } = useSelector((state) => state.statement);
     const { getaccounterror, getaccountloading } = useSelector((state) => state.getaccount);
     const { dashboardmenudata, dashboardmenuloading, dashboardmenuerror } = useSelector((state) => state.dashboardmenu);
+
     const { handpickcheckdata } = useSelector((state) => state.handpicheck);
     const { marketplacedata, marketPlaceCategory, marketplaceFeature, marketPlaceHandpickOffer, marketplaceFlag } = useSelector((state) => state.marketplace);
     const dispatch = useDispatch();
@@ -62,7 +63,7 @@ const Dashboard = (props) => {
     const { title } = useFeatureFlow(WORKFLOW_CONSTANT.MANUAL_ACCOUNT);
     const { dashboardSycnStatementHead, dashboardSyncStamenDescription } = useGeneralLabelsHook()
 
-
+    const backPressedOnce = useRef(false);
 
     const {
         loading: connectLoading,
@@ -80,6 +81,41 @@ const Dashboard = (props) => {
 
 
 
+    useEffect(() => {
+        if (defbank && marketplaceFlag !== 'Everyone') {
+            dispatch(fetchHandpickCheck({ code: defbank?.chirp_request }))
+        }
+    }, [marketplaceFlag, defbank])
+
+
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                if (backPressedOnce.current) {
+                    BackHandler.exitApp();
+                    return true;
+                }
+
+                backPressedOnce.current = true;
+                ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT,);
+
+                setTimeout(() => {
+                    backPressedOnce.current = false;
+                }, 2000);
+
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener(
+                'hardwareBackPress',
+                onBackPress
+            );
+
+            return () => subscription.remove();
+        }, [])
+    );
 
 
 

@@ -8,6 +8,7 @@ import { themeColors } from '../../Common';
 import DeviceInfo from 'react-native-device-info';
 import { getFcmToken } from '../../../service/NotificationServices';
 import { getOTP, leadCrate, verifyemailOTP } from '../../../constants/Loginapi';
+import useRegisterLabels from '../../../hook/Labels/useRegisterLabels';
 
 
 const VerifyEmail = ({ navigation, route }) => {
@@ -15,6 +16,7 @@ const VerifyEmail = ({ navigation, route }) => {
     const [record, setRecord] = useState('')
     const [loading, setloading] = useState(false)
     const { type, payload } = route?.params
+    const { registerContent } = useRegisterLabels()
 
     useEffect(() => {
         getDetails()
@@ -50,11 +52,11 @@ const VerifyEmail = ({ navigation, route }) => {
                         device_token: await getFcmToken(),
                     }
                     await getOTP(navigation, send)
-                      setloading(false)
+                    setloading(false)
                 }
 
             } catch (err) {
-                        setloading(false)
+                setloading(false)
                 CommonFunction.message(err?.response?.data?.message, 'danger')
 
             }
@@ -94,7 +96,7 @@ const VerifyEmail = ({ navigation, route }) => {
 
     }
 
-    const resendOTP = async() => {
+    const resendOTP = async () => {
         // setisOTP(true)
         // startTimer(num)
         const send = {
@@ -124,7 +126,7 @@ const VerifyEmail = ({ navigation, route }) => {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.backgroudColor }}>
             <OTPScreen
-                title={'Verify Your Email'}
+                title={registerContent.verifyemail}
                 value={formatdata}
                 fooderlabel={''}
                 verify={(data) => {

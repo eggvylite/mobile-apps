@@ -16,6 +16,7 @@ import { requestLocationPermission, requestNotificationPermission } from '../../
 import { getOTP } from '../../../constants/Loginapi';
 import { fetchScreenLabels } from '../../../redux/slices/applabelsSlice';
 import { fetchLabel } from '../../../redux/slices/labelSlice';
+import appLog from '../../../constants/logger';
 
 
 
@@ -35,6 +36,7 @@ const Splash = ({ navigation }) => {
   useEffect(() => {
     dispatch(fetchmenuSevice())
     dispatch(fetchLabel())
+    dispatch(fetchcolor())
   }, [])
 
 

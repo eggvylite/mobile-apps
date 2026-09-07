@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Modal, TextInput, StatusBar, Alert, Animated, KeyboardAvoidingView, Platform, Dimensions, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, StatusBar, Alert, Animated, KeyboardAvoidingView, Platform, Dimensions, Pressable } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import TopBar from '../../../component/TopBar';
 import { useDispatch, useSelector } from 'react-redux';
@@ -84,22 +85,13 @@ export default function AddmanualAccount() {
         setIsSubmitting(true)
 
 
+
         try {
-            setIsSubmitting(true);
+
 
             const account = await createAccount(accountData, dispatch);
-             navigation.goBack()
+            navigation.replace('BankAccountSummary');
 
-            // Alert.alert(
-            //     'Success',
-            //     account.data.message,
-            //     [
-            //         {
-            //             text: 'OK',
-            //             onPress: () => navigation.goBack(),
-            //         },
-            //     ]
-            // );
         } catch (error) {
             console.log(error);
 
@@ -178,212 +170,214 @@ export default function AddmanualAccount() {
         case FLOW_STATE.SHOW_FEATURE:
             return (
                 <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+                    <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-            <TopBar
-                title="Add Account Manually"
-                showBack={true}
-                onBackPress={() => navigation.goBack()}
-            />
+                    <TopBar
+                        title="Add Account Manually"
+                        showBack={true}
+                        onBackPress={() => navigation.goBack()}
+                    />
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-            >
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={{ flex: 1 }}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+                    >
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollContent}
+                        >
+                            <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
 
-                        <View style={styles.formSection}>
-                            <View style={[styles.formGroup, { paddingTop: 10 }]}>
-                                <View style={styles.labelContainer}>
-                                    <Icon name="file-text" size={16} color="#64748B" />
-                                    <Text style={styles.formLabel}>Account Name <Text style={styles.requiredStar}>*</Text></Text>
-                                </View>
-                                <TextInput
-                                    style={styles.formInput}
-                                    placeholder="e.g. My Savings Account"
-                                    placeholderTextColor="#94A3B8"
-                                    value={accountData.accountname}
-                                    onChangeText={(text) => handleInputChange('accountname', text)}
-                                    {...register("accountname", {
-                                        required: content.fieldrequire,
-                                        validate: {
-                                            noLongSpaces: (value) =>
-                                                !/\s{2,}/.test(value) && value.trim() !== "" || "Invalid Name",
-                                            noSpecialChars: (value) => /^[a-zA-Z\s]*$/.test(value) || "Invalid Name",
-                                            minTwoChars: (value) =>
-                                                value.trim().length >= 2 || "Invalid Name",
-                                            noDuplicate: (value) => {
-                                                const isDuplicate = getaccount.some(type =>
-                                                    type.accounts.some(acc =>
-                                                        acc.records.some(rec =>
-                                                            rec.institution_code.toLowerCase() === value.toLowerCase()
-                                                        )
-                                                    )
-                                                );
-                                                return !isDuplicate || "Account name already in use";
-                                            }
-                                        },
+                                <View style={styles.formSection}>
+                                    <View style={[styles.formGroup, { paddingTop: 10 }]}>
+                                        <View style={styles.labelContainer}>
+                                            <Icon name="file-text" size={16} color="#64748B" />
+                                            <Text style={styles.formLabel}>Account Name <Text style={styles.requiredStar}>*</Text></Text>
+                                        </View>
+                                        <TextInput
+                                            style={styles.formInput}
+                                            placeholder="e.g. My Savings Account"
+                                            placeholderTextColor="#94A3B8"
+                                            value={accountData.accountname}
+                                            onChangeText={(text) => handleInputChange('accountname', text)}
+                                            {...register("accountname", {
+                                                required: content.fieldrequire,
+                                                validate: {
+                                                    noLongSpaces: (value) =>
+                                                        !/\s{2,}/.test(value) && value.trim() !== "" || "Invalid Name",
+                                                    noSpecialChars: (value) => /^[a-zA-Z\s]*$/.test(value) || "Invalid Name",
+                                                    minTwoChars: (value) =>
+                                                        value.trim().length >= 2 || "Invalid Name",
+                                                    noDuplicate: (value) => {
+                                                        const isDuplicate = getaccount.some(type =>
+                                                            type.accounts.some(acc =>
+                                                                acc.records.some(rec =>
+                                                                    rec.institution_code.toLowerCase() === value.toLowerCase()
+                                                                )
+                                                            )
+                                                        );
+                                                        return !isDuplicate || "Account name already in use";
+                                                    }
+                                                },
 
-                                    })}
-                                />
-                                {errors.accountname && (
-                                    <Text style={styles.errortext}>{errors.accountname.message}</Text>
-                                )}
-                            </View>
-
-
-                            <View style={[styles.formGroup]}>
-                                <View style={styles.labelContainer}>
-                                    <Icon name="file-text" size={16} color="#64748B" />
-                                    <Text style={styles.formLabel}>Account Type <Text style={styles.requiredStar}>*</Text></Text>
-                                </View>
-                                <Pressable style={[styles.formInput, { flexDirection: 'row' }]} onPress={() => {
-                                    setAccountPicker(true)
-                                }}>
-                                    <View style={{ justifyContent: 'center', flex: 1 }}>
-                                        <Text style={{ color: acname ? '#0F172A' : '#94A3B8', fontSize: 16 }}
-
-                                            {...register("acc_id", { required: content.fieldrequire })}
-                                        >{acname ? acname : 'Select account type.. '}</Text>
-
-                                    </View>
-                                    <View style={{ justifyContent: 'center' }}>
-                                        <Icon
-                                            name="chevron-right"
-                                            size={15}
-                                            color={'#0F172A'}
+                                            })}
                                         />
+                                        {errors.accountname && (
+                                            <Text style={styles.errortext}>{errors.accountname.message}</Text>
+                                        )}
                                     </View>
 
-                                </Pressable>
-                                {errors.acc_id && (
-                                    <Text style={styles.errortext}>{errors.acc_id.message}</Text>
-                                )}
 
-                            </View>
+                                    <View style={[styles.formGroup]}>
+                                        <View style={styles.labelContainer}>
+                                            <Icon name="file-text" size={16} color="#64748B" />
+                                            <Text style={styles.formLabel}>Account Type <Text style={styles.requiredStar}>*</Text></Text>
+                                        </View>
+                                        <Pressable style={[styles.formInput, { flexDirection: 'row' }]} onPress={() => {
+                                            setAccountPicker(true)
+                                        }}>
+                                            <View style={{ justifyContent: 'center', flex: 1 }}>
+                                                <Text style={{ color: acname ? '#0F172A' : '#94A3B8', fontSize: 16 }}
 
+                                                    {...register("acc_id", { required: content.fieldrequire })}
+                                                >{acname ? acname : 'Select account type.. '}</Text>
 
+                                            </View>
+                                            <View style={{ justifyContent: 'center' }}>
+                                                <Icon
+                                                    name="chevron-right"
+                                                    size={15}
+                                                    color={'#0F172A'}
+                                                />
+                                            </View>
 
-                            <View style={styles.formGroup}>
-                                <View style={styles.labelContainer}>
-                                    <Icon name="dollar-sign" size={16} color="#64748B" />
-                                    <Text style={styles.formLabel}>Opening Balance <Text style={styles.requiredStar}>*</Text></Text>
-                                </View>
-                                <View style={styles.currencyInputWrapper}>
-                                    <Text style={styles.currencySymbol}>{storedata?.currency}</Text>
-                                    <TextInput
-                                        style={[styles.formInput, styles.currencyInput]}
-                                        placeholder="0.00"
-                                        placeholderTextColor="#94A3B8"
-                                        value={accountData.balance}
-                                        onChangeText={(text) => handleInputChange('balance', text)}
-                                        keyboardType="decimal-pad"
-                                        {...register("balance", {
-                                            required: content.fieldrequire,
-                                            validate: (value) => {
-                                                if (value === "" || value === null) return "Balance is required";
-                                                if (isNaN(value)) return "Enter a valid number";
-                                                if (Number(value) < 0) return "Balance cannot be negative";
-                                                return true;
-                                            }
-                                        })}
-                                    />
-                                </View>
-                                {errors.balance && (
-                                    <Text style={styles.errortext}>{errors.balance.message}</Text>
-                                )}
-                            </View>
-
-
-                            <View style={styles.formGroup}>
-                                <View style={styles.labelContainer}>
-                                    <Icon name="calendar" size={16} color="#64748B" />
-                                    <Text style={styles.formLabel}>Opening Date <Text style={styles.requiredStar}>*</Text></Text>
-                                </View>
-                                <Pressable style={[styles.formInput, { flexDirection: 'row' }]} onPress={() => {
-                                    setisDateShow(true)
-                                }}>
-                                    <View style={{ justifyContent: 'center' }}>
-                                        <Icon name="calendar" size={20} color="#94A3B8" />
-                                    </View>
-                                    <View style={{ justifyContent: 'center', flex: 1, marginStart: 10 }}>
-                                        <Text style={{ color: accountData?.date ? "#0F172A" : "#94A3B8", fontSize: 16 }}
-                                            {...register("date", { required: content.fieldrequire })}
-                                        >{accountData?.date ? displayDate(accountData?.date) : storedata.format}</Text>
+                                        </Pressable>
+                                        {errors.acc_id && (
+                                            <Text style={styles.errortext}>{errors.acc_id.message}</Text>
+                                        )}
 
                                     </View>
 
-                                </Pressable>
 
-                                {errors.date && (
-                                    <Text style={styles.errortext}>{errors.date.message}</Text>
-                                )}
-                            </View>
 
-                        </View>
+                                    <View style={styles.formGroup}>
+                                        <View style={styles.labelContainer}>
+                                            <Icon name="dollar-sign" size={16} color="#64748B" />
+                                            <Text style={styles.formLabel}>Opening Balance <Text style={styles.requiredStar}>*</Text></Text>
+                                        </View>
+                                        <View style={styles.currencyInputWrapper}>
+                                            <Text style={styles.currencySymbol}>{storedata?.currency}</Text>
+                                            <TextInput
+                                                style={[styles.formInput, styles.currencyInput]}
+                                                placeholder="0.00"
+                                                placeholderTextColor="#94A3B8"
+                                                value={accountData.balance}
+                                                onChangeText={(text) => handleInputChange('balance', text)}
+                                                keyboardType="decimal-pad"
+                                                {...register("balance", {
+                                                    required: content.fieldrequire,
+                                                    validate: (value) => {
+                                                        if (value === "" || value === null) return "Balance is required";
+                                                        if (isNaN(value)) return "Enter a valid number";
+                                                        if (Number(value) < 0) return "Balance cannot be negative";
+                                                        return true;
+                                                    }
+                                                })}
+                                            />
+                                        </View>
+                                        {errors.balance && (
+                                            <Text style={styles.errortext}>{errors.balance.message}</Text>
+                                        )}
+                                    </View>
 
-                     
-                     <SubmitBtn 
-                     text="Submit"
-                     iconName={'arrow-right'}
-                     submit={handleSubmit(submit)}
 
-                     />
+                                    <View style={styles.formGroup}>
+                                        <View style={styles.labelContainer}>
+                                            <Icon name="calendar" size={16} color="#64748B" />
+                                            <Text style={styles.formLabel}>Opening Date <Text style={styles.requiredStar}>*</Text></Text>
+                                        </View>
+                                        <Pressable style={[styles.formInput, { flexDirection: 'row' }]} onPress={() => {
+                                            setisDateShow(true)
+                                        }}>
+                                            <View style={{ justifyContent: 'center' }}>
+                                                <Icon name="calendar" size={20} color="#94A3B8" />
+                                            </View>
+                                            <View style={{ justifyContent: 'center', flex: 1, marginStart: 10 }}>
+                                                <Text style={{ color: accountData?.date ? "#0F172A" : "#94A3B8", fontSize: 16 }}
+                                                    {...register("date", { required: content.fieldrequire })}
+                                                >{accountData?.date ? displayDate(accountData?.date) : storedata.format}</Text>
 
-                       
+                                            </View>
 
-                        <View style={styles.bottomPadding} />
-                    </Animated.View>
-                </ScrollView>
-                <Modal visible={isdateShow} transparent animationType="fade">
-                    <View style={[styles.modalBackground,]}>
-                        <View style={[styles.alertBox1, { padding: 15, width: '90%' }]}>
-                            <View style={{ marginTop: 15 }}>
-                                <CalendarPicker
-                                    width={width * 0.85}
-                                    initialDate={accountData?.date ? new Date(accountData?.date) : new Date()}
-                                    selectedStartDate={accountData?.date ? new Date(accountData?.date) : new Date()}
-                                    maxDate={new Date()}
-                                    selectedDayColor={themeColors?.primarColor}
-                                    selectedDayTextColor={'#fff'}
-                                    todayBackgroundColor={themeColors?.secondarytextColor}
-                                    textStyle={{ color: themeColors?.inputsecondary, fontSize: getFontSize(14) }}
-                                    onDateChange={(value) => { handleInputChange('date', changeDateformat(value)), setisDateShow(false) }}
+                                        </Pressable>
+
+                                        {errors.date && (
+                                            <Text style={styles.errortext}>{errors.date.message}</Text>
+                                        )}
+                                    </View>
+
+                                </View>
+
+
+                                <SubmitBtn
+                                    disabled={isSubmitting}
+                                    disableGradient={isSubmitting}
+                                    text={isSubmitting ? "Loading..." : "Submit"}
+                                    iconName={'arrow-right'}
+                                    submit={handleSubmit(submit)}
+
                                 />
 
+
+
+                                <View style={styles.bottomPadding} />
+                            </Animated.View>
+                        </ScrollView>
+                        <Modal visible={isdateShow} transparent animationType="fade">
+                            <View style={[styles.modalBackground,]}>
+                                <View style={[styles.alertBox1, { padding: 15, width: '90%' }]}>
+                                    <View style={{ marginTop: 15 }}>
+                                        <CalendarPicker
+                                            width={width * 0.85}
+                                            initialDate={accountData?.date ? new Date(accountData?.date) : new Date()}
+                                            selectedStartDate={accountData?.date ? new Date(accountData?.date) : new Date()}
+                                            maxDate={new Date()}
+                                            selectedDayColor={themeColors?.primarColor}
+                                            selectedDayTextColor={'#fff'}
+                                            todayBackgroundColor={themeColors?.secondarytextColor}
+                                            textStyle={{ color: themeColors?.inputsecondary, fontSize: getFontSize(14) }}
+                                            onDateChange={(value) => { handleInputChange('date', changeDateformat(value)), setisDateShow(false) }}
+                                        />
+
+                                    </View>
+                                </View>
                             </View>
-                        </View>
-                    </View>
 
-                </Modal>
+                        </Modal>
 
-                <GroupModal
-                    visible={acountPicker}
-                    onClose={() => {
-                        setAccountPicker(false);
-                    }}
-                    onSelectAccount={(data) => {
-                        setAccountData({ ...accountData, acc_type_id: data?.acc_type_id, acc_id: data?.acc_id })
-                        setacname(data?.name)
-                        setAccountPicker(false);
-                    }}
-                    account={manualaccount}
-                />
-            </KeyboardAvoidingView>
+                        <GroupModal
+                            visible={acountPicker}
+                            onClose={() => {
+                                setAccountPicker(false);
+                            }}
+                            onSelectAccount={(data) => {
+                                setAccountData({ ...accountData, acc_type_id: data?.acc_type_id, acc_id: data?.acc_id })
+                                setacname(data?.name)
+                                setAccountPicker(false);
+                            }}
+                            account={manualaccount}
+                        />
+                    </KeyboardAvoidingView>
 
-        </SafeAreaView>
-    );
-    default:
-        return (
-            <ScreenLayout title="Add Account">
-                <NotAvailableScreen title={title} description={message} />
-            </ScreenLayout>
-        );
+                </SafeAreaView>
+            );
+        default:
+            return (
+                <ScreenLayout title="Add Account">
+                    <NotAvailableScreen title={title} description={message} />
+                </ScreenLayout>
+            );
     }
 }
 

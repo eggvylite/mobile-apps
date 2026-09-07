@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Alert, Animated, LayoutAnimation, Platform, UIManager, TextInput, StatusBar, } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import TopBar from '../../../component/TopBar';
 import Icon from 'react-native-vector-icons/Feather';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFontSize } from '../../../../constants/Font';
@@ -13,6 +14,11 @@ import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
 import WorkflowScreen from '../../../widgets/WorkflowScreen';
 import ScreenLayout from '../../../widgets/ScreenLayout';
 import CommonFunction from '../../../../utill/CommonFunction';
+import MenuScreen from '../../../component/MenuScreen';
+import moment from 'moment';
+import { CommandIcon } from 'lucide-react-native';
+import CommonIcon from '../../../../common_component/Commonicons';
+import usInsightsLabels from '../../../../hook/Labels/usInsightsLabels';
 const { width } = Dimensions.get('window');
 
 
@@ -149,19 +155,7 @@ const INSIGHTS_DATA = {
 };
 
 
-const insightFilters = [
-    { id: 'overview', label: 'Overview', bgColor: '#E0E7FF' },
-    { id: 'cashflow', label: 'Cash Flow', bgColor: '#DBEAFE' },
-    { id: 'income', label: 'Income', bgColor: '#D1FAE5' },
-    { id: 'spending', label: 'Spending', bgColor: '#FEF3C7' },
-    { id: 'patterns', label: 'Patterns', bgColor: '#FCE7F3' },
-    { id: 'debtloans', label: 'Debt & Loans', bgColor: '#FEE2E2' },
-    { id: 'transactions', label: 'Transactions', bgColor: '#E0E7FF' },
 
-
-
-
-];
 
 
 const FilterTag = ({ label, icon, isActive, onPress, bgColor }) => {
@@ -230,14 +224,29 @@ export default function Insights() {
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const { defbank, bankerror, bankloading } = useSelector((state) => state.bank);
     const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
+    const { icons } = useSelector((state) => state.menuicons);
+    const { insightFilter,overView,insightCat,cashFlow,incomeFlow,spending,pattern,debtloan,transaction } = usInsightsLabels()
+    const [menuVisible, setMenuVisible] = useState(false);
+
     const autoCloseTimerRef = useRef(null);
     // const [data,setData] = useState('')
     const data1 = INSIGHTS_DATA;
     const dispatch = useDispatch()
-    const f$ = (n) => (n < 0 ? `-${storedata?.currency}` : storedata?.currency) + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const f0 = (n) => (n < 0 ? `-${storedata?.currency}` : storedata?.currency) + Math.abs(Math.round(n)).toLocaleString();
-    const scCol = (s) => s >= 70 ? '#10b981' : s >= 50 ? '#f59e0b' : s >= 30 ? '#f97316' : '#ef4444';
-    const scLbl = (s) => s >= 80 ? 'Excellent' : s >= 65 ? 'Good' : s >= 45 ? 'Fair' : s >= 30 ? 'Poor' : 'Needs Help';
+    const f$ = n => (n < 0 ? `-${storedata?.currency}` : storedata?.currency) + CommonFunction.formatamount(Math.abs(n || 0));
+    const f0 = (n) => (n < 0 ? `-${storedata?.currency}` : storedata?.currency) + CommonFunction.formatamount(n ? Math.round(n) : 0);
+    const scCol = (s) => s >= 70 ? '#4CAF50' : s >= 50 ? '#f59e0b' : s >= 30 ? '#f97316' : '#f97316';
+    const scLbl = (s) => s >= 80 ? overView?.excellent : s >= 65 ? overView?.good : s >= 45 ? overView?.fair : s >= 30 ? overView?.poor : overView?.help ;
+
+    const insightFilters = [
+        { id: 'overview', label: insightFilter?.overview, bgColor: '#E0E7FF' },
+        { id: 'cashflow', label: insightFilter?.cashflow, bgColor: '#DBEAFE' },
+        { id: 'income', label: insightFilter?.income, bgColor: '#D1FAE5' },
+        { id: 'spending', label: insightFilter?.spending, bgColor: '#FEF3C7' },
+        { id: 'patterns', label: insightFilter?.patterns, bgColor: '#FCE7F3' },
+        { id: 'debtloans', label: insightFilter?.debt, bgColor: '#FEE2E2' },
+        { id: 'transactions', label: insightFilter?.transaction, bgColor: '#E0E7FF' },
+
+    ];
 
 
     useEffect(() => {
@@ -413,7 +422,7 @@ export default function Insights() {
                     activeOpacity={0.7}
                 >
                     <View style={styles.filterLeft}>
-                        <Text style={styles.filterTitle}>Insights Categories</Text>
+                        <Text style={styles.filterTitle}>{insightCat}</Text>
                     </View>
 
                     <View style={styles.filterRight}>
@@ -488,48 +497,181 @@ export default function Insights() {
     );
 
     // ─── OVERVIEW TAB ────────────────────────────────────
+
+
+    const CircularProgress = ({
+        value = 0,
+        color = '#4CAF50',
+        size = 80,
+    }) => {
+        const progress = Math.min(Math.max(value, 0), 100);
+        const borderWidth = 5;
+        const radius = size / 2;
+        const half = size / 2;
+
+        return (
+            <View
+                style={{
+                    width: size,
+                    height: size,
+                    borderRadius: radius,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+            >
+                {/* Background */}
+                <View
+                    style={{
+                        position: 'absolute',
+                        width: size,
+                        height: size,
+                        borderRadius: radius,
+                        borderWidth,
+                        borderColor: '#E2E8F0',
+                    }}
+                />
+
+                {/* Right half */}
+                <View
+                    style={{
+                        position: 'absolute',
+                        width: half,
+                        height: size,
+                        right: 0,
+                        overflow: 'hidden',
+                    }}
+                >
+                    <View
+                        style={{
+                            position: 'absolute',
+                            width: size,
+                            height: size,
+                            borderRadius: radius,
+                            borderWidth,
+                            borderColor: color,
+                            right: 0,
+                            transform: [
+                                {
+                                    rotate: `${progress > 50 ? 180 : progress * 3.6}deg`,
+                                },
+                            ],
+                        }}
+                    />
+                </View>
+
+                {/* Left half */}
+                {progress > 50 && (
+                    <View
+                        style={{
+                            position: 'absolute',
+                            width: half,
+                            height: size,
+                            left: 0,
+                            overflow: 'hidden',
+                        }}
+                    >
+                        <View
+                            style={{
+                                position: 'absolute',
+                                width: size,
+                                height: size,
+                                borderRadius: radius,
+                                borderWidth,
+                                borderColor: color,
+                                left: 0,
+                                transform: [
+                                    {
+                                        rotate: `${(progress - 50) * 3.6}deg`,
+                                    },
+                                ],
+                            }}
+                        />
+                    </View>
+                )}
+
+                {/* Center */}
+                <View
+                    style={{
+                        position: 'absolute',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <Text
+                        style={{
+                            fontSize: 24,
+                            fontWeight: '800',
+                            color,
+                        }}
+                    >
+                        {progress}
+                    </Text>
+
+                    <Text
+                        style={{
+                            fontSize: 10,
+                            color: '#64748B',
+                        }}
+                    >
+                        / 100
+                    </Text>
+                </View>
+            </View>
+        );
+    };
+
+
+
+
     const OverviewTab = () => {
         if (data) {
             const s = data?.scores;
             const col = scCol(s.overall);
-            const avgNet = data.monthly_list.reduce((sum, m) => sum + m.net, 0) / data.monthly_list.length;
+            const avgNet = data?.monthly_list.reduce((sum, m) => sum + m.net, 0) / data?.monthly_list.length;
+            const money_in = data?.total_in || 0
+            const money_out = data?.total_out || 0
+            const net_flow = ((money_in - money_out) / money_in) * 100
 
             const tipIcons = ['lightbulb', 'dollar-sign', 'target', 'trending-up', 'credit-card', 'home'];
 
             return (
                 <Animated.View style={{ opacity: fadeAnim }}>
-                    {/* Hero Score Card */}
+
                     <View style={styles.heroCard}>
                         <View style={styles.heroContent}>
                             <View style={styles.heroScoreSection}>
-                                <View style={[styles.heroScoreRing, { borderColor: col }]}>
-                                    <Text style={[styles.heroScore, { color: col }]}>{s.overall}</Text>
-                                    <Text style={styles.heroScoreLabel}>/ 100</Text>
-                                </View>
+
+                                <CircularProgress
+                                    value={s.overall}
+                                    color={col}
+                                    size={80}
+                                />
+
                                 <View style={styles.heroInfo}>
-                                    <Text style={styles.heroGrade}>{scLbl(s.overall)} Financial Health</Text>
+                                    <Text style={styles.heroGrade}>{scLbl(s.overall)}</Text>
                                     <Text style={styles.heroPeriod}>
-                                        {data.min_date} – {data.max_date} · {data.n_txns.toLocaleString()} transactions
+                                        {data?.min_date} – {data?.max_date} · {data?.n_txns.toLocaleString()} transactions
                                     </Text>
                                 </View>
                             </View>
 
+
                             <View style={styles.heroStats}>
                                 <View style={styles.heroStat}>
-                                    <Text style={[styles.heroStatValue, { color: '#10b981' }]}>{f0(data.total_in)}</Text>
-                                    <Text style={styles.heroStatLabel}>Money In</Text>
+                                    <Text style={[styles.heroStatValue, { color: '#4CAF50' }]}>{f0(data?.total_in)}</Text>
+                                    <Text style={styles.heroStatLabel}>{overView?.moneyIn}</Text>
                                 </View>
                                 <View style={styles.heroStatDivider} />
                                 <View style={styles.heroStat}>
-                                    <Text style={[styles.heroStatValue, { color: '#ef4444' }]}>{f0(data.total_out)}</Text>
-                                    <Text style={styles.heroStatLabel}>Money Out</Text>
+                                    <Text style={[styles.heroStatValue, { color: '#f97316' }]}>{f0(data?.total_out)}</Text>
+                                    <Text style={styles.heroStatLabel}>{overView?.moneyOut}</Text>
                                 </View>
                                 <View style={styles.heroStatDivider} />
                                 <View style={styles.heroStat}>
-                                    <Text style={[styles.heroStatValue, { color: avgNet >= 0 ? '#10b981' : '#ef4444' }]}>
-                                        {avgNet >= 0 ? '+' : ''}{f0(avgNet)}
+                                    <Text style={[styles.heroStatValue, { color: net_flow >= 0 ? '#4CAF50' : '#f97316' }]}>
+                                        {parseFloat(net_flow).toFixed(2)} %
                                     </Text>
-                                    <Text style={styles.heroStatLabel}>Net Flow</Text>
+                                    <Text style={styles.heroStatLabel}>{overView?.netFlow}</Text>
                                 </View>
                             </View>
                         </View>
@@ -538,11 +680,11 @@ export default function Insights() {
                     {/* Score Bars */}
                     <View style={styles.scoreBarsCard}>
                         {[
-                            { l: 'Cash Flow', k: 'cashflow', c: '#6366f1' },
-                            { l: 'Spending', k: 'spending', c: '#10b981' },
-                            { l: 'Balance', k: 'balance', c: '#06b6d4' },
-                            { l: 'Income', k: 'income', c: '#f59e0b' },
-                            { l: 'Savings', k: 'savings', c: '#ec4899' }
+                            { l: insightFilter.overview, k: 'cashflow', c: '#6366f1' },
+                            { l: insightFilter.spending, k: 'spending', c: '#4CAF50' },
+                            { l: overView?.balance, k: 'balance', c: '#06b6d4' },
+                            { l: insightFilter.income, k: 'income', c: '#f59e0b' },
+                            { l: overView?.saving, k: 'savings', c: '#ec4899' }
                         ].map((bar, i) => (
                             <View key={i} style={styles.scoreBarRow}>
                                 <Text style={styles.scoreBarLabel}>{bar.l}</Text>
@@ -557,31 +699,31 @@ export default function Insights() {
                     {/* Quick Stats */}
                     <View style={styles.quickStatsGrid}>
                         <View style={styles.quickStatCard}>
-                            <Text style={styles.quickStatValue}>{f$(data.total_bal)}</Text>
-                            <Text style={styles.quickStatLabel}>Current Balance</Text>
+                            <Text style={styles.quickStatValue}>{f$(data?.total_bal)}</Text>
+                            <Text style={styles.quickStatLabel}>{overView?.curBalance}</Text>
                         </View>
                         <View style={styles.quickStatCard}>
-                            <Text style={styles.quickStatValue}>{f0(data.pay_avg)}</Text>
-                            <Text style={styles.quickStatLabel}>Monthly Income</Text>
+                            <Text style={styles.quickStatValue}>{f0(data?.pay_avg)}</Text>
+                            <Text style={styles.quickStatLabel}>{overView?.monthIncome}</Text>
                         </View>
                         <View style={styles.quickStatCard}>
-                            <Text style={styles.quickStatValue}>{f$(data.daily_avg)}</Text>
-                            <Text style={styles.quickStatLabel}>Daily Avg Spend</Text>
+                            <Text style={styles.quickStatValue}>{f$(data?.daily_avg)}</Text>
+                            <Text style={styles.quickStatLabel}>{overView?.dailAvgBal}</Text>
                         </View>
                         <View style={styles.quickStatCard}>
-                            <Text style={styles.quickStatValue}>{f0(data.xfer_out)}</Text>
-                            <Text style={styles.quickStatLabel}>Transfers</Text>
+                            <Text style={styles.quickStatValue}>{f0(data?.xfer_out)}</Text>
+                            <Text style={styles.quickStatLabel}>{overView?.transfer}</Text>
                         </View>
                     </View>
 
                     {/* Alerts */}
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Alerts</Text>
-                        <Text style={styles.sectionBadge}>{data.alerts.length}</Text>
+                        <Text style={styles.sectionTitle}>{overView?.alert}</Text>
+                        <Text style={styles.sectionBadge}>{data?.alerts.length}</Text>
                     </View>
-                    {data.alerts.map((alert, i) => (
-                        <View key={i} style={[styles.alertCard, styles[`alert${alert.level}`]]}>
-                            <View style={[styles.alertDot, { backgroundColor: alert.level === 'danger' ? '#ef4444' : alert.level === 'warn' ? '#f59e0b' : '#10b981' }]} />
+                    {data?.alerts.map((alert, i) => (
+                        <View key={i} style={[styles.alertCard, { paddingTop: 10, paddingBottom: 10, marginTop: 5 }, styles[`alert${alert.level}`]]}>
+                            <View style={[styles.alertDot, { backgroundColor: alert.level === 'danger' ? '#f97316' : alert.level === 'warn' ? '#f59e0b' : '#4CAF50' }]} />
                             <View style={styles.alertContent}>
                                 <Text style={styles.alertMsg}>{alert.msg}</Text>
                                 {alert.detail && <Text style={styles.alertDetail}>{alert.detail}</Text>}
@@ -591,10 +733,10 @@ export default function Insights() {
 
                     {/* Tips */}
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Money Tips</Text>
+                        <Text style={styles.sectionTitle}>{overView?.moenyTips}</Text>
                     </View>
-                    {data.tips.map((tip, i) => (
-                        <View key={i} style={styles.tipCard}>
+                    {data?.tips.map((tip, i) => (
+                        <View key={i} style={[styles.tipCard, { paddingTop: 10, paddingBottom: 10, marginTop: 5 }]}>
                             <View style={styles.tipIconContainer}>
                                 <Icon name={tipIcons[i % tipIcons.length]} size={20} color="#3F2B96" />
                             </View>
@@ -612,385 +754,574 @@ export default function Insights() {
 
     // ─── SPENDING TAB ────────────────────────────────────
     const SpendingTab = () => {
-        const maxCat = Math.max(...data.cat_data.map(c => c.total), 1);
-        const maxMerchant = Math.max(...data.top_merchants.map(m => m.amount), 1);
+        if (data) {
+            const maxCat = Math.max(...data?.cat_data?.map(c => c.total), 1);
+            const maxMerchant = Math.max(...data?.top_merchants.map(m => m.amount), 1);
 
-        return (
-            <Animated.View style={{ opacity: fadeAnim }}>
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(249,115,22,.15)' }]}>
-                                <Icon name="pie-chart" size={18} color="#f97316" />
-                            </View>
-                            <Text style={styles.cardTitle}>Spending by Category</Text>
-                        </View>
-                        <Text style={styles.cardBadge}>{data.months} month avg</Text>
-                    </View>
-
-                    {data.cat_data.slice(0, 7).map((cat, i) => (
-                        <View key={i} style={styles.categoryItem}>
-                            <View style={styles.categoryRow}>
-                                <View style={styles.categoryNameRow}>
-                                    <View style={[styles.categoryIconWrapper, { backgroundColor: cat.color + '20' }]}>
-                                        <Icon name={cat.icon} size={14} color={cat.color} />
-                                    </View>
-                                    <Text style={styles.categoryNameText}>{cat.name}</Text>
+            return (
+                <Animated.View style={{ opacity: fadeAnim }}>
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(249,115,22,.15)' }]}>
+                                    <Icon name="pie-chart" size={18} color="#f97316" />
                                 </View>
-                                <View style={styles.categoryAmountRow}>
-                                    <Text style={styles.categoryTotal}>{f0(cat.total)}</Text>
-                                    <Text style={styles.categoryAvg}>{f0(cat.avg_mo)}/mo</Text>
-                                </View>
+                                <Text style={styles.cardTitle}>{spending?.spendbyCat}</Text>
                             </View>
-                            <View style={styles.categoryBar}>
-                                <View style={[styles.categoryBarFill, { width: `${(cat.total / maxCat) * 100}%`, backgroundColor: cat.color }]} />
-                            </View>
+                            <Text style={styles.cardBadge}>{data?.months} {spending?.monthAvg}</Text>
                         </View>
-                    ))}
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(236,72,153,.15)' }]}>
-                                <Icon name="shopping-bag" size={18} color="#ec4899" />
-                            </View>
-                            <Text style={styles.cardTitle}>Top Merchants</Text>
-                        </View>
-                    </View>
-
-                    {data.top_merchants.map((merchant, i) => (
-                        <View key={i} style={styles.merchantItem}>
-                            <Text style={styles.merchantRank}>{i + 1}</Text>
-                            <View style={styles.merchantBar}>
-                                <View style={[styles.merchantBarFill, { width: `${(merchant.amount / maxMerchant) * 100}%`, backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'][i] }]} />
-                                <Text style={styles.merchantName}>{merchant.name}</Text>
-                                <Text style={styles.merchantAmount}>{f0(merchant.amount)}</Text>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
-                                <Icon name="trending-up" size={18} color="#f59e0b" />
-                            </View>
-                            <Text style={styles.cardTitle}>Weekly Spending Trend</Text>
-                        </View>
-                    </View>
-                    <View style={styles.weeklyBars}>
-                        {data.weekly_list.map((val, i) => {
-                            const max = Math.max(...data.weekly_list);
-                            return (
-                                <View key={i} style={styles.weeklyBarContainer}>
-                                    <View style={[styles.weeklyBar, {
-                                        height: `${(val / max) * 60}px`,
-                                        backgroundColor: val === max ? '#f97316' : '#6366f1'
-                                    }]} />
-                                    <Text style={styles.weeklyLabel}>W{i + 1}</Text>
-                                </View>
+                        {data?.cat_data?.slice(0, 7).map((cat, i) => {
+                            const iconview = icons.find(
+                                (obj) => obj.name === cat.name
                             );
-                        })}
+
+                            return (
+                                <View key={i} style={styles.categoryItem}>
+                                    <View style={styles.categoryRow}>
+                                        <View style={styles.categoryNameRow}>
+                                            <View style={[styles.categoryIconWrapper, { backgroundColor: cat.color + '20' }]}>
+                                                {
+                                                    iconview ?
+                                                        <CommonIcon family={iconview?.iconfamily} name={iconview?.appicon} color={cat.color} size={14} /> :
+                                                        <FontAwesome name={'star'} size={14} color={cat.color} />
+                                                }
+
+                                            </View>
+                                            <Text style={styles.categoryNameText}>{cat.name}</Text>
+                                        </View>
+                                        <View style={styles.categoryAmountRow}>
+                                            <Text style={styles.categoryTotal}>{f0(cat.total)}</Text>
+                                            <Text style={styles.categoryAvg}>{f0(cat.avg_mo)}/ {spending?.mo}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.categoryBar}>
+                                        <View style={[styles.categoryBarFill, { width: `${(cat.total / maxCat) * 100}%`, backgroundColor: cat.color }]} />
+                                    </View>
+                                </View>
+                            )
+
+                        }
+
+                        )}
                     </View>
-                </View>
-            </Animated.View>
-        );
+
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(236,72,153,.15)' }]}>
+                                    <Icon name="shopping-bag" size={18} color="#ec4899" />
+                                </View>
+                                <Text style={styles.cardTitle}>{spending?.topMerchant}</Text>
+                            </View>
+                        </View>
+
+                        {data?.top_merchants.map((merchant, i) => (
+                            <View key={i} style={styles.merchantItem}>
+                                <Text style={styles.merchantRank}>{i + 1}</Text>
+                                <View style={styles.merchantBar}>
+                                    <View style={[styles.merchantBarFill, { width: `${(merchant.amount / maxMerchant) * 100}%`, backgroundColor: ['#6366f1', '#4CAF50', '#f59e0b', '#ec4899', '#06b6d4'][i] }]} />
+                                    <Text style={styles.merchantName}>{merchant.name}</Text>
+                                    <Text style={styles.merchantAmount}>{f0(merchant.amount)}</Text>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
+                                    <Icon name="trending-up" size={18} color="#f59e0b" />
+                                </View>
+                                <Text style={styles.cardTitle}>{spending?.weeklySpendTrend}</Text>
+                            </View>
+                        </View>
+                        <View style={styles.weeklyBars}>
+                            {data?.weekly_list.map((val, i) => {
+                                const max = Math.max(...data?.weekly_list);
+                                return (
+                                    <View key={i} style={styles.weeklyBarContainer}>
+                                        <View style={[styles.weeklyBar, {
+                                            height: `${(val / max) * 60}px`,
+                                            backgroundColor: val === max ? '#f97316' : '#6366f1'
+                                        }]} />
+                                        <Text style={styles.weeklyLabel}>W{i + 1}</Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    </View>
+                </Animated.View>
+            );
+        }
+
     };
 
     // ─── INCOME TAB ──────────────────────────────────────
+
+
+
+    const dateFormat = (date) => {
+        const dt = moment(new Date(date)).format(storedata?.format || 'MM/DD/YYYY')
+        return dt
+
+    }
+
     const IncomeTab = () => {
-        return (
-            <Animated.View style={{ opacity: fadeAnim }}>
-                <View style={styles.quickStatsGrid}>
-                    <View style={styles.quickStatCard}>
-                        <Text style={styles.quickStatValue}>{f0(data.pay_avg)}</Text>
-                        <Text style={styles.quickStatLabel}>Monthly Income</Text>
+        if (data) {
+            return (
+                <Animated.View style={{ opacity: fadeAnim }}>
+                    <View style={styles.quickStatsGrid}>
+                        <View style={styles.quickStatCard}>
+                            <Text style={styles.quickStatValue}>{f0(data?.pay_avg)}</Text>
+                            <Text style={styles.quickStatLabel}>{incomeFlow?.monthlyIncome}</Text>
+                        </View>
+                        <View style={styles.quickStatCard}>
+                            <Text style={styles.quickStatValue}>{data?.pay_count}</Text>
+                            <Text style={styles.quickStatLabel}>{incomeFlow?.payrollDeposit}</Text>
+                        </View>
+                        <View style={styles.quickStatCard}>
+                            <Text style={[styles.quickStatValue, { fontSize: getFontSize(14) }]}>{dateFormat(data?.next_pay) || 'N/A'}</Text>
+                            <Text style={styles.quickStatLabel}>{incomeFlow?.nextPayday}</Text>
+                        </View>
+                        <View style={styles.quickStatCard}>
+                            <Text style={[styles.quickStatValue, { color: '#4CAF50', fontSize: getFontSize(16) }]}>{data?.days_to_next_pay || 0} days</Text>
+                            <Text style={styles.quickStatLabel}>{incomeFlow?.dayAway}</Text>
+                        </View>
                     </View>
-                    <View style={styles.quickStatCard}>
-                        <Text style={styles.quickStatValue}>{data.pay_count}</Text>
-                        <Text style={styles.quickStatLabel}>Payroll Deposits</Text>
-                    </View>
-                    <View style={styles.quickStatCard}>
-                        <Text style={[styles.quickStatValue, { fontSize: getFontSize(14) }]}>{data.next_pay || 'N/A'}</Text>
-                        <Text style={styles.quickStatLabel}>Next Payday</Text>
-                    </View>
-                    <View style={styles.quickStatCard}>
-                        <Text style={[styles.quickStatValue, { color: '#10b981', fontSize: getFontSize(16) }]}>{data.days_to_next_pay || 0} days</Text>
-                        <Text style={styles.quickStatLabel}>Days Away</Text>
-                    </View>
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(16,185,129,.15)' }]}>
-                                <Icon name="briefcase" size={18} color="#10b981" />
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(16,185,129,.15)' }]}>
+                                    <Icon name="briefcase" size={18} color="#10b981" />
+                                </View>
+                                <Text style={styles.cardTitle}>{incomeFlow?.incomeSource}</Text>
                             </View>
-                            <Text style={styles.cardTitle}>Income Sources</Text>
                         </View>
+                        {data?.inc_sources.map((src, i) => (
+                            <View key={i} style={styles.incomeSourceItem}>
+                                <View style={[styles.incomeSourceIcon, { backgroundColor: '#10b98115' }]}>
+                                    <Icon name="dollar-sign" size={16} color="#10b981" />
+                                </View>
+                                <Text style={styles.incomeSourceName}>{src.name}</Text>
+                                <Text style={styles.incomeSourceAmount}>{f$(src.total)}</Text>
+                            </View>
+                        ))}
                     </View>
-                    {data.inc_sources.map((src, i) => (
-                        <View key={i} style={styles.incomeSourceItem}>
-                            <View style={[styles.incomeSourceIcon, { backgroundColor: '#10b98115' }]}>
-                                <Icon name="dollar-sign" size={16} color="#10b981" />
-                            </View>
-                            <Text style={styles.incomeSourceName}>{src.name}</Text>
-                            <Text style={styles.incomeSourceAmount}>{f$(src.total)}</Text>
-                        </View>
-                    ))}
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(16,185,129,.15)' }]}>
-                                <Icon name="bar-chart-2" size={18} color="#10b981" />
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(16,185,129,.15)' }]}>
+                                    <Icon name="bar-chart-2" size={18} color="#10b981" />
+                                </View>
+                                <Text style={styles.cardTitle}>{incomeFlow?.monthIncomevsSpend}</Text>
                             </View>
-                            <Text style={styles.cardTitle}>Monthly Income vs Spending</Text>
                         </View>
+                        {data?.monthly_list.map((m, i) => (
+                            <View key={i} style={styles.incomeVsItem}>
+                                <Text style={styles.incomeVsLabel}>{m.label}</Text>
+                                <View style={styles.incomeVsBars}>
+                                    <View style={[styles.incomeVsBar, { width: `${(m.in / Math.max(...data?.monthly_list.map(x => x.in))) * 100}%`, backgroundColor: '#4CAF50' }]} />
+                                    <View style={[styles.incomeVsBar, { width: `${(m.out / Math.max(...data?.monthly_list.map(x => x.out))) * 100}%`, backgroundColor: '#f97316', position: 'absolute', bottom: 0 }]} />
+                                </View>
+                                <View style={[styles.incomeVsValues, { marginTop: 5 }]}>
+                                    <Text style={styles.incomeVsIn}>{f0(m.in)}</Text>
+                                    <Text style={[styles.incomeVsOut, { color: '#f97316' }]}>{f0(m.out)}</Text>
+
+                                    <Text style={[styles.incomeVsNet, { color: m.net >= 0 ? '#4CAF50' : '#f97316' }]}>
+                                        {m.net >= 0 ? '+' : '-'}{f0(Math.abs(m.net))}
+                                    </Text>
+                                </View>
+                            </View>
+                        ))}
                     </View>
-                    {data.monthly_list.map((m, i) => (
-                        <View key={i} style={styles.incomeVsItem}>
-                            <Text style={styles.incomeVsLabel}>{m.label}</Text>
-                            <View style={styles.incomeVsBars}>
-                                <View style={[styles.incomeVsBar, { width: `${(m.in / Math.max(...data.monthly_list.map(x => x.in))) * 100}%`, backgroundColor: '#10b981' }]} />
-                                <View style={[styles.incomeVsBar, { width: `${(m.out / Math.max(...data.monthly_list.map(x => x.out))) * 100}%`, backgroundColor: '#ef4444', position: 'absolute', bottom: 0 }]} />
-                            </View>
-                            <View style={styles.incomeVsValues}>
-                                <Text style={styles.incomeVsIn}>{f0(m.in)}</Text>
-                                <Text style={styles.incomeVsOut}>{f0(m.out)}</Text>
-                                <Text style={[styles.incomeVsNet, { color: m.net >= 0 ? '#10b981' : '#ef4444' }]}>
-                                    {m.net >= 0 ? '+' : ''}{f0(m.net)}
-                                </Text>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            </Animated.View>
-        );
+                </Animated.View>
+            );
+        }
+
     };
 
     // ─── CASH FLOW TAB ──────────────────────────────────
+
+    const cashFlowTablehead = [cashFlow?.month, cashFlow?.in, cashFlow?.out, cashFlow?.net, cashFlow?.status]
+
+    const columnStyles = [
+        { width: 80 }, // Month
+        { width: 115 }, // In
+        { width: 125 }, // Out
+        { width: 135 }, // Net
+        { width: 125 }, // Status
+    ];
     const CashFlowTab = () => {
-        const avgNet = data.monthly_list.reduce((sum, m) => sum + m.net, 0) / data.monthly_list.length;
-        const posMonths = data.monthly_list.filter(m => m.net >= 0).length;
+        if (data) {
+            const avgNet = data?.monthly_list.reduce((sum, m) => sum + m.net, 0) / data?.monthly_list.length;
+            const posMonths = data?.monthly_list.filter(m => m.net >= 0).length;
 
-        return (
-            <Animated.View style={{ opacity: fadeAnim }}>
-                <View style={styles.quickStatsGrid}>
-                    <View style={styles.quickStatCard}>
-                        <Text style={[styles.quickStatValue, { color: avgNet >= 0 ? '#10b981' : '#ef4444' }]}>
-                            {avgNet >= 0 ? '+' : ''}{f0(avgNet)}
-                        </Text>
-                        <Text style={styles.quickStatLabel}>Avg Monthly Net</Text>
+            return (
+                <Animated.View style={{ opacity: fadeAnim }}>
+                    <View style={styles.quickStatsGrid}>
+                        <View style={styles.quickStatCard}>
+                            <Text style={[styles.quickStatValue, { color: avgNet >= 0 ? '#4CAF50' : '#f97316' }]}>
+                                {avgNet >= 0 ? '+' : '-'}{f0(Math.abs(avgNet))}
+                            </Text>
+                            <Text style={styles.quickStatLabel}>{cashFlow?.avgMonthNet}</Text>
+                        </View>
+                        <View style={styles.quickStatCard}>
+                            <Text style={styles.quickStatValue}>{f0(data?.total_in)}</Text>
+                            <Text style={styles.quickStatLabel}>{cashFlow?.totalmoneyIn}</Text>
+                        </View>
+                        <View style={styles.quickStatCard}>
+                            <Text style={styles.quickStatValue}>{f0(data?.total_out)}</Text>
+                            <Text style={styles.quickStatLabel}>{cashFlow?.totalmoneyOut}</Text>
+                        </View>
+                        <View style={styles.quickStatCard}>
+                            <Text style={[styles.quickStatValue, { color: posMonths >= data?.months / 2 ? '#4CAF50' : '#f97316' }]}>
+                                {posMonths}/{data?.months}
+                            </Text>
+                            <Text style={styles.quickStatLabel}>{cashFlow?.surplus}</Text>
+                        </View>
                     </View>
-                    <View style={styles.quickStatCard}>
-                        <Text style={styles.quickStatValue}>{f0(data.total_in)}</Text>
-                        <Text style={styles.quickStatLabel}>Total Money In</Text>
-                    </View>
-                    <View style={styles.quickStatCard}>
-                        <Text style={styles.quickStatValue}>{f0(data.total_out)}</Text>
-                        <Text style={styles.quickStatLabel}>Total Money Out</Text>
-                    </View>
-                    <View style={styles.quickStatCard}>
-                        <Text style={[styles.quickStatValue, { color: posMonths >= data.months / 2 ? '#10b981' : '#ef4444' }]}>
-                            {posMonths}/{data.months}
-                        </Text>
-                        <Text style={styles.quickStatLabel}>Surplus Months</Text>
-                    </View>
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(16,185,129,.15)' }]}>
-                                <Icon name="table" size={18} color="#10b981" />
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(16,185,129,.15)' }]}>
+                                    <Icon name="calendar" size={18} color="#10b981" />
+                                </View>
+                                <Text style={styles.cardTitle}>{cashFlow?.monthbymonth}</Text>
                             </View>
-                            <Text style={styles.cardTitle}>Month-by-Month Detail</Text>
                         </View>
-                    </View>
 
-                    <View style={styles.tableHeader}>
-                        <View style={[styles.tableHeaderCell, { flex: 1.2 }]}>
-                            <Text style={styles.tableHeaderText}>Month</Text>
-                        </View>
-                        <View style={[styles.tableHeaderCell, { flex: 0.8 }]}>
-                            <Text style={[styles.tableHeaderText, { textAlign: 'right' }]}>In</Text>
-                        </View>
-                        <View style={[styles.tableHeaderCell, { flex: 0.8 }]}>
-                            <Text style={[styles.tableHeaderText, { textAlign: 'right' }]}>Out</Text>
-                        </View>
-                        <View style={[styles.tableHeaderCell, { flex: 0.8 }]}>
-                            <Text style={[styles.tableHeaderText, { textAlign: 'right' }]}>Net</Text>
-                        </View>
-                        <View style={[styles.tableHeaderCell, { flex: 1 }]}>
-                            <Text style={[styles.tableHeaderText, { textAlign: 'center' }]}>Status</Text>
-                        </View>
-                    </View>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                        <View style={styles.tableBody}>
-                            {data.monthly_list.map((m, i) => (
-                                <View key={i} style={[styles.tableRow, i % 2 === 0 && styles.tableRowEven]}>
-                                    <View style={[styles.tableCellContainer, { flex: 1.2 }]}>
-                                        <Text style={[styles.tableCellText, { fontWeight: '600' }]}>{m.label}</Text>
-                                    </View>
-                                    <View style={[styles.tableCellContainer, { flex: 0.8 }]}>
-                                        <Text style={[styles.tableCellText, { textAlign: 'right', color: '#10b981' }]}>{f0(m.in)}</Text>
-                                    </View>
-                                    <View style={[styles.tableCellContainer, { flex: 0.8 }]}>
-                                        <Text style={[styles.tableCellText, { textAlign: 'right', color: '#ef4444' }]}>{f0(m.out)}</Text>
-                                    </View>
-                                    <View style={[styles.tableCellContainer, { flex: 0.8 }]}>
-                                        <Text style={[styles.tableCellText, { textAlign: 'right', fontWeight: '700', color: m.net >= 0 ? '#10b981' : '#ef4444' }]}>
-                                            {m.net >= 0 ? '+' : ''}{f0(m.net)}
-                                        </Text>
-                                    </View>
-                                    <View style={[styles.tableCellContainer, { flex: 1, alignItems: 'center' }]}>
-                                        <View style={[styles.statusBadge, { backgroundColor: m.net >= 0 ? 'rgba(16,185,129,.12)' : 'rgba(239,68,68,.12)' }]}>
-                                            <Text style={[styles.statusText, { color: m.net >= 0 ? '#10b981' : '#ef4444' }]}>
-                                                {m.net >= 0 ? 'Surplus' : 'Deficit'}
+
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            bounces={false}
+                            contentContainerStyle={{ paddingBottom: 4 }}
+                        >
+                            <View>
+
+                                {/* TABLE HEADER */}
+                                <View
+                                    style={{
+                                        padding: 10,
+                                        flexDirection: 'row',
+                                        backgroundColor: '#F8FAFC',
+                                        alignItems: 'center',
+                                        borderRadius: 12,
+                                        marginBottom: 8,
+                                    }}
+                                >
+                                    {cashFlowTablehead.map((item, index) => (
+                                        <View
+                                            key={item}
+                                            style={[
+                                                {
+                                                    justifyContent: 'center',
+                                                },
+                                                columnStyles[index],
+                                            ]}
+                                        >
+                                            <Text style={styles.tableHeaderText}>
+                                                {item.toUpperCase()}
                                             </Text>
                                         </View>
+                                    ))}
+                                </View>
+
+                                {/* TABLE BODY */}
+                                <View style={styles.tableBody}>
+                                    {data?.monthly_list?.map((m, i) => (
+                                        <View
+                                            key={m.month || i}
+                                            style={[
+                                                styles.tableRow,
+                                                i % 2 === 0 && styles.tableRowEven,
+                                            ]}
+                                        >
+                                            {/* MONTH */}
+                                            <View
+                                                style={[
+                                                    styles.tableCellContainer,
+                                                    columnStyles[0],
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.tableCellText,
+                                                        { fontWeight: '600' },
+                                                    ]}
+                                                >
+                                                    {m.label}
+                                                </Text>
+                                            </View>
+
+                                            {/* IN */}
+                                            <View
+                                                style={[
+                                                    styles.tableCellContainer,
+                                                    columnStyles[1],
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.tableCellText,
+                                                        { color: '#4CAF50' },
+                                                    ]}
+                                                >
+                                                    {f0(m.in)}
+                                                </Text>
+                                            </View>
+
+                                            {/* OUT */}
+                                            <View
+                                                style={[
+                                                    styles.tableCellContainer,
+                                                    columnStyles[2],
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.tableCellText,
+                                                        { color: '#f97316' },
+                                                    ]}
+                                                >
+                                                    {f0(m.out)}
+                                                </Text>
+                                            </View>
+
+                                            {/* NET */}
+                                            <View
+                                                style={[
+                                                    styles.tableCellContainer,
+                                                    columnStyles[3],
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.tableCellText,
+                                                        {
+                                                            fontWeight: '700',
+                                                            color:
+                                                                m.net >= 0
+                                                                    ? '#4CAF50'
+                                                                    : '#f97316',
+                                                        },
+                                                    ]}
+                                                >
+                                                    {m.net >= 0 ? '+' : '-'}
+                                                    {f0(Math.abs(m.net))}
+                                                </Text>
+                                            </View>
+
+                                            {/* STATUS */}
+                                            <View
+                                                style={[
+                                                    styles.tableCellContainer,
+                                                    { alignItems: 'flex-start' },
+                                                    columnStyles[4],
+                                                ]}
+                                            >
+                                                <View
+                                                    style={[
+                                                        styles.statusBadge,
+                                                        {
+                                                            backgroundColor:
+                                                                m.net >= 0
+                                                                    ? 'rgba(16,185,129,.12)'
+                                                                    : 'rgba(239,68,68,.12)',
+                                                        },
+                                                    ]}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.statusText,
+                                                            {
+                                                                color:
+                                                                    m.net >= 0
+                                                                        ? '#4CAF50'
+                                                                        : '#f97316',
+                                                            },
+                                                        ]}
+                                                    >
+                                                        {m.net >= 0 ? 'Surplus' : 'Deficit'}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+
+                            </View>
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(99,102,241,.15)' }]}>
+                                    <Icon name="credit-card" size={18} color="#6366f1" />
+                                </View>
+                                <Text style={[styles.cardTitle, { fontSize: getFontSize(16) }]}>{cashFlow?.accounts}</Text>
+                            </View>
+                            <Text style={[styles.cardBadge,]}>as of {data?.max_date}</Text>
+                        </View>
+                        {data?.accounts.map((acc, i) => (
+                            <View key={i} style={{ flexDirection: 'row', marginTop: 30 }}>
+                                <View style={[styles.accountIcon, { backgroundColor: acc.type === 'CHECKING' ? '#6366f115' : '#10b98115' }]}>
+                                    <Icon name={acc.type === 'CHECKING' ? 'credit-card' : 'dollar-sign'} size={20} color={acc.type === 'CHECKING' ? '#6366f1' : '#4CAF50'} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.accountName}>{acc.name}</Text>
+                                        </View>
+
+                                        <Text style={[styles.accountBalanceValue, { color: acc.bal >= 0 ? '#4CAF50' : '#f97316' }]}>
+                                            {f$(acc.bal)}
+                                        </Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', marginTop: 5 }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.accountMeta}>{acc.type} · {acc.inst}</Text>
+                                        </View>
+
+                                        <Text style={styles.accountBalanceLabel}>Available: {f$(acc?.avail)}</Text>
                                     </View>
                                 </View>
-                            ))}
-                        </View>
-                    </ScrollView>
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(99,102,241,.15)' }]}>
-                                <Icon name="credit-card" size={18} color="#6366f1" />
                             </View>
-                            <Text style={styles.cardTitle}>Accounts</Text>
-                        </View>
-                        <Text style={styles.cardBadge}>as of {data.max_date}</Text>
+                            // <View key={i} style={styles.accountItem}>
+                            //     <View style={[styles.accountIcon, { backgroundColor: acc.type === 'CHECKING' ? '#6366f115' : '#10b98115' }]}>
+                            //         <Icon name={acc.type === 'CHECKING' ? 'credit-card' : 'dollar-sign'} size={20} color={acc.type === 'CHECKING' ? '#6366f1' : '#4CAF50'} />
+                            //     </View>
+                            //     <View style={styles.accountInfo}>
+                            //         <Text style={styles.accountName}>{acc.name}</Text>
+                            //         <Text style={styles.accountMeta}>{acc.type} · {acc.inst}</Text>
+                            //     </View>
+                            //     <View style={styles.accountBalance}>
+                            //         <Text style={[styles.accountBalanceValue, { color: acc.bal >= 0 ? '#4CAF50' : '#f97316' }]}>
+                            //             {f$(acc.bal)}
+                            //         </Text>
+                            //         <Text style={styles.accountBalanceLabel}>Available: {f$(acc?.avail)}</Text>
+                            //     </View>
+                            // </View>
+                        ))}
                     </View>
-                    {data.accounts.map((acc, i) => (
-                        <View key={i} style={styles.accountItem}>
-                            <View style={[styles.accountIcon, { backgroundColor: acc.type === 'CHECKING' ? '#6366f115' : '#10b98115' }]}>
-                                <Icon name={acc.type === 'CHECKING' ? 'credit-card' : 'dollar-sign'} size={20} color={acc.type === 'CHECKING' ? '#6366f1' : '#10b981'} />
-                            </View>
-                            <View style={styles.accountInfo}>
-                                <Text style={styles.accountName}>{acc.name}</Text>
-                                <Text style={styles.accountMeta}>{acc.type} · {acc.inst}</Text>
-                            </View>
-                            <View style={styles.accountBalance}>
-                                <Text style={[styles.accountBalanceValue, { color: acc.bal >= 0 ? '#10b981' : '#ef4444' }]}>
-                                    {f$(acc.bal)}
-                                </Text>
-                                <Text style={styles.accountBalanceLabel}>Available: {f$(acc.avail)}</Text>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            </Animated.View>
-        );
+                </Animated.View>
+            );
+        }
+
     };
 
     // ─── PATTERNS TAB ────────────────────────────────────
     const PatternsTab = () => {
-        const maxDow = Math.max(...data.dow_data.map(d => d.total), 1);
-        const peakDay = data.dow_data.reduce((max, d) => d.total > max.total ? d : max, data.dow_data[0]);
-        const wkdayTotal = data.dow_data.filter(d => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(d.day)).reduce((s, d) => s + d.total, 0);
-        const wkendTotal = data.dow_data.filter(d => ['Sat', 'Sun'].includes(d.day)).reduce((s, d) => s + d.total, 0);
-        const wkendPct = Math.round((wkendTotal / (wkdayTotal + wkendTotal)) * 100);
+        if (data) {
+            const maxDow = Math.max(...data?.dow_data?.map(d => d.total), 1);
+            const peakDay = data?.dow_data?.reduce((max, d) => d.total > max.total ? d : max, data?.dow_data[0]);
+            const wkdayTotal = data?.dow_data?.filter(d => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(d.day)).reduce((s, d) => s + d.total, 0);
+            const wkendTotal = data?.dow_data?.filter(d => ['Sat', 'Sun'].includes(d.day)).reduce((s, d) => s + d.total, 0);
+            const wkendPct = Math.round((wkendTotal / (wkdayTotal + wkendTotal)) * 100);
 
-        return (
-            <Animated.View style={{ opacity: fadeAnim }}>
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
-                                <Icon name="calendar" size={18} color="#f59e0b" />
-                            </View>
-                            <Text style={styles.cardTitle}>Spending by Day of Week</Text>
-                        </View>
-                    </View>
-                    <View style={styles.dowContainer}>
-                        {data.dow_data.map((d, i) => {
-                            const height = (d.total / maxDow) * 72;
-                            const isPeak = d.day === peakDay.day;
-                            return (
-                                <View key={i} style={styles.dowColumn}>
-                                    <View style={styles.dowBarWrapper}>
-                                        <View style={[styles.dowBar, { height: height, backgroundColor: isPeak ? '#f97316' : '#6366f1', opacity: isPeak ? 1 : 0.5 }]} />
-                                    </View>
-                                    <Text style={[styles.dowLabel, { color: isPeak ? '#f97316' : '#64748B', fontWeight: isPeak ? '700' : '500' }]}>
-                                        {d.day}
-                                    </Text>
-                                    <Text style={styles.dowValue}>${Math.round(d.total)}</Text>
+            return (
+                <Animated.View style={{ opacity: fadeAnim }}>
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
+                                    <Icon name="calendar" size={18} color="#f59e0b" />
                                 </View>
-                            );
-                        })}
+                                <Text style={styles.cardTitle}>{pattern?.spendbydayweek}</Text>
+                            </View>
+                        </View>
+                        <View style={[styles.dowContainer, { marginTop: 10 }]}>
+                            {data?.dow_data?.map((d, i) => {
+                                const height = (d.total / maxDow) * 72;
+                                const isPeak = d.day === peakDay.day;
+                                return (
+                                    <View key={i} style={styles.dowColumn}>
+                                        <View style={styles.dowBarWrapper}>
+                                            <View style={[styles.dowBar, { height: height, backgroundColor: isPeak ? '#f97316' : '#6366f1', opacity: isPeak ? 1 : 0.5 }]} />
+                                        </View>
+                                        <Text style={[styles.dowLabel, { color: isPeak ? '#f97316' : '#64748B', fontWeight: isPeak ? '700' : '500' }]}>
+                                            {d.day}
+                                        </Text>
+                                        <Text style={styles.dowValue}>${Math.round(d.total)}</Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                        <View style={styles.dowInsight}>
+                            <Text style={styles.dowInsightText}>
+                                <Text style={{
+                                    fontWeight: '700', fontSize: getFontSize(11),
+                                    fontFamily: fontsFamily.regularFont,
+                                }}>{peakDay.day}</Text> {pattern?.highspend} ({f0(peakDay.total)} {pattern?.total_avg} {f0(peakDay.avg)}/{pattern?.txn})
+                            </Text>
+                        </View>
                     </View>
-                    <View style={styles.dowInsight}>
-                        <Text style={styles.dowInsightText}>
-                            <Text style={{ fontWeight: '700' }}>{peakDay.day}</Text> is your highest-spend day ({f0(peakDay.total)} total, avg {f0(peakDay.avg)}/txn)
-                        </Text>
-                    </View>
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
-                                <Icon name="pie-chart" size={18} color="#f59e0b" />
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
+                                    <Icon name="pie-chart" size={18} color="#f59e0b" />
+                                </View>
+                                <Text style={styles.cardTitle}>{pattern?.weekend_weekday_spend}</Text>
                             </View>
-                            <Text style={styles.cardTitle}>Weekend vs Weekday Spending</Text>
+                        </View>
+                        <View style={styles.wkendContainer}>
+                            <View style={styles.wkendDonut}>
+                                <View style={styles.wkendSegment} />
+                                <View style={styles.wkendCenter}>
+                                    <Text style={styles.wkendCenterValue}>{wkendPct}%</Text>
+                                    <Text style={styles.wkendCenterLabel}>{pattern?.weekend}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.wkendStats}>
+                                <View style={styles.wkendStat}>
+                                    <Text style={[styles.wkendStatValue, { color: '#6366f1' }]}>{f0(wkdayTotal)}</Text>
+                                    <Text style={styles.wkendStatLabel}>{pattern?.weekday}</Text>
+                                </View>
+                                <View style={styles.wkendStat}>
+                                    <Text style={[styles.wkendStatValue, { color: '#f97316' }]}>{f0(wkendTotal)}</Text>
+                                    <Text style={styles.wkendStatLabel}>{pattern?.weekend}</Text>
+                                </View>
+                            </View>
                         </View>
                     </View>
-                    <View style={styles.wkendContainer}>
-                        <View style={styles.wkendDonut}>
-                            <View style={styles.wkendSegment} />
-                            <View style={styles.wkendCenter}>
-                                <Text style={styles.wkendCenterValue}>{wkendPct}%</Text>
-                                <Text style={styles.wkendCenterLabel}>Weekend</Text>
-                            </View>
-                        </View>
-                        <View style={styles.wkendStats}>
-                            <View style={styles.wkendStat}>
-                                <Text style={[styles.wkendStatValue, { color: '#6366f1' }]}>{f0(wkdayTotal)}</Text>
-                                <Text style={styles.wkendStatLabel}>Weekday</Text>
-                            </View>
-                            <View style={styles.wkendStat}>
-                                <Text style={[styles.wkendStatValue, { color: '#f97316' }]}>{f0(wkendTotal)}</Text>
-                                <Text style={styles.wkendStatLabel}>Weekend</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(239,68,68,.15)' }]}>
-                                <Icon name="dollar-sign" size={18} color="#ef4444" />
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(239,68,68,.15)' }]}>
+                                    <Icon name="dollar-sign" size={18} color="#ef4444" />
+                                </View>
+                                <Text style={styles.cardTitle}>{pattern?.atm_bank_fee}</Text>
                             </View>
-                            <Text style={styles.cardTitle}>ATM & Bank Fees</Text>
+                        </View>
+                        <View style={styles.feeContainer}>
+                            <View style={styles.feeItem}>
+                                <Text style={styles.feeLabel}>{pattern?.atm_withdraw}</Text>
+                                <Text style={[styles.feeValue, { color: '#f59e0b' }]}>{f0(data?.atm_total)}</Text>
+                                <Text style={styles.feeSub}>{data?.atm_count} {pattern?.transaction}</Text>
+                            </View>
+                            <View style={styles.feeDivider} />
+                            <View style={styles.feeItem}>
+                                <Text style={styles.feeLabel}>{pattern?.bank_fees}</Text>
+                                <Text style={[styles.feeValue, { color: '#f97316' }]}>{f$(data?.fee_total)}</Text>
+                                <Text style={styles.feeSub}>{pattern?.this_period}</Text>
+                            </View>
                         </View>
                     </View>
-                    <View style={styles.feeContainer}>
-                        <View style={styles.feeItem}>
-                            <Text style={styles.feeLabel}>ATM Withdrawals</Text>
-                            <Text style={[styles.feeValue, { color: '#f59e0b' }]}>{f0(data.atm_total)}</Text>
-                            <Text style={styles.feeSub}>{data.atm_count} transactions</Text>
-                        </View>
-                        <View style={styles.feeDivider} />
-                        <View style={styles.feeItem}>
-                            <Text style={styles.feeLabel}>Bank Fees Paid</Text>
-                            <Text style={[styles.feeValue, { color: '#ef4444' }]}>{f$(data.fee_total)}</Text>
-                            <Text style={styles.feeSub}>this period</Text>
-                        </View>
-                    </View>
-                </View>
-            </Animated.View>
-        );
+                </Animated.View>
+            );
+        }
+
     };
 
 
@@ -999,116 +1330,117 @@ export default function Insights() {
 
     // ─── DEBT & LOANS TAB ────────────────────────────────────
     const DebtLoansTab = () => {
-        const cash_advance_apps = data?.debt_data?.cash_advance_apps || []
-        const payday_loans = data?.debt_data?.payday_loans || []
-        const p2p_transfers = data?.debt_data?.p2p_transfers || []
-        const totalCashAdvance = cash_advance_apps.reduce((sum, item) => sum + item.amount, 0);
-        const totalPaydayLoan = payday_loans.reduce((sum, item) => sum + item.amount, 0);
-        const spend_ratio = data.total_out / Math.max(data.total_in, 1);
-        const xfer_out = data?.xfer_out || 0
-        const total_out = data?.total_out || 0
-        const percentagetotaldebit = Math.round(xfer_out / Math.max(xfer_out + total_out, 1) * 100)
-        const netbalance = Math.abs(data?.net) || 0
+        if (data) {
+            const cash_advance_apps = data?.debt_data?.cash_advance_apps || []
+            const payday_loans = data?.debt_data?.payday_loans || []
+            const p2p_transfers = data?.debt_data?.p2p_transfers || []
+            const totalCashAdvance = cash_advance_apps.reduce((sum, item) => sum + item.amount, 0);
+            const totalPaydayLoan = payday_loans.reduce((sum, item) => sum + item.amount, 0);
+            const spend_ratio = data?.total_out / Math.max(data?.total_in, 1);
+            const xfer_out = data?.xfer_out || 0
+            const total_out = data?.total_out || 0
+            const percentagetotaldebit = Math.round(xfer_out / Math.max(xfer_out + total_out, 1) * 100)
+            const netbalance = Math.abs(data?.net) || 0
 
-        return (
-            <Animated.View style={{ opacity: fadeAnim }}>
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
-                                <Icon name="smartphone" size={18} color="#f59e0b" />
-                            </View>
-                            <Text style={styles.cardTitle}>Cash Advance Apps</Text>
-                        </View>
-                        <Text style={styles.cardBadge}>${totalCashAdvance}</Text>
-                    </View>
-
-                    {0 < cash_advance_apps?.length ?
-                        cash_advance_apps.map((app, i) => (
-                            <View key={i} style={styles.debtItem}>
-                                <View style={styles.debtLeft}>
-                                    <View style={[styles.debtIcon, { backgroundColor: '#f59e0b20' }]}>
-                                        <Icon name="dollar-sign" size={16} color="#f59e0b" />
-                                    </View>
-                                    <View style={styles.debtInfo}>
-                                        <Text style={styles.debtName}>{app.name}</Text>
-                                        <Text style={styles.debtMeta}>Fee: ${app.fee} · {app.date}</Text>
-                                    </View>
+            return (
+                <Animated.View style={{ opacity: fadeAnim }}>
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(245,158,11,.15)' }]}>
+                                    <Icon name="smartphone" size={18} color="#f59e0b" />
                                 </View>
-                                <Text style={[styles.debtAmount, { color: '#ef4444' }]}>-${app.amount}</Text>
+                                <Text style={styles.cardTitle}>{debtloan?.cashAdvance}</Text>
                             </View>
-                        )) :
-                        <View style={{ marginTop: 10 }}>
-                            <Text style={[styles.cardTitle, { fontSize: getFontSize(13), fontWeight: 'normal' }]}>No cash advance app activity detected.</Text>
-                        </View>}
-                </View>
-
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(239,68,68,.15)' }]}>
-                                <Icon name="alert-circle" size={18} color="#ef4444" />
-                            </View>
-                            <Text style={styles.cardTitle}>Payday Loan Activity</Text>
+                            <Text style={styles.cardBadge}>${totalCashAdvance}</Text>
                         </View>
-                        <Text style={styles.cardBadge}>${totalPaydayLoan}</Text>
-                    </View>
 
-                    {
-                        0 < payday_loans?.length ?
-                            payday_loans.map((loan, i) => (
+                        {0 < cash_advance_apps?.length ?
+                            cash_advance_apps.map((app, i) => (
                                 <View key={i} style={styles.debtItem}>
                                     <View style={styles.debtLeft}>
-                                        <View style={[styles.debtIcon, { backgroundColor: '#ef444420' }]}>
-                                            <Icon name="file-text" size={16} color="#ef4444" />
+                                        <View style={[styles.debtIcon, { backgroundColor: '#f59e0b20' }]}>
+                                            <Icon name="dollar-sign" size={16} color="#f59e0b" />
                                         </View>
                                         <View style={styles.debtInfo}>
-                                            <Text style={styles.debtName}>{loan.name}</Text>
-                                            <Text style={styles.debtMeta}>Fee: ${loan.fee} · {loan.date}</Text>
+                                            <Text style={styles.debtName}>{app.name}</Text>
+                                            <Text style={styles.debtMeta}>Fee: ${app.fee} · {app.date}</Text>
                                         </View>
                                     </View>
-                                    <Text style={[styles.debtAmount, { color: '#ef4444' }]}>-${loan.amount}</Text>
+                                    <Text style={[styles.debtAmount, { color: '#f97316' }]}>-${app.amount}</Text>
                                 </View>
                             )) :
                             <View style={{ marginTop: 10 }}>
-                                <Text style={[styles.cardTitle, { fontSize: getFontSize(13), fontWeight: 'normal' }]}>No payday loan activity detected</Text>
-                            </View>
-                    }
-                </View>
-
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                            <View style={[styles.cardIcon, { backgroundColor: 'rgba(99,102,241,.15)' }]}>
-                                <Icon name="send" size={18} color="#6366f1" />
-                            </View>
-                            <Text style={styles.cardTitle}>P2P Transfer Activity</Text>
-                        </View>
+                                <Text style={[styles.cardTitle, { fontSize: getFontSize(13), fontWeight: 'normal' }]}>{debtloan?.noCashapp}</Text>
+                            </View>}
                     </View>
 
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(239,68,68,.15)' }]}>
+                                    <Icon name="alert-circle" size={18} color="#ef4444" />
+                                </View>
+                                <Text style={styles.cardTitle}>{debtloan?.payDayLoan}</Text>
+                            </View>
+                            <Text style={styles.cardBadge}>${totalPaydayLoan}</Text>
+                        </View>
 
-                    <View style={[styles.p2pStatsRow,{paddingTop:20,paddingBottom:20}]}>
-                        <View style={styles.p2pStat}>
-                            <Text style={styles.p2pStatValue}>{storedata?.currency}{CommonFunction.formatamount(xfer_out)}</Text>
-                            <Text style={styles.p2pStatLabel}>Transfer Volume</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.p2pStat}>
-                            <Text style={[styles.p2pStatValue, { color: '#f59e0b' }]}>{percentagetotaldebit}%</Text>
-                            <Text style={styles.p2pStatLabel}>% of Total Debits</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.p2pStat}>
-                            <Text style={[styles.p2pStatValue, { color: data?.net < 0 ? '#ef4444' : '#10b981' }]}>
-                                {data?.net < 0 ? '-' : ''}{storedata?.currency}{CommonFunction.formatamount(netbalance)}
-                            </Text>
-                            <Text style={styles.p2pStatLabel}>Net Balance</Text>
-                        </View>
+                        {
+                            0 < payday_loans?.length ?
+                                payday_loans.map((loan, i) => (
+                                    <View key={i} style={styles.debtItem}>
+                                        <View style={styles.debtLeft}>
+                                            <View style={[styles.debtIcon, { backgroundColor: '#ef444420' }]}>
+                                                <Icon name="file-text" size={16} color="#ef4444" />
+                                            </View>
+                                            <View style={styles.debtInfo}>
+                                                <Text style={styles.debtName}>{loan.name}</Text>
+                                                <Text style={styles.debtMeta}>Fee: ${loan.fee} · {loan.date}</Text>
+                                            </View>
+                                        </View>
+                                        <Text style={[styles.debtAmount, { color: '#f97316' }]}>-${loan.amount}</Text>
+                                    </View>
+                                )) :
+                                <View style={{ marginTop: 10 }}>
+                                    <Text style={[styles.cardTitle, { fontSize: getFontSize(13), fontWeight: 'normal' }]}>{debtloan?.noPayday}</Text>
+                                </View>
+                        }
                     </View>
 
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.cardHeaderLeft}>
+                                <View style={[styles.cardIcon, { backgroundColor: 'rgba(99,102,241,.15)' }]}>
+                                    <Icon name="send" size={18} color="#6366f1" />
+                                </View>
+                                <Text style={styles.cardTitle}>{debtloan?.p2pTransfer}</Text>
+                            </View>
+                        </View>
 
 
-                    {/* <View style={styles.p2pStatsRow}>
+                        <View style={[styles.p2pStatsRow, { paddingTop: 20, paddingBottom: 20 }]}>
+                            <View style={styles.p2pStat}>
+                                <Text style={styles.p2pStatValue}>{storedata?.currency}{CommonFunction.formatamount(xfer_out)}</Text>
+                                <Text style={styles.p2pStatLabel}>{debtloan?.transaferVolume}</Text>
+                            </View>
+                            <View style={styles.statDivider} />
+                            <View style={styles.p2pStat}>
+                                <Text style={[styles.p2pStatValue, { color: '#f59e0b' }]}>{percentagetotaldebit}%</Text>
+                                <Text style={styles.p2pStatLabel}>{debtloan?.totaldebits}</Text>
+                            </View>
+                            <View style={styles.statDivider} />
+                            <View style={styles.p2pStat}>
+                                <Text style={[styles.p2pStatValue, { color: data?.net < 0 ? '#f97316' : '#4CAF50' }]}>
+                                    {data?.net < 0 ? '-' : ''}{storedata?.currency}{CommonFunction.formatamount(netbalance)}
+                                </Text>
+                                <Text style={styles.p2pStatLabel}>{debtloan?.netBalance}</Text>
+                            </View>
+                        </View>
+
+
+
+                        {/* <View style={styles.p2pStatsRow}>
                             <View style={styles.p2pStat}>
                                 <Text style={styles.p2pStatValue}>${p2p_transfers.total_volume}</Text>
                                 <Text style={styles.p2pStatLabel}>Transfer Volume</Text>
@@ -1120,33 +1452,35 @@ export default function Insights() {
                             </View>
                             <View style={styles.statDivider} />
                             <View style={styles.p2pStat}>
-                                <Text style={[styles.p2pStatValue, { color: p2p_transfers.net_balance < 0 ? '#ef4444' : '#10b981' }]}>
+                                <Text style={[styles.p2pStatValue, { color: p2p_transfers.net_balance < 0 ? '#f97316' : '#4CAF50' }]}>
                                     {p2p_transfers.net_balance < 0 ? '-' : ''}${Math.abs(p2p_transfers.net_balance).toLocaleString()}
                                 </Text>
                                 <Text style={styles.p2pStatLabel}>Net Balance</Text>
                             </View>
                         </View> */}
 
-                    {0 < p2p_transfers?.length &&
-                        p2p_transfers?.transfers.map((transfer, i) => (
-                            <View key={i} style={styles.p2pItem}>
-                                <View style={styles.p2pLeft}>
-                                    <View style={[styles.p2pIcon, { backgroundColor: transfer.type === 'sent' ? '#ef444420' : '#10b98120' }]}>
-                                        <Icon name={transfer.type === 'sent' ? 'arrow-up' : 'arrow-down'} size={16} color={transfer.type === 'sent' ? '#ef4444' : '#10b981'} />
+                        {0 < p2p_transfers?.length &&
+                            p2p_transfers?.transfers.map((transfer, i) => (
+                                <View key={i} style={styles.p2pItem}>
+                                    <View style={styles.p2pLeft}>
+                                        <View style={[styles.p2pIcon, { backgroundColor: transfer.type === 'sent' ? '#ef444420' : '#10b98120' }]}>
+                                            <Icon name={transfer.type === 'sent' ? 'arrow-up' : 'arrow-down'} size={16} color={transfer.type === 'sent' ? '#f97316' : '#4CAF50'} />
+                                        </View>
+                                        <View style={styles.p2pInfo}>
+                                            <Text style={styles.p2pName}>{transfer.to}</Text>
+                                            <Text style={styles.p2pMeta}>{transfer.date}</Text>
+                                        </View>
                                     </View>
-                                    <View style={styles.p2pInfo}>
-                                        <Text style={styles.p2pName}>{transfer.to}</Text>
-                                        <Text style={styles.p2pMeta}>{transfer.date}</Text>
-                                    </View>
+                                    <Text style={[styles.p2pAmount, { color: transfer.type === 'sent' ? '#f97316' : '#4CAF50' }]}>
+                                        {transfer.type === 'sent' ? '-' : '+'}${Math.abs(transfer.amount)}
+                                    </Text>
                                 </View>
-                                <Text style={[styles.p2pAmount, { color: transfer.type === 'sent' ? '#ef4444' : '#10b981' }]}>
-                                    {transfer.type === 'sent' ? '-' : '+'}${Math.abs(transfer.amount)}
-                                </Text>
-                            </View>
-                        ))}
-                </View>
-            </Animated.View>
-        );
+                            ))}
+                    </View>
+                </Animated.View>
+            );
+        }
+
 
 
     };
@@ -1159,7 +1493,7 @@ export default function Insights() {
         if (data?.recent_txns?.length > 0) {
             const [filter, setFilter] = useState('all');
 
-            const filteredTransactions = data.recent_txns.filter(txn => {
+            const filteredTransactions = data?.recent_txns.filter(txn => {
                 if (filter === 'all') return true;
                 if (filter === 'income') return txn.type === 'income';
                 if (filter === 'payroll') return txn.category === 'Income' && txn.desc.includes('Payroll');
@@ -1168,10 +1502,10 @@ export default function Insights() {
             });
 
             const filterOptions = [
-                { id: 'all', label: 'All', icon: 'list' },
-                { id: 'income', label: 'Income', icon: 'trending-up' },
-                { id: 'payroll', label: 'Payroll', icon: 'briefcase' },
-                { id: 'flagged', label: 'Flagged', icon: 'flag' },
+                { id: 'all', label: transaction?.all, icon: 'list' },
+                { id: 'income', label: transaction?.income, icon: 'trending-up' },
+                { id: 'payroll', label: transaction?.payroll, icon: 'briefcase' },
+                { id: 'flagged', label: transaction?.flag, icon: 'flag' },
             ];
 
             return (
@@ -1201,18 +1535,18 @@ export default function Insights() {
                                     <Icon name="credit-card" size={18} color="#6366f1" />
                                 </View>
                                 <Text style={styles.cardTitle}>
-                                    {filter === 'all' ? 'All Transactions' :
-                                        filter === 'income' ? 'Income Transactions' :
-                                            filter === 'payroll' ? 'Payroll Transactions' : 'Flagged Transactions'}
+                                    {filter === 'all' ? transaction?.alltrans :
+                                        filter === 'income' ? transaction?.incometrans :
+                                            filter === 'payroll' ? transaction?.payrolltrans : transaction?.flagtrans}
                                 </Text>
                             </View>
-                            <Text style={styles.cardBadge}>{filteredTransactions.length}</Text>
+                            {/* <Text style={styles.cardBadge}>{filteredTransactions.length}</Text> */}
                         </View>
 
                         {filteredTransactions.length === 0 ? (
                             <View style={styles.emptyState}>
                                 <Icon name="inbox" size={40} color="#94A3B8" />
-                                <Text style={styles.emptyStateText}>No transactions found</Text>
+                                <Text style={styles.emptyStateText}>{transaction?.norecord}</Text>
                             </View>
                         ) : (
                             filteredTransactions.map((txn, i) => (
@@ -1224,7 +1558,7 @@ export default function Insights() {
                                             <Icon
                                                 name={txn.type === 'income' ? 'arrow-down' : 'arrow-up'}
                                                 size={16}
-                                                color={txn.type === 'income' ? '#10b981' : '#ef4444'}
+                                                color={txn.type === 'income' ? '#4CAF50' : '#f97316'}
                                             />
                                         </View>
                                         <View style={styles.txnInfo}>
@@ -1236,10 +1570,11 @@ export default function Insights() {
                                                     </View>
                                                 )}
                                             </View>
-                                            <Text style={styles.txnMeta}>{txn.category} · {txn.date}</Text>
+
+                                            <Text style={styles.txnMeta}>{dateFormat(txn.date)}</Text>
                                         </View>
                                     </View>
-                                    <Text style={[styles.txnAmount, { color: txn.type === 'income' ? '#10b981' : '#ef4444' }]}>
+                                    <Text style={[styles.txnAmount, { color: txn.type === 'income' ? '#4CAF50' : '#f97316' }]}>
                                         {txn.type === 'income' ? '+' : ''}{f$(txn.amount)}
                                     </Text>
                                 </View>
@@ -1282,6 +1617,10 @@ export default function Insights() {
         }
     };
 
+    const handleMenuPress = useCallback(() => {
+        setMenuVisible(true);
+    }, []);
+
     return (
         <WorkflowScreen
             settingKey={WORKFLOW_CONSTANT.INSIGHTS}
@@ -1289,7 +1628,7 @@ export default function Insights() {
             title="Insights"
             screenName="Insights"
         >
-            <ScreenLayout title="Insights" back={false}>
+            <ScreenLayout title="Insights" back={true}>
                 <View style={styles.safeArea}>
                     {
                         renderFilterSection()
@@ -1305,6 +1644,7 @@ export default function Insights() {
 
                     </Animated.ScrollView>
                 </View>
+
             </ScreenLayout>
         </WorkflowScreen>
 
@@ -1627,6 +1967,7 @@ const styles = StyleSheet.create({
     scoreBarRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginTop: 5,
         marginBottom: 10,
     },
     scoreBarLabel: {
@@ -1680,7 +2021,8 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     quickStatLabel: {
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(12),
+        marginTop: 5,
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
     },
@@ -1691,6 +2033,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 12,
+        marginTop: 15
     },
     sectionTitle: {
         fontSize: getFontSize(16),
@@ -1742,14 +2085,15 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     alertMsg: {
-        fontSize: getFontSize(13),
+        fontSize: getFontSize(14),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: 2,
     },
     alertDetail: {
-        fontSize: getFontSize(12),
+        fontSize: getFontSize(13),
+        marginTop: 5,
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
     },
@@ -1784,9 +2128,10 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     tipBody: {
-        fontSize: getFontSize(12),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
+        marginTop: 5,
         lineHeight: 18,
     },
 
@@ -1857,7 +2202,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     categoryNameText: {
-        fontSize: getFontSize(13),
+        fontSize: getFontSize(14),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '500',
         color: '#0F172A',
@@ -1868,13 +2213,13 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     categoryTotal: {
-        fontSize: getFontSize(13),
+        fontSize: getFontSize(14),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '600',
         color: '#0F172A',
     },
     categoryAvg: {
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(12),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
     },
@@ -1883,6 +2228,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F1F5F9',
         borderRadius: 2,
         overflow: 'hidden',
+        marginTop: 5
     },
     categoryBarFill: {
         height: '100%',
@@ -1894,7 +2240,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 8,
-        marginTop: 5,
+        marginTop: 10,
         gap: 8,
     },
     merchantRank: {
@@ -1925,7 +2271,7 @@ const styles = StyleSheet.create({
         left: 10,
         top: '50%',
         transform: [{ translateY: -7 }],
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '500',
         color: '#0F172A',
@@ -1935,7 +2281,7 @@ const styles = StyleSheet.create({
         right: 10,
         top: '50%',
         transform: [{ translateY: -7 }],
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '700',
         color: '#0F172A',
@@ -1993,15 +2339,16 @@ const styles = StyleSheet.create({
         fontSize: getFontSize(14),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '700',
-        color: '#10b981',
+        color: '#4CAF50',
     },
 
     // ─── Income vs Spending ──────────────────────────────
     incomeVsItem: {
         marginBottom: 12,
+        marginTop: 10
     },
     incomeVsLabel: {
-        fontSize: getFontSize(12),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '600',
         color: '#0F172A',
@@ -2013,7 +2360,8 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         position: 'relative',
         overflow: 'hidden',
-        marginBottom: 4,
+        marginBottom: 5,
+        marginTop: 5,
     },
     incomeVsBar: {
         height: '100%',
@@ -2024,19 +2372,19 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     incomeVsIn: {
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
-        color: '#10b981',
+        color: '#4CAF50',
         fontWeight: '500',
     },
     incomeVsOut: {
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
-        color: '#ef4444',
+        color: '#f97316',
         fontWeight: '500',
     },
     incomeVsNet: {
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '600',
     },
@@ -2068,10 +2416,10 @@ const styles = StyleSheet.create({
     },
     tableRow: {
         flexDirection: 'row',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 6,
-        minWidth: '100%',
+        alignItems: 'center',
+        borderRadius: 12,
+        marginBottom: 1,
+        marginTop: 10
     },
     tableRowEven: {
         backgroundColor: '#F8FAFC',
@@ -2116,13 +2464,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     accountName: {
-        fontSize: getFontSize(13),
+        fontSize: getFontSize(14),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '600',
         color: '#0F172A',
     },
     accountMeta: {
-        fontSize: getFontSize(11),
+        fontSize: getFontSize(12),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
     },
@@ -2135,7 +2483,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     accountBalanceLabel: {
-        fontSize: getFontSize(10),
+        fontSize: getFontSize(12),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
     },
@@ -2165,12 +2513,12 @@ const styles = StyleSheet.create({
         minHeight: 4,
     },
     dowLabel: {
-        fontSize: getFontSize(10),
+        fontSize: getFontSize(11),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '500',
     },
     dowValue: {
-        fontSize: getFontSize(8),
+        fontSize: getFontSize(9),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
     },
@@ -2232,7 +2580,7 @@ const styles = StyleSheet.create({
         color: '#64748B',
     },
     wkendStats: {
-        flexDirection: 'row',
+
         gap: 20,
     },
     wkendStat: {
@@ -2246,6 +2594,7 @@ const styles = StyleSheet.create({
     wkendStatLabel: {
         fontSize: getFontSize(11),
         fontFamily: fontsFamily.regularFont,
+        marginTop: 5,
         color: '#64748B',
     },
 
@@ -2259,21 +2608,23 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
     },
     feeLabel: {
-        fontSize: getFontSize(12),
+        fontSize: getFontSize(13),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
-        marginBottom: 4,
+
     },
     feeValue: {
         fontSize: getFontSize(18),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '700',
+        marginTop: 5,
+        marginBottom: 5
     },
     feeSub: {
-        fontSize: getFontSize(10),
+        fontSize: getFontSize(11),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
-        marginTop: 2,
+
     },
     feeDivider: {
         width: 1,
@@ -2450,7 +2801,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     txnDesc: {
-        fontSize: getFontSize(13),
+        fontSize: getFontSize(14),
         fontFamily: fontsFamily.regularFont,
         fontWeight: '500',
         color: '#0F172A',
@@ -2459,7 +2810,7 @@ const styles = StyleSheet.create({
         fontSize: getFontSize(11),
         fontFamily: fontsFamily.regularFont,
         color: '#64748B',
-        marginTop: 2,
+        marginTop: 5,
     },
     txnAmount: {
         fontSize: getFontSize(14),

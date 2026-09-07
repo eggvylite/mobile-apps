@@ -14,14 +14,14 @@ import { useSelector } from 'react-redux';
 import CloudImage from '../../../../../utill/CloudImage';
 import useMarketplaceHook from '../../../../../hook/useOffersHook';
 import { mergeOffer } from '../../../../../utill/Utills';
+import useDashboardLablehook from '../../../../../hook/Labels/useDashboardLablehook';
 
 export default function BenefitsGrids(props) {
   const scrollRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
   const { filterOffers, filterCategory, filterHandpickOffers, dashboardOfferId } = useMarketplaceHook();
-  const { marketPlaceLabel } = useSelector((state) => state.labels || {});
-
+  const { marketlabels } = useDashboardLablehook()
 
   const handleScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -76,7 +76,7 @@ export default function BenefitsGrids(props) {
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.sectionTitle}>{marketPlaceLabel?.labels?.[0]?.message}</Text>
+      <Text style={styles.sectionTitle}>{marketlabels?.beyond_cash_benefits}</Text>
 
       <ScrollView
         ref={scrollRef}

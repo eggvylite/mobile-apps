@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store, persistor } from "../redux/store/store";
 import { BASE_URL, socketurl } from "../service/environment";
 import { fetchCustomer } from "../redux/slices/customerSlice";
+import { fetchcolor } from "../redux/slices/appcolorSlice";
 
 
 
@@ -226,7 +227,7 @@ export const loginPIN = async (navigation, payload) => {
 
 }
 
-export const logoutApp = async (navigation, cusid) => {
+export const logoutApp = async (navigation, cusid, dispatch) => {
     try {
         const payload = {
             biostatus: "No"
@@ -239,7 +240,9 @@ export const logoutApp = async (navigation, cusid) => {
         });
         store.dispatch({ type: 'auth/logout' }); // reset Redux state
         persistor.purge();
+        // dispatch(fetchcolor())
         CommonFunction.logout(navigation)
+
     } catch (err) {
         throw err
     }

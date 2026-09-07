@@ -21,7 +21,7 @@ const ContributeGoalModel = ({ visible, onClose, selectedGoal, bankaccount, onSa
     const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
         mode: 'onBlur',
     });
-    const qucikamount = ['50', '100', '200', '200', '500']
+    const qucikamount = ['50', '100', '200', '300', '500']
 
 
 

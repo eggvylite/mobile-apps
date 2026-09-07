@@ -5,7 +5,7 @@ export const fetchScreenLabels = createAsyncThunk(
     "labels/fetchLabels",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await api.get("/dashboard/statements/45/labels");
+            const response = await api.get("labels/getlabels");
             return response?.data.records
         } catch (error) {
             return rejectWithValue(error.message);

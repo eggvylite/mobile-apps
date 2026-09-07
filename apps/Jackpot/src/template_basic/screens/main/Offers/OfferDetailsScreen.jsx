@@ -58,6 +58,7 @@ export default function OfferDetailsScreen() {
   const { storedata } = useSelector((state) => state.auth);
   const { marketplaceFeature } = useSelector((state) => state.marketplace);
   const { defbank, bankerror, bankloading } = useSelector((state) => state.bank);
+  const { cusDetails, loading, error } = useSelector((state) => state.customer);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
@@ -65,7 +66,7 @@ export default function OfferDetailsScreen() {
 
 
   useEffect(() => {
-        impressionClickCount()
+    impressionClickCount()
 
   }, [productData])
 
@@ -107,13 +108,34 @@ export default function OfferDetailsScreen() {
     return productData?.selling_price || 0;
   };
 
+
   const handleBuyNow = () => {
     if (isLoading) return;
 
     setIsLoading(true);
 
-    setTimeout(() => {
+
+
+
+
+    setTimeout(async () => {
       try {
+        // const payload = {
+        //   FirstName: cusDetails?.firstname,
+        //   LastName: cusDetails?.lastname,
+        //   PersonEmail: CommonFunction.decryptString(cusDetails?.email),
+        //   PersonMobilePhone: CommonFunction.decryptString(cusDetails?.phone),
+        //   DOB__pc: cusDetails?.dob,
+        //   ARS_Product_s__c: productData?.name,
+        //   PersonMailingStreet: cusDetails?.address,
+        //   PersonMailingCity: cusDetails?.city?.name,
+        //   PersonMailingState: cusDetails?.state?.name,
+        //   PersonMailingPostalCode: cusDetails?.zip?.zip,
+        //   PersonMailingCountry: "USA"
+        // }
+
+        // const res = await api.post('productfeature/arscreateCustomer',payload)
+        // console.log(res.data)
 
         const addonProducts = (productData.features || []).map((f, index) => {
           const featureDetail = marketplaceFeature?.find(mf => mf._id === f.value);
@@ -212,7 +234,7 @@ export default function OfferDetailsScreen() {
           pricing_content={productData?.pricing_content}
           sellingPrice={`${storedata?.currency}${productData?.selling_price}`}
           renewalDate={getRenewalDate(productData?.expiry)}
-          renewSellingPrice={`${storedata?.currency}${productData?.selling_price}/month`}
+          renewSellingPrice={`${storedata?.currency}${productData?.selling_price}`}
         />
 
       </View>

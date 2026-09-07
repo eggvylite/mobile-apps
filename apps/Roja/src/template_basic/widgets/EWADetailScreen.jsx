@@ -4,7 +4,7 @@ import {
   StyleSheet,
   Text,
   View,
-    TouchableOpacity,
+  TouchableOpacity,
   ScrollView,
 
   StatusBar,
@@ -19,6 +19,10 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TopBar from '../component/TopBar';
 import { appName } from '../../service/environment';
+import useWorkFlowLabelsManagement from '../../hook/Labels/useewaDetailsHooks';
+import appLog from '../../constants/logger';
+import CommonIcon from '../../common_component/Commonicons';
+import CloudImage from '../../utill/CloudImage';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +30,9 @@ const EWADetailScreen = () => {
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const { mainHeaderContent, featureHowItWorks, whatIsEWAContent, useOfEWAFeatureContent } = useWorkFlowLabelsManagement()
+
+
 
   useEffect(() => {
     Animated.parallel([
@@ -48,7 +55,7 @@ const EWADetailScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}edges={['left','right','top']} >
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']} >
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
@@ -56,6 +63,7 @@ const EWADetailScreen = () => {
         showBack={true}
         onBackPress={handleBackPress}
       />
+
 
       <Animated.ScrollView
         style={[styles.scrollView, { opacity: fadeAnim }]}
@@ -67,221 +75,195 @@ const EWADetailScreen = () => {
           <View style={styles.heroCard}>
             {/* Character Image */}
             <View style={styles.heroCharacterContainer}>
-              <Image
-                source={require('../../../assets/images/ewa-character.png')}
-                style={styles.heroCharacterImage}
-                resizeMode="contain"
-              />
+              {mainHeaderContent?.fimage ?
+                <CloudImage
+                  resizeMode="contain"
+                  style={styles.heroCharacterImage}
+                  cloudSource={mainHeaderContent?.fimage}
+                /> : <Image
+                  source={require('../../../assets/images/ewa-character.png')}
+                  style={styles.heroCharacterImage}
+                  resizeMode="contain"
+                />
+              }
+
             </View>
 
             {/* Content */}
             <View style={styles.heroContent}>
-              <Text style={styles.heroTitle}>Earned Wage Access</Text>
+              <Text style={styles.heroTitle}>{mainHeaderContent?.title ?? ''}</Text>
               <Text style={styles.heroDescription}>
-                Access a portion of the wages you've already earned before your scheduled payday.
+                {
+                  mainHeaderContent?.description ?? ""
+                }
+
               </Text>
             </View>
           </View>
         </View>
 
-        {/* What is EWA? Section */}
+
         <View style={styles.whatIsCard}>
-          <Text style={styles.whatIsTitle}>What is EWA?</Text>
+          <Text style={styles.whatIsTitle}>{mainHeaderContent?.head ?? ''}</Text>
           <Text style={styles.whatIsDescription}>
-            Earned Wage Access (EWA) lets you access a portion of the wages you've already earned before your scheduled payday.
+            {mainHeaderContent?.information ?? ''}
           </Text>
-          <View style={styles.notLoanContainer}>
-            <FontAwesome name="check-circle" size={16} color="#10B981" />
-            <Text style={styles.notLoanText}>
-              It's not a loan—you're simply accessing money you've already worked for.
-            </Text>
-          </View>
+          {
+            0 < mainHeaderContent?.notes?.length && <View style={styles.notLoanContainer}>
+              <FontAwesome name="check-circle" size={16} color="#10B981" />
+              <Text style={styles.notLoanText}>
+                {
+                  mainHeaderContent?.notes[0]?.label ?? ''
+                }
+              </Text>
+            </View>
+          }
+
+
         </View>
 
         {/* Steps Section */}
         <View style={styles.stepsCard}>
-          <Text style={styles.stepsTitle}>How It Works</Text>
+          <Text style={styles.stepsTitle}>{featureHowItWorks?.title}</Text>
 
-          {/* Step 1 */}
-          <View style={styles.stepContainer}>
-            <View style={styles.stepNumberContainer}>
-              <LinearGradient
-                colors={['#5A21F1', '#3e16ac']}
-                style={styles.stepNumber}
-              >
-                <Text style={styles.stepNumberText}>1</Text>
-              </LinearGradient>
-              <View style={styles.stepLine} />
-            </View>
-            <View style={styles.stepContent}>
-              <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>Work Your Scheduled Hours</Text>
-              </View>
-              <Text style={styles.stepDescription}>
-                Your available earned wages are calculated based on the hours you've worked.
-              </Text>
-            </View>
-          </View>
+          {
+            0 < featureHowItWorks?.features?.length &&
+            <View style={[styles.stepContainer, { flexDirection: 'column' }]}>
+              {
+                featureHowItWorks?.features?.map((item, index) => {
+                  const isLast = index === (featureHowItWorks?.features?.length ?? 0) - 1;
+                  return (
+                    <View key={index} style={{ flexDirection: 'row', padding: 10 }}>
+                      <View style={styles.stepNumberContainer}>
+                        <LinearGradient
+                          colors={['#5A21F1', '#3e16ac']}
+                          style={styles.stepNumber}
+                        >
+                          <Text style={styles.stepNumberText}>{index + 1}</Text>
+                        </LinearGradient>
+                        {
+                          !isLast && <View style={styles.stepLine} />
+                        }
 
-          {/* Step 2 */}
-          <View style={styles.stepContainer}>
-            <View style={styles.stepNumberContainer}>
-              <LinearGradient
-                colors={['#5A21F1', '#3e16ac']}
-                style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </LinearGradient>
-              <View style={styles.stepLine} />
-            </View>
-            <View style={styles.stepContent}>
-              <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>Request an Advance</Text>
-              </View>
-              <Text style={styles.stepDescription}>
-                Request an advance anytime and receive your funds quickly.
-              </Text>
-            </View>
-          </View>
+                      </View>
+                      <View style={styles.stepContent}>
+                        <View style={styles.stepHeader}>
+                          <Text style={styles.stepTitle}>{item?.title ?? ''}</Text>
+                        </View>
+                        <Text style={styles.stepDescription}>
+                          {item?.description ?? ''}
+                        </Text>
+                      </View>
+                    </View>
+                  )
+                })
+              }
 
-          {/* Step 3 */}
-          <View style={styles.stepContainer}>
-            <View style={styles.stepNumberContainer}>
-              <LinearGradient
-                colors={['#5A21F1', '#3e16ac']}
-                style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>3</Text>
-              </LinearGradient>
             </View>
-            <View style={styles.stepContent}>
-              <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>Automatic Settlement</Text>
-              </View>
-              <Text style={styles.stepDescription}>
-                The amount is automatically settled on your next payday.
-              </Text>
-            </View>
-          </View>
+          }
+
+
         </View>
 
-        {/* Why Use EWA Section */}
-        <View style={styles.benefitsCard}>
-          <Text style={styles.benefitsTitle}>Why Use EWA?</Text>
+        {
+          whatIsEWAContent && <View style={styles.benefitsCard}>
+            <Text style={styles.benefitsTitle}>{whatIsEWAContent?.title ?? ''}</Text>
 
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#EDE9FE' }]}>
-              <FontAwesome name="clock-o" size={16} color="#5A21F1" />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitName}>Access Anytime</Text>
-              <Text style={styles.benefitDesc}>Access your earned money whenever you need it</Text>
-            </View>
+            {
+              0 < whatIsEWAContent?.features?.length && <View>
+                {
+                  whatIsEWAContent?.features?.map((item, index) => {
+                    return (
+                      <View key={index}>
+                        <View style={styles.benefitItem}>
+                          <View style={[styles.benefitIcon, { backgroundColor: item?.bgcolor }]}>
+
+                            <CommonIcon name={item?.icon} family={item?.family} size={16} color={item?.iconcolor} />
+                          </View>
+                          <View style={styles.benefitContent}>
+                            <Text style={styles.benefitName}>{item?.title ?? ''}</Text>
+                            <Text style={styles.benefitDesc}>{item?.description ?? ''}</Text>
+                          </View>
+                        </View>
+
+                      </View>
+                    )
+                  })
+                }
+              </View>
+            }
+
+
           </View>
+        }
 
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#FEE2E2' }]}>
-              <FontAwesome name="money" size={16} color="#EF4444" />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitName}>Avoid Payday Loans</Text>
-              <Text style={styles.benefitDesc}>Expensive payday loans are no longer necessary</Text>
-            </View>
+
+
+        {
+          useOfEWAFeatureContent && <View style={styles.wellnessCard}>
+            <Text style={styles.wellnessTitle}>{useOfEWAFeatureContent?.title ?? ''}</Text>
+            <Text style={styles.wellnessDescription}>
+              {useOfEWAFeatureContent?.description ?? ''}
+            </Text>
+
+            {
+              0 < useOfEWAFeatureContent?.features?.length && <View >
+                {
+                  useOfEWAFeatureContent?.features?.map((item, index) => {
+                    return (
+                      <View style={styles.wellnessItem} key={index}>
+                        <View style={styles.wellnessIconContainer}>
+                          <CommonIcon name={item?.icon} family={item?.family} size={18} color={item?.iconcolor} />
+                        </View>
+                        <View style={styles.wellnessContent}>
+                          <Text style={styles.wellnessItemTitle}>{item?.title ?? ''}</Text>
+                          <Text style={styles.wellnessItemDesc}>{item?.description ?? ''}</Text>
+                        </View>
+                      </View>
+                    )
+                  })
+                }
+
+              </View>
+            }
+
           </View>
+        }
 
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#FEF3C7' }]}>
-              <FontAwesome name="exclamation-triangle" size={16} color="#F59E0B" />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitName}>Handle Emergencies</Text>
-              <Text style={styles.benefitDesc}>Cover unexpected expenses with ease</Text>
-            </View>
-          </View>
 
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#D1FAE5' }]}>
-              <FontAwesome name="credit-card" size={16} color="#10B981" />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitName}>No Credit Impact</Text>
-              <Text style={styles.benefitDesc}>No impact on your credit score for standard EWA access</Text>
-            </View>
-          </View>
-
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#E0E7FF' }]}>
-              <FontAwesome name="lock" size={16} color="#6366F1" />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitName}>Secure & Transparent</Text>
-              <Text style={styles.benefitDesc}>Secure and transparent access to your wages</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Financial Wellness Section */}
-        <View style={styles.wellnessCard}>
-          <Text style={styles.wellnessTitle}>Stay in Control</Text>
-          <Text style={styles.wellnessDescription}>
-            {appName} helps you take control of your finances with tools designed for your success.
-          </Text>
-
-          <View style={styles.wellnessItem}>
-            <View style={styles.wellnessIconContainer}>
-              <FontAwesome name="bar-chart" size={18} color="#5A21F1" />
-            </View>
-            <View style={styles.wellnessContent}>
-              <Text style={styles.wellnessItemTitle}>Track Your Spending</Text>
-              <Text style={styles.wellnessItemDesc}>Monitor where your money goes</Text>
-            </View>
-          </View>
-
-          <View style={styles.wellnessItem}>
-            <View style={styles.wellnessIconContainer}>
-              <FontAwesome name="exchange" size={18} color="#5A21F1" />
-            </View>
-            <View style={styles.wellnessContent}>
-              <Text style={styles.wellnessItemTitle}>Monitor Cash Flow</Text>
-              <Text style={styles.wellnessItemDesc}>Understand your income and expenses</Text>
-            </View>
-          </View>
-
-          <View style={styles.wellnessItem}>
-            <View style={styles.wellnessIconContainer}>
-              <FontAwesome name="heart" size={18} color="#5A21F1" />
-            </View>
-            <View style={styles.wellnessContent}>
-              <Text style={styles.wellnessItemTitle}>Build Healthy Habits</Text>
-              <Text style={styles.wellnessItemDesc}>Develop better financial behaviors</Text>
-            </View>
-          </View>
-
-          <View style={styles.wellnessItem}>
-            <View style={styles.wellnessIconContainer}>
-              <FontAwesome name="lightbulb-o" size={18} color="#5A21F1" />
-            </View>
-            <View style={styles.wellnessContent}>
-              <Text style={styles.wellnessItemTitle}>Discover Products</Text>
-              <Text style={styles.wellnessItemDesc}>Find financial products that fit your needs</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Got It Button */}
-        <TouchableOpacity
-          style={styles.getStartedButton}
-          onPress={handleBackPress}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#5A21F1', '#3e16ac']}
-            style={styles.getStartedGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+        {
+          0 < useOfEWAFeatureContent?.notes?.length ? <TouchableOpacity
+            style={styles.getStartedButton}
+            onPress={handleBackPress}
+            activeOpacity={0.8}
           >
-            <Text style={styles.getStartedText}>Got It</Text>
-{/*             <FontAwesome name="arrow-right" size={18} color="#FFFFFF" /> */}
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#5A21F1', '#3e16ac']}
+              style={styles.getStartedGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.getStartedText}>{useOfEWAFeatureContent?.notes[0]?.label ?? ''}</Text>
+
+            </LinearGradient>
+          </TouchableOpacity> :
+            <TouchableOpacity
+              style={styles.getStartedButton}
+              onPress={handleBackPress}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#5A21F1', '#3e16ac']}
+                style={styles.getStartedGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.getStartedText}>Got It</Text>
+
+              </LinearGradient>
+            </TouchableOpacity>
+        }
+
 
         <View style={styles.bottomPadding} />
       </Animated.ScrollView>
@@ -532,7 +514,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 18,
     marginBottom: 16,
-    marginTop:10,
+    marginTop: 10,
   },
   wellnessItem: {
     flexDirection: 'row',
@@ -576,7 +558,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height:50,
+    height: 50,
     gap: 8,
 
   },

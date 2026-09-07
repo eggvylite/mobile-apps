@@ -92,6 +92,7 @@ export default function SelectSubscriptionPaymentMethod({ route }) {
   }, [paymentMethods, selectedMethod]);
 
   const onSubmit = async (data) => {
+      setIsSubmitting(true);
     const noSpaceCardNumber = data.cardNumber.replace(/\s+/g, '');
     const [month, year] = data.expiryDate.split('/');
 
@@ -128,7 +129,12 @@ export default function SelectSubscriptionPaymentMethod({ route }) {
 
   const handleGetAdvance = async () => {
     if (!selectedMethod) {
-      CommonFunction.message('Please select a payment method', 'danger');
+      if (0 < paymentMethods.length) {
+        CommonFunction.message('Please select a payment method', 'danger');
+      } else {
+        CommonFunction.message('Add a Payment Method', 'danger');
+      }
+
       return;
     }
 
@@ -171,11 +177,14 @@ export default function SelectSubscriptionPaymentMethod({ route }) {
 
 
 
-  appLog.info(plan, '==plan')
 
   const purchasePlan = async () => {
     if (!selectedMethod) {
-      CommonFunction.message('Please select a payment method', 'danger');
+      if (0 < paymentMethods?.length) {
+        CommonFunction.message('Please select a payment method', 'danger');
+      } else {
+        CommonFunction.message('Add a Payment Method', 'danger');
+      }
       return;
     }
 

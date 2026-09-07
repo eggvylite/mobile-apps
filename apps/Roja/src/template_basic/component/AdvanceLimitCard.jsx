@@ -9,10 +9,11 @@ import CommonFunction from '../../utill/CommonFunction';
 import BaseModal from './BaseModel';
 import CashCard from './CashCard';
 import appLog from '../../constants/logger';
+import OutstandingCard from '../screens/main/dashboard/componets/OutstandingCard';
 
 const AdvanceLimitCard = () => {
   const navigation = useNavigation();
-
+  const { advhistory } = useSelector((state) => state.advancehistory || {});
   const { themeColors, storedata, formatAmount } = useDashboardUtils();
   const { subscription } = useSelector((state) => state.subscription || {});
   const { storedata: loginfo } = useSelector((state) => state.auth || {});
@@ -25,13 +26,25 @@ const AdvanceLimitCard = () => {
   if (cusDetails?.subscription === "Yes" || subscription?.status === "Active") {
     return (
       <View >
-        {
+        {/* {
           totalBill === 0 ? <CashCard type={'advance'} amount={activeSub?.plan_cash_upto} onClick={() => {
             navigation?.navigate('GetAdvance')
           }} /> : <CashCard type={'bill'} amount={totalBill} onClick={() => {
             navigation?.navigate('GetAdvance')
           }} />
-        }
+        } */}
+
+        <OutstandingCard
+          outstandingBalance={totalBill}
+          advanceCount={advhistory?.length || 0}
+          advanceHistory={advhistory}
+          totalAdvanceTaken={activeSub?.used_advance || 0}
+          maxAdvanceAmount={activeSub?.plan_cash_upto || 0}
+          isCarouselItem={true} />
+
+        {/* <CashCard type={'advance'} amount={activeSub?.plan_cash_upto} total={totalBill} onClick={() => {
+            navigation?.navigate('GetAdvance')
+          }} /> */}
 
 
       </View>

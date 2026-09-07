@@ -12,6 +12,7 @@ import { CommonActions } from '@react-navigation/native';
 import { privacyURL, termsURL } from "../service/environment";
 import { themeColors } from "../template_basic/Common";
 import useGeneralLabelsHook from "./Labels/useGenerallablehoo";
+import appLog from "../constants/logger";
 
 const ALWAYS_ENABLED_IDS = [
     '67482369b2253a1fd8a5b6af', // Profile
@@ -188,17 +189,11 @@ export const useMenuLogic = (visible, onClose, onGetStatement, navigation, forma
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await logoutApp(navigation, storedata?.id);
+                            await logoutApp(navigation, storedata?.id, dispatch);
                             onClose();
-                            navigation.dispatch(
-                                CommonActions.reset({
-                                    index: 0,
-                                    routes: [{ name: 'Login' }],
-                                })
-                            );
                         } catch (error) {
-                            console.error('Logout error:', error);
-                            Alert.alert('Error', 'Failed to logout. Please try again.');
+                            appLog.error(error?.response?.data?.message)
+
                         }
                     }
                 }

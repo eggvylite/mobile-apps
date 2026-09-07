@@ -200,6 +200,7 @@ const AddGroupModal = ({ visible, onClose, gropdetails, onSave, type }) => {
 
     if (gropdetails?.entry_type && type === 'edit') {
       setGroupName(gropdetails?.category)
+      setSelectedIcon(gropdetails?.iconname || 'folder')
     } else {
       setGroupName('')
     }

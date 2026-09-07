@@ -1,10 +1,10 @@
-export const domain = 'stg';
+export const domain = 'demo';
 const environments = {
     live: "https://api.roja.one",
     stg: "https://stg-api.roja.one",
     dev: "https://dev.roja.one",
     beta: "https://beta.roja.one/server",
-    local: "http://192.168.29.85:3500",
+    local: "http://192.168.29.121:3500",
     demo: "https://demo-api.roja.one"
 };
 

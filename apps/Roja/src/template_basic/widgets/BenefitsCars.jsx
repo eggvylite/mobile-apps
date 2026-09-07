@@ -23,7 +23,8 @@ const BenefitSectionCard = React.memo(({ icon, title, description, color, iconCo
 const WageUserBenefitsCard = React.memo(({ data }) => (
   <View style={styles.wageBenefitsCard}>
 
-    <Text style={styles.wageBenefitsTitle}> {data?.head}</Text>
+    <Text style={styles.wageBenefitsTitle}>{data?.head}</Text>
+     <Text style={styles.wageBenefitstDesctiption}>{data?.information}</Text>
 
     {0 < data?.features?.length && data?.features?.map((benefit) => (
       <BenefitSectionCard
@@ -92,6 +93,12 @@ const styles = StyleSheet.create({
   wageBenefitsTitle: {
     fontSize: 18,
     fontFamily: fontsFamily.boldFont,
+    color: '#111827',
+
+  },
+  wageBenefitstDesctiption: {
+    fontSize: 14,
+    fontFamily: fontsFamily.regularFont,
     color: '#111827',
     marginBottom: 16,
   },

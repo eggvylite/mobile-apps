@@ -32,8 +32,11 @@ import { fetchHanpickoffers } from "../redux/slices/offerHandSlice";
 import { domain, socketurl } from "../service/environment";
 import { getLoginInfo } from "../service/storage";
 import { fetchGoalhis } from "../redux/slices/goalhisSlice";
-import { fetchWorkflowLabels, fetchWorkflowSettings } from "../redux/slices/workflowlableSilce";
+import { fetchWorkflowInfoLabels, fetchWorkflowLabels, fetchWorkflowSettings } from "../redux/slices/workflowlableSilce";
 import { fetchMarketplace, fetchMarketplaceCategory, fetchMarketplaceFeatures, fetchMarketplaceHandPickOffer } from "../redux/slices/merketplaceSlice";
+import appLog from "../constants/logger";
+import { fetchmenuSevice } from "../redux/slices/menuiconSlice";
+import { fetchScreenLabels } from "../redux/slices/applabelsSlice";
 
 export const SocketContext = createContext();
 
@@ -71,8 +74,24 @@ export const SocketProvider = ({ children }) => {
 
             newSocket.on("message", async (msg) => {
                 const storedUser = await getLoginInfo()
-                console.log(msg)
-                if (storedUser && msg.device_id === await CommonFunction.getDeviceID() && msg.phone === storedUser.phone) {
+                if (msg?.type === 'info') {
+                    dispatch(fetchmenuSevice())
+                    if (storedUser) {
+                        dispatch(fetchWorkflowLabels())
+                    }
+
+
+                    // // dispatch(fetchLabel())
+                    // dispatch(fetchScreenLabels())
+                }
+                else if (msg?.type === 'labels') {
+
+                    dispatch(fetchScreenLabels())
+                    dispatch(resetlabel())
+                    dispatch(fetchLabel())
+
+                }
+                else if (storedUser && msg.device_id === await CommonFunction.getDeviceID() && msg.phone === storedUser.phone) {
                     setMessage('logout');
                 } else if (msg === 'Theme') {
                     dispatch(fetchcolor())
@@ -81,6 +100,8 @@ export const SocketProvider = ({ children }) => {
                     dispatch(fetchTransaction(50))
                 } else if (msg === 'dashboard') {
                     dispatch(fetchDashboardmenu())
+                    dispatch(fetchmenuSevice())
+                    dispatch(fetchLabel())
                 } else if (msg === 'notification_labels') {
                     dispatch(fetchcustomNotication())
                 } else if ((msg?.type === 'bill' || msg?.type === 'reminders') && msg?.customer === storedUser?.id) {
@@ -143,12 +164,6 @@ export const SocketProvider = ({ children }) => {
                 } else if (msg?.type === 'Workflow') {
 
                     dispatch(fetchWorkflowSettings())
-                } else if (msg?.type === 'info') {
-
-                    dispatch(fetchWorkflowLabels())
-                } else if (msg?.type === 'info') {
-
-                    dispatch(fetchWorkflowLabels())
                 } else if (msg?.type === 'marketplace_offers') {
                     dispatch(fetchMarketplace());
                     dispatch(fetchMarketplaceCategory());
@@ -156,14 +171,15 @@ export const SocketProvider = ({ children }) => {
 
                 } else if (msg?.type === 'marketplace_features') {
                     dispatch(fetchMarketplaceFeatures())
-                } else if (msg?.type === 'labels') {
-                    console.log('yest ')
-                    dispatch(resetlabel())
-                    dispatch(fetchLabel())
+                } else if (msg?.type === "screens") {
+
+                    dispatch(fetchWorkflowLabels())
+                    dispatch(fetchWorkflowInfoLabels())
                 }
                 else {
 
                     console.log(msg)
+                    appLog.info('--last')
                     setMessage(msg);
                 }
 

@@ -313,30 +313,33 @@ const NotificationDestailsScreen = () => {
         ) : (
           renderEmptyState()
         )}
+
+        {isSelectionMode && selectedIds.length > 0 && (
+          <View style={styles.bottomActions}>
+            <TouchableOpacity
+              style={[styles.bottomActionBtn, styles.bottomActionBtnRed]}
+              onPress={handleDeleteSelected}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#EF4444', '#DC2626']}
+                style={styles.bottomActionGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Feather name="trash-2" size={18} color="#FFFFFF" />
+                <Text style={styles.bottomActionText}>Delete ({selectedIds.length})</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
       </Animated.View>
 
 
 
 
-      {isSelectionMode && selectedIds.length > 0 && (
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[styles.bottomActionBtn, styles.bottomActionBtnRed]}
-            onPress={handleDeleteSelected}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#EF4444', '#DC2626']}
-              style={styles.bottomActionGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Feather name="trash-2" size={18} color="#FFFFFF" />
-              <Text style={styles.bottomActionText}>Delete ({selectedIds.length})</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      )}
+
 
 
 
@@ -666,7 +669,7 @@ const styles = StyleSheet.create({
   bottomActions: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+  height:100,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',

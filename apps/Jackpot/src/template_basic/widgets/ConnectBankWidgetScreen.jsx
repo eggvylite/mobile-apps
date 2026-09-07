@@ -20,67 +20,13 @@ import appLog from '../../constants/logger';
 import CommonIcon from '../../themechg_template/component/Commonicons';
 import { appName } from '../../service/environment';
 import { fontsFamily } from '../../constants/fontsFamily';
+import { useSelector } from 'react-redux';
 
-const CONNECT_BANK_CONTENT = {
-    pill: 'Unlock more with ' + appName,
-    title: 'Connect your bank to unlock your financial advantages',
-    description:
-        'Securely connect your bank to see what you may qualify for and access powerful tools that help you manage your money with confidence.',
-    benefitsTitle: `What you can get with your ${appName} plan`,
-    benefits: [
-        {
-            icon: 'zap',
-            title: 'Earned Wage Access',
-            description: 'Access a portion of your earned wages when you qualify.',
-            color: '#EEF2FF',
-        },
-        {
-            icon: 'briefcase',
-            title: 'Budgeting Tools',
-            description: 'Plan, organize, and manage your everyday spending.',
-            color: '#E8F5E9',
-        },
-        {
-            icon: 'target',
-            title: 'Savings Goals',
-            description: 'Set goals and track your progress toward them.',
-            color: '#FFF3E0',
-        },
-        {
-            icon: 'shield',
-            title: 'Credit Monitoring',
-            description: 'Stay informed about changes to your credit.',
-            color: '#F3E5F5',
-        },
-        {
-            icon: 'bell',
-            title: 'Smart Alerts & Reminders',
-            description: 'Stay ahead of bills and help avoid NSF and overdraft fees.',
-            color: '#FCE4EC',
-        },
-        {
-            icon: 'pie-chart',
-            title: 'Spending Insights',
-            description: 'Understand where your money goes with personalized insights.',
-            color: '#E0F7FA',
-        },
-        {
-            icon: 'tag',
-            title: 'Handpicked Offers',
-            description: 'Discover offers chosen for you based on your transactions.',
-            color: '#F3E5F5',
-        },
-    ],
-    pricing: {
-        title: 'Simple Monthly Subscription',
-        highlight: '$10 monthly fee',
-        important: 'This is not interest or a fee for accessing your earned wages in advance.',
-        description:
-            `${appName} is a subscription service with a {highlight}. {important}—it is the cost of accessing your ${appName} membership and financial tools, including Earned Wage Access when you qualify.`,
-    },
-    buttonText: 'Connect Your Bank',
+export const replaceDynamicValues = (label, amount) => {
+    if (!label) return '';
+
+    return label.replace(/\$\{amount\}/g, String(amount));
 };
-
 
 const BenefitSectionCard = ({ icon, title, description, color, iconColor, family }) => (
     <View style={styles.benefitSectionCard}>
@@ -101,6 +47,11 @@ const BenefitSectionCard = ({ icon, title, description, color, iconColor, family
 
 
 const ConnectBankWidgetScreen = ({ connectBankData, onConnectBank }) => {
+    const { storedata } = useSelector((state) => state.auth);
+    const { plandata, planloading, planerror } = useSelector((state) => state.chooseplan);
+
+
+
     const renderConnectBankCard = () => (
         <View style={styles.connectBankCard}>
 
@@ -135,6 +86,7 @@ const ConnectBankWidgetScreen = ({ connectBankData, onConnectBank }) => {
 
             <View style={styles.connectBankBenefits}>
                 <Text style={styles.connectBankBenefitsTitle}>{connectBankData?.head ?? ''}</Text>
+                <Text style={styles.connectBankBenefitsinformation}>{connectBankData?.information ?? ''}</Text>
 
                 {0 < connectBankData?.features?.length && connectBankData?.features?.map((benefit, index) => (
                     <BenefitSectionCard
@@ -150,17 +102,35 @@ const ConnectBankWidgetScreen = ({ connectBankData, onConnectBank }) => {
                 ))}
             </View>
 
-            <View style={styles.connectBankPricing}>
-                <View style={styles.qualifiedPricingIconRow}>
-                    <FontAwesome5 name="credit-card" size={18} color="#3F2B96" />
-                    <Text style={styles.connectBankPricingTitle}>{CONNECT_BANK_CONTENT.pricing.title}</Text>
+            {
+                0 < connectBankData?.notes?.length && 0< plandata?.list?.length&&<View style={styles.connectBankPricing}>
+                    <View style={styles.qualifiedPricingIconRow}>
+                        <FontAwesome5 name="credit-card" size={18} color="#3F2B96" />
+                        <Text style={[styles.connectBankPricingTitle,{marginBottom:0}]}>{connectBankData?.notes[0]?.label ?? ''}</Text>
+                    </View>
+                    {
+                       0< plandata?.list?.length &&  <Text style={styles.connectBankPricingDescription}>
+                        {replaceDynamicValues(connectBankData?.notes[1]?.label ?? '', storedata?.currency + plandata?.list[0]?.fee)}
+                    </Text>
+                    }
+
+                    <View style={styles.noteContainer}>
+
+                        <View style={styles.qualifiedAvailableContent}>
+                            <Text style={[styles.qualifiedAvailableText, { color: '#fc6969', fontFamily: fontsFamily.semiboldFont }]}>
+                                Note:<Text style={[styles.qualifiedAvailableText, { color: '#fc6969', fontFamily: fontsFamily.regularFont }]}>
+                                    {connectBankData?.notes[2]?.label ?? ''}
+                                </Text>
+                            </Text>
+
+
+                        </View>
+
+                    </View>
+
                 </View>
-                <Text style={styles.connectBankPricingDescription}>
-                    {appName} is a subscription service with a <Text style={styles.connectBankPricingHighlight}>{CONNECT_BANK_CONTENT.pricing.highlight}</Text>.
-                    <Text style={styles.connectBankPricingImportant}> {CONNECT_BANK_CONTENT.pricing.important}</Text>
-                    —it is the cost of accessing your {appName} membership and financial tools, including Earned Wage Access when you qualify.
-                </Text>
-            </View>
+            }
+
         </View>
     );
 
@@ -199,7 +169,10 @@ const ConnectBankWidgetScreen = ({ connectBankData, onConnectBank }) => {
 
                         <>
                             <FontAwesome5 name="university" size={18} color="#FFF" />
-                            <Text style={styles.fixedBottomButtonText}>{CONNECT_BANK_CONTENT.buttonText}</Text>
+                            {
+                                0 < connectBankData?.notes?.length ? <Text style={styles.fixedBottomButtonText}>{connectBankData?.notes[3]?.label ?? ''}</Text>: <Text style={styles.fixedBottomButtonText}>Connect Bank</Text>
+                            }
+
                         </>
 
                     </LinearGradient>
@@ -229,7 +202,26 @@ const styles = StyleSheet.create({
         marginHorizontal: 16,
         marginBottom: 8
     },
+    noteContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: '#fff2f0',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 20,
 
+        marginTop: 10
+    },
+    note: {
+        color: 'red',
+        fontFamily: fontsFamily.semiboldFont,
+        fontSize: 14
+    },
+    notetext: {
+        color: 'red',
+        fontFamily: fontsFamily.regularFont,
+        fontSize: 14
+    },
     // ─── Benefit Section Card ──────────────────────────
     benefitSectionCard: {
         flexDirection: 'row',
@@ -359,6 +351,12 @@ const styles = StyleSheet.create({
     connectBankBenefitsTitle: {
         fontSize: 20,
         fontFamily: fontsFamily.boldFont,
+        color: '#111827',
+        marginBottom: 12,
+    },
+    connectBankBenefitsinformation: {
+        fontSize: 14,
+        fontFamily: fontsFamily.regularFont,
         color: '#111827',
         marginBottom: 12,
     },

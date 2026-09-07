@@ -1,6 +1,6 @@
 // src/screens/BudgetScreen.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, StatusBar, Modal, TextInput, ActivityIndicator, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, RefreshControl, StatusBar, Modal, TextInput, ActivityIndicator, Alert, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -23,6 +23,7 @@ import { getFontSize } from '../../../../constants/Font';
 import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
 import BudgetSkeleton from '../../../component/BudgetSkeleton.jsx';
 import WorkflowScreen from '../../../widgets/WorkflowScreen.jsx';
+import { useIsFocused } from '@react-navigation/native';
 
 
 const Budget = ({ navigation, route }) => {
@@ -54,6 +55,7 @@ const Budget = ({ navigation, route }) => {
   const dispatch = useDispatch()
   const [isLoading, setIsloading] = useState(false)
   const [chgRec, setChgrec] = useState('')
+  const isFocused = useIsFocused()
 
   const colors = ['#0A84FF', '#FF2D55', '#34C759', '#FF9F0A', '#F97316']
 
@@ -61,6 +63,16 @@ const Budget = ({ navigation, route }) => {
 
   const icon = ['home', 'grid', 'layers', 'package', 'archive', 'inbox', 'server', 'database',
     'folder', 'key', 'lock', 'unlock', 'shield', 'tool', 'hard-drive', 'box']
+
+
+
+  useEffect(() => {
+    setShowAddDropdown(false)
+    setShowGroupMenu(false)
+  }, [isFocused])
+
+
+
 
   useEffect(() => {
     if (budgetcategorydata) {
@@ -72,15 +84,17 @@ const Budget = ({ navigation, route }) => {
         setActiveCategoryTab(group[0]?.id)
       }
 
+
+
       var firstDate = storedata?.first_transaction || firstTransDate
       setCategoryGrp(group)
 
       const historyupdate = budgetcategorydata?.records.map((value, key) => {
         return {
           ...value,
-          color: colors[key] || null,
+          color:value?.lightColor || null,
           lightColor: lightcolor[key],
-          icon: icon[key],
+          icon:  value?.iconname || null,
           categories: value.categories.map(subvalue => {
             return {
               ...subvalue,
@@ -102,10 +116,10 @@ const Budget = ({ navigation, route }) => {
     return (groupData.records || []).map((value, index) => ({
       groupname: value.category,
       group_id: value.group_id,
-      color: colors[index] || null,
+      color: value?.lightColor || colors[index] || null,
       lightColor: lightcolor[index] || null,
       id: value.id,
-      icon: icon[index] || null,
+      icon: value?.iconname || icon[index] || null,
       entry_type: value?.entry_type,
     }));
   };
@@ -207,6 +221,8 @@ const Budget = ({ navigation, route }) => {
         plan_id: budgetcategorydata?.plans?.id,
         type: "group"
       }
+
+      
       try {
         const res = await createbudgetgroup(payload)
         const mergedata = {
@@ -503,454 +519,475 @@ const Budget = ({ navigation, route }) => {
                   <Text style={styles.topAddButtonText}>Add Transaction</Text>
                 </TouchableOpacity>
               </View>
+
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 bounces={false}
+
               >
+                <Pressable onPress={() => {
+                  setShowAddDropdown(false)
+                  setShowAddGroupModal(false)
+                }}>
 
-                <LinearGradient
-                  colors={themeColors?.gradientColor}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.summaryCard}>
-                  <View style={styles.summaryHeader}>
-                    <Text style={styles.summaryTitle}>Monthly Summary</Text>
-                    <TouchableOpacity
-                      onPress={handleGlobalSetBudget}
-                      style={styles.addBudgetButton}>
-                      <Icon name="plus" size={16} color="#FFFFFF" />
-                      <Text style={styles.addBudgetButtonText}>Set Budget</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.summaryStats}>
-                    <View style={styles.summaryStat}>
-                      <Text style={styles.summaryStatLabel}>Planned Budget</Text>
-                      <Text style={styles.summaryStatValue}>
-                        {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthbudget || 0)}
-                      </Text>
+                  <LinearGradient
+                    colors={themeColors?.gradientColor}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                      <Text style={styles.summaryTitle}>Monthly Summary</Text>
+                      <TouchableOpacity
+                        onPress={handleGlobalSetBudget}
+                        style={styles.addBudgetButton}>
+                        <Icon name="plus" size={16} color="#FFFFFF" />
+                        <Text style={styles.addBudgetButtonText}>Set Budget</Text>
+                      </TouchableOpacity>
                     </View>
 
-                    <View style={styles.summaryStatDivider} />
+                    <View style={styles.summaryStats}>
+                      <View style={styles.summaryStat}>
+                        <Text style={styles.summaryStatLabel}>Planned Budget</Text>
+                        <Text style={styles.summaryStatValue}>
+                          {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthbudget || 0)}
+                        </Text>
+                      </View>
 
-                    <View style={styles.summaryStat}>
-                      <Text style={styles.summaryStatLabel}>Actual Spending</Text>
-                      <Text style={[styles.summaryStatValue, styles.spentValue]}>
-                        {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthspend || 0)}
-                      </Text>
-                    </View>
+                      <View style={styles.summaryStatDivider} />
 
-                    <View style={styles.summaryStatDivider} />
+                      <View style={styles.summaryStat}>
+                        <Text style={styles.summaryStatLabel}>Actual Spending</Text>
+                        <Text style={[styles.summaryStatValue, styles.spentValue]}>
+                          {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthspend || 0)}
+                        </Text>
+                      </View>
 
-                    <View style={styles.summaryStat}>
-                      <Text style={styles.summaryStatLabel}>Left to Spend</Text>
-                      <View>
-                        {
-                          groupDateils?.monthbalance >= 0 ?
-                            <Text
-                              style={[
-                                styles.summaryStatValue, styles.positiveValue
-                              ]}>
-                              {storedata?.currency}{CommonFunction.formatamount(Math.abs(groupDateils?.monthbalance) || 0)}
-                            </Text> :
-                            <View style={{ flexDirection: 'row' }}>
+                      <View style={styles.summaryStatDivider} />
+
+                      <View style={styles.summaryStat}>
+                        <Text style={styles.summaryStatLabel}>Left to Spend</Text>
+                        <View>
+                          {
+                            groupDateils?.monthbalance >= 0 ?
                               <Text
                                 style={[
-                                  styles.summaryStatValue, styles.negativeValue,
-                                ]}>
-                                -
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.summaryStatValue, styles.negativeValue,
+                                  styles.summaryStatValue, styles.positiveValue
                                 ]}>
                                 {storedata?.currency}{CommonFunction.formatamount(Math.abs(groupDateils?.monthbalance) || 0)}
-                              </Text>
-                            </View>
-                        }
+                              </Text> :
+                              <View style={{ flexDirection: 'row' }}>
+                                <Text
+                                  style={[
+                                    styles.summaryStatValue, styles.negativeValue,
+                                  ]}>
+                                  -
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.summaryStatValue, styles.negativeValue,
+                                  ]}>
+                                  {storedata?.currency}{CommonFunction.formatamount(Math.abs(groupDateils?.monthbalance) || 0)}
+                                </Text>
+                              </View>
+                          }
+                        </View>
+
                       </View>
-
                     </View>
-                  </View>
 
 
-                  <View style={{ marginStart: 15, marginEnd: 15, paddingBottom: 10 }}>
-                    {groupDateils?.monthbudget > 0 && (
-                      <View style={styles.overallProgressContainer}>
-                        <View style={styles.progressHeader}>
-                          <Text style={styles.summaryProgressLabel}>Overall Progress</Text>
-                          <Text style={styles.summaryProgressPercentage}>
-                            {Math.min(Math.round((groupDateils?.monthspend / groupDateils?.monthbudget) * 100), 100)}%
-                          </Text>
-                        </View>
-                        <View style={styles.summaryProgressTrack}>
-                          <View
-                            style={[
-                              styles.summaryProgressFill,
-                              {
-                                width: `${Math.min(
-                                  (groupDateils?.monthspend / groupDateils?.monthbudget) * 100,
-                                  100,
-                                )}%`,
-                                backgroundColor: groupDateils?.monthspend > groupDateils?.monthbudget ? '#DC2626' : '#4ADE80',
-                              },
-                            ]}
-                          />
-                        </View>
-                        <View style={styles.progressFooter}>
-                          <Text style={styles.summaryProgressFooterText}>
-                            {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthspend || 0)} of{' '}
-                            {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthbudget || 0)}
-                          </Text>
-                          {groupDateils?.monthspend > groupDateils?.monthbudget && (
-                            <View style={styles.overBudgetBadge}>
-                              <Icon name="alert-triangle" size={10} color="#DC2626" />
-                              <Text style={styles.overBudgetText}>
-                                Over by {storedata?.currency} {CommonFunction.formatamount(groupDateils?.monthbudget - groupDateils?.monthspend)}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                </LinearGradient>
-
-                <ScrollView
-                  style={styles.scrollView}
-                  contentContainerStyle={styles.scrollContent}
-                  showsVerticalScrollIndicator={false}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={refreshing}
-                      onRefresh={handleRefresh}
-                      tintColor="#0A84FF"
-                    />
-                  }>
-
-                  <View style={styles.categoriesHeader}>
-                    <Text style={styles.categoriesTitle}>Categories</Text>
-                    <View style={styles.addButtonContainer}>
-                      <TouchableOpacity
-                        onPress={() => setShowAddDropdown(!showAddDropdown)}>
-                        <LinearGradient
-                          colors={themeColors?.gradientColor} style={{ flexDirection: 'row', width: 100, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 }}>
-                          <Icon name="plus" size={18} color="#FFFFFF" />
-                          <Text style={styles.addMainButtonText}>Add</Text>
-                        </LinearGradient>
-
-                      </TouchableOpacity>
-
-
-                      {showAddDropdown && (
-                        <View style={styles.dropdownMenu}>
-                          <TouchableOpacity
-                            style={styles.dropdownItem}
-                            onPress={() => {
-                              setGrptye('add')
-                              setShowAddDropdown(false);
-                              setShowAddGroupModal(true);
-                            }}>
-                            <Icon name="grid" size={18} color="#3F2B96" />
-                            <Text style={styles.dropdownItemText}>Add Group</Text>
-                          </TouchableOpacity>
-                          <View style={styles.dropdownDivider} />
-                          <TouchableOpacity
-                            style={styles.dropdownItem}
-                            onPress={handleAddCategory}>
-                            <Icon name="plus-circle" size={18} color="#3F2B96" />
-                            <Text style={styles.dropdownItemText}>Add Category</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  <View style={styles.tabsWrapper}>
-                    <ScrollView
-                      ref={scrollViewRef}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.tabsScrollContent}>
-                      {categoryGrp.map(tab => {
-                        const isActive = activeCategoryTab === tab.id;
-                        return (
-                          <TouchableOpacity
-                            key={tab.id}
-                            style={[
-                              styles.horizontalTab,
-                              isActive && styles.activeHorizontalTab,
-                              { borderColor: isActive ? tab.color : '#E2E8F0' }
-                            ]}
-                            onPress={() => {
-                              setActiveCategoryTab(tab.id);
-                              scrollToTab(tab.id);
-                            }}>
+                    <View style={{ marginStart: 15, marginEnd: 15, paddingBottom: 10 }}>
+                      {groupDateils?.monthbudget > 0 && (
+                        <View style={styles.overallProgressContainer}>
+                          <View style={styles.progressHeader}>
+                            <Text style={styles.summaryProgressLabel}>Overall Progress</Text>
+                            <Text style={styles.summaryProgressPercentage}>
+                              {Math.min(Math.round((groupDateils?.monthspend / groupDateils?.monthbudget) * 100), 100)}%
+                            </Text>
+                          </View>
+                          <View style={styles.summaryProgressTrack}>
                             <View
                               style={[
-                                styles.horizontalTabIcon,
-                                { backgroundColor: isActive ? tab.lightColor : '#F1F5F9' },
-                              ]}>
-                              <Icon
-                                name={tab.icon}
-                                size={16}
-                                color={isActive ? tab.color : '#64748B'}
-                              />
-                            </View>
-                            <Text
-                              style={[
-                                styles.horizontalTabText,
-                                isActive && styles.activeHorizontalTabText,
-                                { color: isActive ? tab.color : '#64748B' }
-                              ]}>
-                              {tab.groupname}
+                                styles.summaryProgressFill,
+                                {
+                                  width: `${Math.min(
+                                    (groupDateils?.monthspend / groupDateils?.monthbudget) * 100,
+                                    100,
+                                  )}%`,
+                                  backgroundColor: groupDateils?.monthspend > groupDateils?.monthbudget ? '#DC2626' : '#4ADE80',
+                                },
+                              ]}
+                            />
+                          </View>
+                          <View style={styles.progressFooter}>
+                            <Text style={styles.summaryProgressFooterText}>
+                              {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthspend || 0)} of{' '}
+                              {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthbudget || 0)}
                             </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
+                            {groupDateils?.monthspend > groupDateils?.monthbudget && (
+                              <View style={styles.overBudgetBadge}>
+                                <Icon name="alert-triangle" size={10} color="#DC2626" />
+                                <Text style={styles.overBudgetText}>
+                                  Over by {storedata?.currency} {CommonFunction.formatamount(groupDateils?.monthbudget - groupDateils?.monthspend)}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+
+                  <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        tintColor="#0A84FF"
+                      />
+                    }>
+
+                    <View style={styles.categoriesHeader}>
+                      <Text style={styles.categoriesTitle}>Categories</Text>
+                      <View style={styles.addButtonContainer}>
+                        <TouchableOpacity
+                          onPress={() => setShowAddDropdown(!showAddDropdown)}>
+                          <LinearGradient
+                            colors={themeColors?.gradientColor} style={{ flexDirection: 'row', width: 100, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 }}>
+                            <Icon name="plus" size={18} color="#FFFFFF" />
+                            <Text style={styles.addMainButtonText}>Add</Text>
+                          </LinearGradient>
+
+                        </TouchableOpacity>
 
 
-                  <View style={styles.groupCard}>
-                    <View style={styles.groupHeader}>
-                      <View style={styles.groupTitleContainer}>
-                        <View
-                          style={[
-                            styles.groupIcon,
-                            { backgroundColor: '#3F2B9620' },
-                          ]}>
-                          <Icon
-                            name={'folder'}
-                            size={18}
-                            color={'#3F2B96'}
-                          />
+                        {showAddDropdown && (
+                          <View style={styles.dropdownMenu}>
+                            <TouchableOpacity
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setGrptye('add')
+                                setShowAddDropdown(false);
+                                setShowAddGroupModal(true);
+                              }}>
+                              <Icon name="grid" size={18} color="#3F2B96" />
+                              <Text style={styles.dropdownItemText}>Add Group</Text>
+                            </TouchableOpacity>
+                            <View style={styles.dropdownDivider} />
+                            <TouchableOpacity
+                              style={styles.dropdownItem}
+                              onPress={handleAddCategory}>
+                              <Icon name="plus-circle" size={18} color="#3F2B96" />
+                              <Text style={styles.dropdownItemText}>Add Category</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    <View style={styles.tabsWrapper}>
+                      <ScrollView
+                        ref={scrollViewRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.tabsScrollContent}>
+                        {categoryGrp.map(tab => {
+                          const isActive = activeCategoryTab === tab.id;
+                          return (
+                            <TouchableOpacity
+                              key={tab.id}
+                              style={[
+                                styles.horizontalTab,
+                                isActive && styles.activeHorizontalTab,
+                                { borderColor: isActive ? tab.color : '#E2E8F0' }
+                              ]}
+                              onPress={() => {
+                                setActiveCategoryTab(tab.id);
+                                scrollToTab(tab.id);
+                              }}>
+                              <View
+                                style={[
+                                  styles.horizontalTabIcon,
+                                  { backgroundColor:  '#F1F5F9' },
+                                ]}>
+                                <Icon
+                                  name={tab.icon}
+                                  size={16}
+                                  color={isActive ? tab.color : '#64748B'}
+                                />
+                              </View>
+                              <Text
+                                style={[
+                                  styles.horizontalTabText,
+                                  isActive && styles.activeHorizontalTabText,
+                                  { color: isActive ? tab.color : '#64748B' }
+                                ]}>
+                                {tab.groupname}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+
+
+                    <View style={styles.groupCard}>
+                      <View style={styles.groupHeader}>
+                        <View style={styles.groupTitleContainer}>
+                          <View
+                            style={[
+                              styles.groupIcon,
+                              { backgroundColor: '#3F2B9620' },
+                            ]}>
+                            <Icon
+                              name={groupDateils?.iconname || 'folder'}
+                              size={18}
+                              color={groupDateils?.color || '#3F2B96'}
+                            />
+                          </View>
+                          <View>
+                            <Text style={styles.groupName}>{groupDateils.category} Overview</Text>
+                            <Text style={styles.groupSubtitle}>
+                              {groupDateils.categories?.length || 0} categories
+                            </Text>
+                          </View>
                         </View>
-                        <View>
-                          <Text style={styles.groupName}>{groupDateils.category} Overview</Text>
-                          <Text style={styles.groupSubtitle}>
-                            {groupDateils.categories?.length || 0} categories
-                          </Text>
-                        </View>
+
+
+
+
+                        {groupDateils?.entry_type && (
+                          <View style={styles.groupMenuContainer}>
+                            <TouchableOpacity
+                              style={styles.groupMenuButton}
+                              onPress={() => setShowGroupMenu(!showGroupMenu)}>
+                              <Icon name="more-vertical" size={20} color="#64748B" />
+                            </TouchableOpacity>
+
+
+                            {showGroupMenu && (
+                              <View style={styles.groupDropdownMenu}>
+                                <TouchableOpacity
+                                  style={styles.groupDropdownItem}
+                                  onPress={() => {
+                                    setGrptye('edit')
+                                    setShowGroupMenu(false);
+                                    setShowAddGroupModal(true);
+                                  }}>
+                                  <Icon name="edit-2" size={18} color={themeColors?.primarColor} />
+                                  <Text style={styles.groupDropdownItemText}>Edit Group</Text>
+                                </TouchableOpacity>
+                                <View style={styles.groupDropdownDivider} />
+                                <TouchableOpacity
+                                  style={[styles.groupDropdownItem, styles.deleteItem]}
+                                  onPress={() => handleDeleteGroup()}>
+                                  <Icon name="trash-2" size={18} color="#DC2626" />
+                                  <Text style={[styles.groupDropdownItemText, styles.deleteText]}>Delete Group</Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+                        )}
                       </View>
 
+                      <View style={styles.groupStatsRow}>
+                        <View style={styles.groupStat}>
+                          <Text style={styles.groupStatLabel}>Planned Budget</Text>
+                          <Text style={styles.groupStatValue}>
+                            {storedata?.currency}{CommonFunction.formatamount(groupDateils?.budget || 0)}
+                          </Text>
+                        </View>
+                        <View style={styles.groupStatDivider} />
+                        <View style={styles.groupStat}>
+                          <Text style={styles.groupStatLabel}>Actual Spending</Text>
+                          <Text style={styles.groupStatValue}>
+                            {storedata?.currency}{CommonFunction.formatamount(groupDateils?.spend || 0)}
+                          </Text>
+                        </View>
+                        <View style={styles.groupStatDivider} />
+                        <View style={styles.groupStat}>
+                          <Text style={styles.groupStatLabel}>Left to Spend</Text>
+                          {
+                            groupDateils?.balanceamt >= 0 ? <Text
+                              style={[
+                                styles.groupStatValue,
+                                groupDateils?.balanceamt >= 0
+                                  ? styles.positiveText
+                                  : styles.negativeText,
+                              ]}>
+                              {storedata?.currency}{CommonFunction.formatamount(groupDateils?.balanceamt || 0)}
+                            </Text> : <Text
+                              style={[
+                                styles.groupStatValue,
+                                groupDateils?.balanceamt >= 0
+                                  ? styles.positiveText
+                                  : styles.negativeText,
+                              ]}>
+                              -{storedata?.currency}{CommonFunction.formatamount(Math.abs(groupDateils?.balanceamt || 0))}
+                            </Text>
+                          }
+
+                        </View>
+                      </View>
+                    </View>
 
 
+                    <View style={styles.categoriesContainer}>
 
-                      {groupDateils?.entry_type && (
-                        <View style={styles.groupMenuContainer}>
-                          <TouchableOpacity
-                            style={styles.groupMenuButton}
-                            onPress={() => setShowGroupMenu(!showGroupMenu)}>
-                            <Icon name="more-vertical" size={20} color="#64748B" />
-                          </TouchableOpacity>
+                      {groupDateils?.categories?.length > 0 && budgetCategory?.length > 0 ? (
+                        budgetCategory.map((group, key) => {
+                          return (
+                            <View key={key}>
+                              {
+                                group?.id === activeCategoryTab && group?.categories.length > 0 &&
+                                group?.categories.map((category, subkey) => {
+                                  const history = category?.history.find((obj) => obj.Month === apiDate(currentMonth))
+                                  const spentrec = statementByCategory[category?.category_id] ? statementByCategory[category?.category_id] : 0
+                                  const budgetamt = history?.budget || 0
+                                  const spentamt = spentrec?.spend || 0
+                                  const remainingamt = budgetamt - spentamt
+                                  const progressPercentage = history?.budget > 0 ? Math.min((spentamt / budgetamt) * 100, 100) : 0;
+                                  const isOverBudget = spentamt > budgetamt && budgetamt > 0;
+                                  const data = {
+                                    categoryid: category?.id,
+                                    category_id: category?.category_id,
+                                    group_id: groupDateils.group_id,
+                                    plan_id: groupDateils.plan_id,
+                                    date: currentMonth,
+                                    budget: budgetamt,
+                                    group_name: groupDateils?.category,
+                                    name: category?.category,
+                                    spentamt: spentamt,
+                                    remainingamt: remainingamt,
+                                    progressPercentage: progressPercentage,
+                                    entry_type: category?.entry_type || groupDateils?.entry_type || ''
+
+                                  }
 
 
-                          {showGroupMenu && (
-                            <View style={styles.groupDropdownMenu}>
-                              <TouchableOpacity
-                                style={styles.groupDropdownItem}
-                                onPress={() => {
-                                  setGrptye('edit')
-                                  setShowGroupMenu(false);
-                                  setShowAddGroupModal(true);
-                                }}>
-                                <Icon name="edit-2" size={18} color={themeColors?.primarColor} />
-                                <Text style={styles.groupDropdownItemText}>Edit Group</Text>
-                              </TouchableOpacity>
-                              <View style={styles.groupDropdownDivider} />
-                              <TouchableOpacity
-                                style={[styles.groupDropdownItem, styles.deleteItem]}
-                                onPress={() => handleDeleteGroup()}>
-                                <Icon name="trash-2" size={18} color="#DC2626" />
-                                <Text style={[styles.groupDropdownItemText, styles.deleteText]}>Delete Group</Text>
-                              </TouchableOpacity>
+                                  return (
+                                    <TouchableOpacity
+                                      key={category.id}
+                                      style={styles.categoryCard}
+                                      onPress={() => {
+                                        handleCategoryPress(data)
+                                      }}
+                                      activeOpacity={0.7}>
+                                      <View style={styles.categoryHeader}>
+                                        <View style={styles.categoryTitleSection}>
+                                          <Text style={styles.categoryName}>{category.category}</Text>
+                                        </View>
+
+                                        <View style={styles.categoryRightSection}>
+                                          {budgetamt > 0 ? (
+                                            <View style={styles.budgetPill}>
+                                              <Text style={styles.budgetPillText}>
+                                                {storedata?.currency}{CommonFunction.formatamount(budgetamt || 0)}
+                                              </Text>
+                                            </View>
+                                          ) : (
+                                            <TouchableOpacity
+                                              style={styles.headerSetBudgetButton}
+                                              onPress={() => {
+                                                handleSetBudget(data)
+                                              }}>
+                                              <Icon name="plus-circle" size={14} color="#3F2B96" />
+                                              <Text style={styles.headerSetBudgetText}>
+                                                Set Budget
+                                              </Text>
+                                            </TouchableOpacity>
+                                          )}
+                                          <Icon name="chevron-right" size={20} color="#94A3B8" />
+                                        </View>
+                                      </View>
+
+
+                                      {budgetamt > 0 && (
+                                        <View style={styles.categoryProgressSection}>
+                                          <View style={styles.categoryProgressHeader}>
+                                            <Text style={styles.categoryProgressLabel}>Spent</Text>
+                                            <Text
+                                              style={[
+                                                styles.categoryProgressPercentage,
+                                                isOverBudget && styles.overBudgetPercentage,
+                                              ]}>
+                                              {Math.round(progressPercentage)}%
+                                            </Text>
+                                          </View>
+                                          <View style={styles.categoryProgressTrack}>
+                                            <View
+                                              style={[
+                                                styles.categoryProgressFill,
+                                                {
+                                                  width: `${progressPercentage}%`,
+                                                  backgroundColor: isOverBudget
+                                                    ? '#DC2626'
+                                                    : '#3F2B96',
+                                                },
+                                              ]}
+                                            />
+                                          </View>
+                                          <View style={styles.categoryProgressFooter}>
+                                            <Text style={styles.categoryProgressFooterText}>
+                                              Spent {storedata?.currency}{CommonFunction.formatamount(spentamt)} of {storedata?.currency}{CommonFunction.formatamount(budgetamt)}
+                                            </Text>
+                                            {isOverBudget && (
+                                              <View style={styles.overBudgetBadge}>
+                                                <Icon
+                                                  name="alert-triangle"
+                                                  size={10}
+                                                  color="#DC2626"
+                                                />
+                                                <Text style={styles.overBudgetText}>
+                                                  Over by {storedata?.currency}{CommonFunction.formatamount(remainingamt)}
+                                                </Text>
+                                              </View>
+                                            )}
+                                          </View>
+                                        </View>
+                                      )}
+
+                                      {budgetamt == 0 && (
+                                        <View style={styles.categoryProgressSection}>
+                                          <View style={styles.categoryProgressHeader}>
+                                            <Text style={styles.categoryProgressLabel}>No Budget Set</Text>
+                                          </View>
+                                          <View style={styles.categoryProgressFooter}>
+                                            <Text style={styles.categoryProgressFooterText}>
+                                              Spent {storedata?.currency}{CommonFunction.formatamount(spentamt || 0)}
+                                            </Text>
+                                          </View>
+                                        </View>
+                                      )}
+                                    </TouchableOpacity>
+                                  )
+                                })
+
+                              }
                             </View>
-                          )}
+                          )
+
+                        })
+                      ) : (
+                        <View style={styles.emptyCategories}>
+                          <Icon name="folder" size={40} color="#94A3B8" />
+                          <Text style={styles.emptyTitle}>No categories yet</Text>
+                          <Text style={styles.emptyDescription}>
+                            Tap the + button above to add your first category
+                          </Text>
                         </View>
                       )}
                     </View>
 
-                    <View style={styles.groupStatsRow}>
-                      <View style={styles.groupStat}>
-                        <Text style={styles.groupStatLabel}>Planned Budget</Text>
-                        <Text style={styles.groupStatValue}>
-                          {storedata?.currency}{CommonFunction.formatamount(groupDateils?.budget || 0)}
-                        </Text>
-                      </View>
-                      <View style={styles.groupStatDivider} />
-                      <View style={styles.groupStat}>
-                        <Text style={styles.groupStatLabel}>Actual Spending</Text>
-                        <Text style={styles.groupStatValue}>
-                          {storedata?.currency}{CommonFunction.formatamount(groupDateils?.spend || 0)}
-                        </Text>
-                      </View>
-                      <View style={styles.groupStatDivider} />
-                      <View style={styles.groupStat}>
-                        <Text style={styles.groupStatLabel}>Left to Spend</Text>
-                        <Text
-                          style={[
-                            styles.groupStatValue,
-                            groupDateils?.balanceamt >= 0
-                              ? styles.positiveText
-                              : styles.negativeText,
-                          ]}>
-                          {storedata?.currency}{CommonFunction.formatamount(groupDateils?.balanceamt || 0)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-
-                  <View style={styles.categoriesContainer}>
-
-                    {groupDateils?.categories?.length > 0 && budgetCategory?.length > 0 ? (
-                      budgetCategory.map((group, key) => {
-                        return (
-                          <View key={key}>
-                            {
-                              group?.id === activeCategoryTab && group?.categories.length > 0 &&
-                              group?.categories.map((category, subkey) => {
-                                const history = category?.history.find((obj) => obj.Month === apiDate(currentMonth))
-                                const spentrec = statementByCategory[category?.category_id] ? statementByCategory[category?.category_id] : 0
-                                const budgetamt = history?.budget || 0
-                                const spentamt = spentrec?.spend || 0
-                                const remainingamt = budgetamt - spentamt
-                                const progressPercentage = history?.budget > 0 ? Math.min((spentamt / budgetamt) * 100, 100) : 0;
-                                const isOverBudget = spentamt > budgetamt && budgetamt > 0;
-                                const data = {
-                                  categoryid: category?.id,
-                                  category_id: category?.category_id,
-                                  group_id: groupDateils.group_id,
-                                  date: currentMonth,
-                                  budget: budgetamt,
-                                  group_name: groupDateils?.category,
-                                  name: category?.category,
-                                  spentamt: spentamt,
-                                  remainingamt: remainingamt,
-                                  progressPercentage: progressPercentage,
-                                  entry_type: category?.entry_type || ''
-                                }
-
-
-                                return (
-                                  <TouchableOpacity
-                                    key={category.id}
-                                    style={styles.categoryCard}
-                                    onPress={() => {
-                                      handleCategoryPress(data)
-                                    }}
-                                    activeOpacity={0.7}>
-                                    <View style={styles.categoryHeader}>
-                                      <View style={styles.categoryTitleSection}>
-                                        <Text style={styles.categoryName}>{category.category}</Text>
-                                      </View>
-
-                                      <View style={styles.categoryRightSection}>
-                                        {budgetamt > 0 ? (
-                                          <View style={styles.budgetPill}>
-                                            <Text style={styles.budgetPillText}>
-                                              {storedata?.currency}{CommonFunction.formatamount(budgetamt || 0)}
-                                            </Text>
-                                          </View>
-                                        ) : (
-                                          <TouchableOpacity
-                                            style={styles.headerSetBudgetButton}
-                                            onPress={() => {
-                                              handleSetBudget(data)
-                                            }}>
-                                            <Icon name="plus-circle" size={14} color="#3F2B96" />
-                                            <Text style={styles.headerSetBudgetText}>
-                                              Set Budget
-                                            </Text>
-                                          </TouchableOpacity>
-                                        )}
-                                        <Icon name="chevron-right" size={20} color="#94A3B8" />
-                                      </View>
-                                    </View>
-
-
-                                    {budgetamt > 0 && (
-                                      <View style={styles.categoryProgressSection}>
-                                        <View style={styles.categoryProgressHeader}>
-                                          <Text style={styles.categoryProgressLabel}>Spent</Text>
-                                          <Text
-                                            style={[
-                                              styles.categoryProgressPercentage,
-                                              isOverBudget && styles.overBudgetPercentage,
-                                            ]}>
-                                            {Math.round(progressPercentage)}%
-                                          </Text>
-                                        </View>
-                                        <View style={styles.categoryProgressTrack}>
-                                          <View
-                                            style={[
-                                              styles.categoryProgressFill,
-                                              {
-                                                width: `${progressPercentage}%`,
-                                                backgroundColor: isOverBudget
-                                                  ? '#DC2626'
-                                                  : '#3F2B96',
-                                              },
-                                            ]}
-                                          />
-                                        </View>
-                                        <View style={styles.categoryProgressFooter}>
-                                          <Text style={styles.categoryProgressFooterText}>
-                                            Spent {storedata?.currency}{CommonFunction.formatamount(spentamt)} of {storedata?.currency}{CommonFunction.formatamount(budgetamt)}
-                                          </Text>
-                                          {isOverBudget && (
-                                            <View style={styles.overBudgetBadge}>
-                                              <Icon
-                                                name="alert-triangle"
-                                                size={10}
-                                                color="#DC2626"
-                                              />
-                                              <Text style={styles.overBudgetText}>
-                                                Over by {storedata?.currency}{CommonFunction.formatamount(remainingamt)}
-                                              </Text>
-                                            </View>
-                                          )}
-                                        </View>
-                                      </View>
-                                    )}
-
-                                    {budgetamt == 0 && (
-                                      <View style={styles.categoryProgressSection}>
-                                        <View style={styles.categoryProgressHeader}>
-                                          <Text style={styles.categoryProgressLabel}>No Budget Set</Text>
-                                        </View>
-                                        <View style={styles.categoryProgressFooter}>
-                                          <Text style={styles.categoryProgressFooterText}>
-                                            Spent {storedata?.currency}{CommonFunction.formatamount(spentamt || 0)}
-                                          </Text>
-                                        </View>
-                                      </View>
-                                    )}
-                                  </TouchableOpacity>
-                                )
-                              })
-
-                            }
-                          </View>
-                        )
-
-                      })
-                    ) : (
-                      <View style={styles.emptyCategories}>
-                        <Icon name="folder" size={40} color="#94A3B8" />
-                        <Text style={styles.emptyTitle}>No categories yet</Text>
-                        <Text style={styles.emptyDescription}>
-                          Tap the + button above to add your first category
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.bottomPadding} />
-                </ScrollView>
+                    <View style={styles.bottomPadding} />
+                  </ScrollView>
+                </Pressable>
 
               </ScrollView>
+
               <TouchableOpacity
                 style={styles.fab}
                 onPress={handleAddTransaction}

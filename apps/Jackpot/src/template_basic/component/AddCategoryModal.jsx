@@ -1,5 +1,5 @@
 // src/components/AddCategoryModal.js
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,17 @@ import { fontsFamily } from '../../constants/fontsFamily';
 import { themeColors } from '../Common';
 import SubmitBtn from './SubmitBtn';
 
-const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName, loading }) => {
+const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName, loading,catname }) => {
   const [categoryName, setCategoryName] = useState('');
   const [error, setError] = useState('');
+
+
+
+  useEffect(()=>{
+    if(catname) {
+      setCategoryName(catname)
+    }
+  },[catname,visible])
 
   const handleSave = () => {
     if (!categoryName.trim()) {
@@ -45,7 +53,7 @@ const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName, loadin
         style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Category</Text>
+            <Text style={styles.modalTitle}>{catname ? 'Edit Category' :'Add Category'} </Text>
             <TouchableOpacity onPress={onClose}>
               <Icon name="x" size={22} color="#64748B" />
             </TouchableOpacity>
@@ -73,7 +81,7 @@ const AddCategoryModal = ({ visible, onClose, onSave, groupId, groupName, loadin
           </View>
 
           <SubmitBtn
-            text={loading ? 'Loading' : 'Add Category'}
+            text={loading ? 'Loading' : catname ? 'Update Category' :'Add Category'}
             submit={handleSave}
             disabled={loading}
             disableGradient={loading}

@@ -14,10 +14,12 @@ const { width, height } = Dimensions.get('window')
 import Icon from 'react-native-vector-icons/Feather';
 import HeaderIOS from '../../../common_component/HeaderIOS';
 import { checkalldevice, switchDevice } from '../../../constants/Loginapi';
+import useLoginLabels from '../../../hook/Labels/useLoginLabels';
 
 function SwitchDevice(props) {
     const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
+     const {  switchAccount,loadingmsg } = useLoginLabels()
 
     async function signout() {
         setLoading(true);
@@ -77,11 +79,11 @@ function SwitchDevice(props) {
                         <Text style={styles.subtitle}>{props?.route?.params?.message}</Text>
                         <View style={{ flexDirection: 'row', borderWidth: 2, borderColor: '#F2F2F2', padding: 10, borderRadius: 6 }}>
                             <View style={{ flex: 1, alignItems: 'center', borderRightWidth: 2, borderColor: '#F2F2F2', }}>
-                                <Text style={[styles.subtitle, { marginBottom: 10 }]}>Device</Text>
+                                <Text style={[styles.subtitle, { marginBottom: 10 }]}>{switchAccount.device}</Text>
                                 <Text style={[styles.title, { fontSize: getFontSize(16) }]}>{props?.route?.params?.deviceInfo?.device_name ? props?.route?.params?.deviceInfo?.device_name : "NA"}</Text>
                             </View>
                             <View style={{ flex: 1, alignItems: 'center' }}>
-                                <Text style={[styles.subtitle, { marginBottom: 10 }]}>Platform</Text>
+                                <Text style={[styles.subtitle, { marginBottom: 10 }]}>{switchAccount.platform}</Text>
                                 <Text style={[styles.title, { fontSize: getFontSize(16) }]}>{props?.route?.params?.deviceInfo?.platform ? props?.route?.params?.deviceInfo?.platform : "NA"}</Text>
                             </View>
                         </View>
@@ -89,20 +91,20 @@ function SwitchDevice(props) {
                             <TouchableOpacity style={{ flex: 1, alignItems: 'center', borderWidth: 2, borderRadius: 6, marginStart: 10, padding: 10, borderColor: '#F2F2F2', }} onPress={() => {
                                 props.navigation.navigate('Login')
                             }}>
-                                <Text style={[styles.title, { fontSize: getFontSize(16) }]}>Cancel</Text>
+                                <Text style={[styles.title, { fontSize: getFontSize(16) }]}>{switchAccount.cancel}</Text>
                             </TouchableOpacity>
 
                             {
                                 loading ? <TouchableOpacity style={{ flex: 1, alignItems: 'center', backgroundColor: themeColors.primarColor, borderRadius: 6, marginStart: 10, padding: 10, justifyContent: 'center' }} onPress={() => {
 
                                 }}>
-                                    <Text style={[styles.title, { fontSize: getFontSize(16), color: '#fff', marginBottom: 0 }]}>Loading... </Text>
+                                    <Text style={[styles.title, { fontSize: getFontSize(16), color: '#fff', marginBottom: 0 }]}>{loadingmsg}</Text>
                                 </TouchableOpacity> :
                                     <TouchableOpacity style={{ flex: 1, alignItems: 'center', backgroundColor: themeColors.primarColor, borderRadius: 6, marginStart: 10, padding: 10, justifyContent: 'center' }}
                                         onPress={() => {
                                             signout()
                                         }}>
-                                        <Text style={[styles.title, { fontSize: getFontSize(16), color: '#fff', marginBottom: 0 }]}>Sign Out</Text>
+                                        <Text style={[styles.title, { fontSize: getFontSize(16), color: '#fff', marginBottom: 0 }]}>{switchAccount.signout}</Text>
                                     </TouchableOpacity>
                             }
                         </View>

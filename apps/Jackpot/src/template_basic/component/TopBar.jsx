@@ -180,14 +180,14 @@ const TopBar = memo(({
         </View>
 
         <View style={styles.rightContainer}>
-          {cusDetails?.wagescount === 0 && (
+          {cusDetails?.wages !== 'Yes' && (
             <TouchableOpacity
               style={styles.ewaButton}
               onPress={() => navigation.navigate('EWADetailScreen')}
               activeOpacity={0.7}
             >
               {
-                storedata?.plan === 'Yes' ? 
+                storedata?.plan === 'Yes' ?
                   <View style={styles.ewaContent}>
                   <FontAwesome name="info-circle" size={22} color="#5A21F1" />
                 </View> :
@@ -224,13 +224,13 @@ const TopBar = memo(({
                 </View>
               </View>
               }
-          
+
             </TouchableOpacity>
           )}
 
           {
             type && storedata?.plan === 'Yes' &&
-             <TouchableOpacity 
+             <TouchableOpacity
             style={styles.advanceButton}
             onPress={() => navigation.navigate('GetAdvance')}
             activeOpacity={0.7}
@@ -240,8 +240,8 @@ const TopBar = memo(({
             </View>
           </TouchableOpacity>
           }
-            
-          
+
+
 
           {onExport && (
             <TouchableOpacity

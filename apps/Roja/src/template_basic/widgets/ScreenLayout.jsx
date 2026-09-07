@@ -24,7 +24,7 @@ const ScreenLayout = ({
         <View style={{ flex: 1 }}>
             <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
                 <StatusBar backgroundColor={'#F8FAFC'} />
-                <TopBar title={title || "Goals"} showBack={back} onBackPress={handleBack} />
+                <TopBar title={title || "Goals"} showBack={back} onBackPress={handleBack} navigation={navigation} />
                 {children}
             </SafeAreaView>
 

@@ -9,19 +9,11 @@ import { getFontSize } from '../../constants/Font';
 import { fontsFamily } from '../../constants/fontsFamily';
 import { themeColors } from '../Common';
 import { useDashboardUtils } from '../../hook/useDashboardUtils';
+import useDashboardLablehook from '../../hook/Labels/useDashboardLablehook';
 
 const { width } = Dimensions.get('window');
 
-// Mock data - showing both income and expenses for regular users
-const mockTransactions = [
-    { id: '1', date: '2026-01-20', description: 'Starbucks Coffee', amount: '$5.25', type: 'debit' },
-    { id: '2', date: '2026-01-19', description: 'Salary Deposit - TechCorp Inc.', amount: '$3,250.00', type: 'credit' },
-    { id: '3', date: '2026-01-18', description: 'Uber Ride', amount: '$12.50', type: 'debit' },
-    { id: '4', date: '2026-01-17', description: 'Amazon Purchase', amount: '$47.80', type: 'debit' },
-    { id: '5', date: '2026-01-16', description: 'Netflix Subscription', amount: '$15.99', type: 'debit' },
-    { id: '6', date: '2026-01-15', description: 'Salary Deposit - TechCorp Inc.', amount: '$3,250.00', type: 'credit' },
-    { id: '7', date: '2026-01-14', description: 'Grocery Store', amount: '$89.35', type: 'debit' },
-];
+
 
 const RecentTransaction = (props) => {
     const { accountdata, accountloading, defaccount, accounterror } = useSelector((state) => state.account);
@@ -31,6 +23,7 @@ const RecentTransaction = (props) => {
     const [accId, setaccId] = useState('')
     const [defbankid, setDefbankid] = useState('')
     const  {formatDate,formatTime} = useDashboardUtils()
+      const { transaction } = useDashboardLablehook()
 
 
     useEffect(() => {
@@ -94,7 +87,7 @@ const RecentTransaction = (props) => {
         <View style={styles.container}>
             <View style={[styles.header, { flexDirection: 'row' }]}>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>Recent Transactions</Text>
+                    <Text style={styles.title}>{transaction?.recent_transaction}</Text>
                 </View>
 
                 <TouchableOpacity
@@ -102,7 +95,7 @@ const RecentTransaction = (props) => {
                     onPress={() => {
                         props?.navigation.navigate('Statement')
                     }}>
-                    <Text style={styles.topAddButtonText}>View all</Text>
+                    <Text style={styles.topAddButtonText}>{transaction?.view_all}</Text>
                 </TouchableOpacity>
 
             </View>

@@ -14,6 +14,7 @@ import SubmitBtn from '../../../../component/SubmitBtn';
 import { getFontSize } from '../../../../../constants/Font';
 import { deftransactionimg } from '../../../../../constants/content';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
+import appLog from '../../../../../constants/logger';
 
 
 export default function AddReminder() {
@@ -76,53 +77,61 @@ export default function AddReminder() {
 
   const renderTransactionItem = ({ item }) => {
     const brandLogo = brandata?.Systemlogos?.find((b) => b.brand === item.description);
-    return (
-      <TouchableOpacity
-        style={styles.transactionCard}
-        onPress={() => navigateReminderForm(item)}
-        activeOpacity={0.8}
-      >
-        {/* Top Row: Icon, Title, Amount */}
-        <View style={styles.cardTopRow}>
-          <View style={styles.cardLeft}>
-            <LinearGradient
-              colors={['#EEF2FF', '#E0E7FF']}
-              style={styles.transactionIconContainer}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Image
-                source={brandLogo ? { uri: brandLogo?.logoUrl } : deftransactionimg}
-                resizeMode='contain'
-                style={{ height: 30, width: 30, borderRadius: 60 }} />
-            </LinearGradient>
-            <View style={styles.titleContainer}>
-              <Text style={styles.transactionTitle}>{item.category}</Text>
-              <Text style={styles.transactionCategory}>{item.description}</Text>
+
+    if (!item?.bill_id) {
+      return (
+        <TouchableOpacity
+          style={styles.transactionCard}
+          onPress={() => navigateReminderForm(item)}
+          activeOpacity={0.8}
+        >
+          {/* Top Row: Icon, Title, Amount */}
+          <View style={styles.cardTopRow}>
+            <View style={styles.cardLeft}>
+              <LinearGradient
+                colors={['#EEF2FF', '#E0E7FF']}
+                style={styles.transactionIconContainer}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Image
+                  source={brandLogo ? { uri: brandLogo?.logoUrl } : deftransactionimg}
+                  resizeMode='contain'
+                  style={{ height: 30, width: 30, borderRadius: 60 }} />
+              </LinearGradient>
+              <View style={styles.titleContainer}>
+                <Text style={styles.transactionTitle}>{item.category}</Text>
+                <Text style={styles.transactionCategory}>{item.description}</Text>
+              </View>
             </View>
-          </View>
-          <Text style={styles.transactionAmount}>{storedata?.currency}{CommonFunction.formatamount(item.amount || 0)}</Text>
-        </View>
-
-        {/* Bottom Row: Date and Link Button */}
-        <View style={styles.cardBottomRow}>
-          <View style={styles.dateContainer}>
-            <Feather name="clock" size={12} color="#94A3B8" />
-            <Text style={styles.transactionDate}>{formatDateTime(item.transacted_at)} {formatTime(item.transacted_at)}</Text>
+            <Text style={styles.transactionAmount}>{storedata?.currency}{CommonFunction.formatamount(item.amount || 0)}</Text>
           </View>
 
-          <SubmitBtn
-            style={{ height: 25, width: 80, borderRadius: 10 }}
-            iconName={'link'}
-            submit={() => {
-              navigateReminderForm(item)
-            }}
-            textStyle={{ fontSize: getFontSize(14) }}
-            text={'Link'} />
+          {/* Bottom Row: Date and Link Button */}
+          <View style={styles.cardBottomRow}>
+            <View style={styles.dateContainer}>
+              <Feather name="clock" size={12} color="#94A3B8" />
+              <Text style={styles.transactionDate}>{formatDateTime(item.transacted_at)} {formatTime(item.transacted_at)}</Text>
+            </View>
 
-        </View>
-      </TouchableOpacity>
-    )
+            {
+              <SubmitBtn
+                style={{ height: 25, width: 80, borderRadius: 10 }}
+                iconName={'link'}
+                submit={() => {
+                  navigateReminderForm(item)
+                }}
+                textStyle={{ fontSize: getFontSize(14) }}
+                text={'Link'} />
+            }
+
+
+
+          </View>
+        </TouchableOpacity>
+      )
+    }
+
   }
 
   return (
