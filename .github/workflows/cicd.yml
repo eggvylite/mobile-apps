@@ -212,7 +212,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
@@ -317,48 +317,45 @@ jobs:
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          set -euo pipefail
-
           python3 <<'PY'
           from pathlib import Path
-
+          
           path = Path("ios/Podfile")
-
+          
           if not path.exists():
               raise SystemExit("ERROR: ios/Podfile not found")
-
+          
           content = path.read_text()
-
-          marker = "installer.pods_project.targets.each do |target|"
-
+          
+          marker = "post_install do |installer|"
+          
           if marker not in content:
               raise SystemExit(
                   "ERROR: Could not find expected CocoaPods post_install marker."
               )
-
+          
           settings = '''
+            installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
                 config.build_settings["IPHONEOS_DEPLOYMENT_TARGET"] = "13.0"
                 config.build_settings["CLANG_CXX_LANGUAGE_STANDARD"] = "c++17"
                 config.build_settings["GCC_WARN_INHIBIT_ALL_WARNINGS"] = "YES"
                 config.build_settings["GCC_TREAT_WARNINGS_AS_ERRORS"] = "NO"
               end
+            end
           '''
-
+          
           if 'IPHONEOS_DEPLOYMENT_TARGET"] = "13.0"' not in content:
               content = content.replace(
                   marker,
                   marker + "\n" + settings,
                   1
               )
-
               path.write_text(content)
-
               print("Podfile patched.")
           else:
               print("Podfile already patched.")
           PY
-
 
       # ========================================================
       # COCOAPODS
@@ -378,7 +375,7 @@ jobs:
       # ========================================================
       # APPLE CERTIFICATE
       # ========================================================
-      - name: Import Apple Distribution Certificate
+      - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
@@ -388,6 +385,13 @@ jobs:
       # ========================================================
       # APP STORE PROVISIONING PROFILE
       # ========================================================
+      - name: Decode App Store API Key
+        run: |
+          echo "DECODED_API_KEY<<EOF" >> $GITHUB_ENV
+          echo "${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}" | base64 --decode | tr -d '\r' >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Download App Store Provisioning Profile
         uses: Apple-Actions/download-provisioning-profiles@v3
         with:
@@ -395,7 +399,27 @@ jobs:
           profile-type: IOS_APP_STORE
           issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
+          api-private-key: ${{ env.DECODED_API_KEY }}
+
+      - name: Debug Downloaded Profiles and Secrets
+        shell: bash
+        run: |
+          echo "Expected Bundle ID length: ${#APP_SECRETS_IOS_BUNDLE_ID}"
+          
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          
+          echo "--- Listing all downloaded profiles ---"
+          ls -la "$PROFILE_DIR" || echo "Directory is empty or missing. (Apple returned nothing)"
+          
+          echo "--- Checking Entitlements for downloaded profiles ---"
+          for file in "$PROFILE_DIR"/*.mobileprovision; do
+            if [ -f "$file" ]; then
+              echo "File: $(basename "$file")"
+              APP_ID=$(security cms -D -i "$file" 2>/dev/null | /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /dev/stdin 2>/dev/null || echo "None")
+              echo "Embedded App Identifier: $APP_ID"
+              echo "---------------------------"
+            fi
+          done
 
 
       # ========================================================
@@ -403,74 +427,94 @@ jobs:
       #
       # This avoids guessing the profile name.
       # ========================================================
-      - name: Resolve Provisioning Profile
+      - name: Find Provisioning Profile
         shell: bash
         run: |
           set -euo pipefail
-
+          
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-
+          
           if [ ! -d "$PROFILE_DIR" ]; then
             echo "ERROR: Provisioning Profiles directory not found."
             exit 1
           fi
-
-          PROFILE_FILE="$(
-            find "$PROFILE_DIR" \
-              -name "*.mobileprovision" \
-              -type f \
-              -print0 \
-            | xargs -0 -I{} sh -c '
-                security cms -D -i "{}" 2>/dev/null |
-                /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /dev/stdin 2>/dev/null |
-                grep -q "\.${APP_SECRETS_IOS_BUNDLE_ID}$" &&
-                echo "{}" &&
-                exit 0
-              ' \
-            | head -n 1
-          )"
-
+          
+          PROFILE_FILE=""
+          
+          # Iterate through downloaded profiles
+          while IFS= read -r -d '' file; do
+            # 1. Decode CMS message to a temporary plist file to avoid /dev/stdin pipe issues
+            security cms -D -i "$file" > temp_profile.plist 2>/dev/null || continue
+            
+            # 2. Check if the Bundle ID matches
+            if /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" temp_profile.plist 2>/dev/null | grep -q "\.${APP_SECRETS_IOS_BUNDLE_ID}$"; then
+              PROFILE_FILE="$file"
+              break
+            fi
+          done < <(find "$PROFILE_DIR" -name "*.mobileprovision" -type f -print0)
+          
           if [ -z "$PROFILE_FILE" ]; then
-            echo "ERROR: No provisioning profile found for:"
-            echo "$APP_SECRETS_IOS_BUNDLE_ID"
+            echo "ERROR: No provisioning profile found for: $APP_SECRETS_IOS_BUNDLE_ID"
             exit 1
           fi
-
-          PROFILE_UUID="$(
-            security cms -D -i "$PROFILE_FILE" |
-            /usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin
-          )"
-
-          PROFILE_NAME="$(
-            security cms -D -i "$PROFILE_FILE" |
-            /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin
-          )"
-
+          
+          # Extract metadata from the matched temp file
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c "Print :UUID" temp_profile.plist)"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c "Print :Name" temp_profile.plist)"
+          
           echo "Provisioning profile found:"
           echo "Name: $PROFILE_NAME"
           echo "UUID: $PROFILE_UUID"
-
+          
           echo "IOS_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
           echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          
+          # Cleanup
+          rm -f temp_profile.plist
 
 
       # ========================================================
       # VERIFY CERTIFICATE
       # ========================================================
-      - name: Verify Apple Signing Certificate
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          security find-identity -v -p codesigning
-
-          if ! security find-identity -v -p codesigning \
-            | grep -q "Apple Distribution"; then
-
-            echo "ERROR: Apple Distribution certificate not found."
-            exit 1
-          fi
-
+      -  name: Import Apple Development Certificate
+         shell: bash
+         run: |
+           set -euo pipefail
+           
+           CERT_PATH=$RUNNER_TEMP/build_certificate.p12
+           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+           KEYCHAIN_PASSWORD=temporary_password
+           
+           echo "Decoding Certificate..."
+           echo "${{ env.APP_SECRETS_IOS_P12_BASE64 }}" | tr -d '\n\r' | base64 --decode > $CERT_PATH
+           
+           echo "Creating temporary keychain..."
+           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+           
+           echo "Importing certificate to keychain..."
+           security import $CERT_PATH -P "${{ env.APP_SECRETS_IOS_P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+           
+           echo "Setting keychain search list..."
+           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
+           
+           echo "Verifying Certificate Installation..."
+           security find-identity -v -p codesigning
+           
+           if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
+             echo "ERROR: Apple Development certificate not found in keychain."
+             echo "Debug: Listing all identities..."
+             security find-identity -v -p codesigning || true
+             exit 1
+           fi
+           
+           echo "Certificate successfully installed and verified!"
+           
+           # Export keychain info for later steps
+           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+           echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
 
       # ========================================================
       # VERSION
@@ -553,19 +597,26 @@ jobs:
           rm -rf ios/build
           mkdir -p ios/build
 
-          xcodebuild \
-            -workspace "$WORKSPACE_PATH" \
+      - name: Build and Archive
+        run: |
+          set -euo pipefail
+          
+          # Automatically find the main workspace scheme (ignoring Pods and dependencies)
+          SCHEME_NAME=$(xcodebuild -workspace ios/DemoROJA.xcworkspace -list -json | jq -r '.workspace.schemes[] | select(. != "Pods-DemoROJA" and . != "BEMCheckBox")' | head -n 1)
+          echo "Using discovered scheme: $SCHEME_NAME"
+          
+          xcodebuild -workspace ios/DemoROJA.xcworkspace \
             -scheme "$SCHEME_NAME" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            -archivePath "$PWD/ios/build/roja.xcarchive" \
             clean archive \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            DEVELOPMENT_TEAM="${{ env.APP_SECRETS_IOS_TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.IOS_PROFILE_NAME }}" \
+            CODE_SIGN_IDENTITY="Apple Development"
 
 
       # ========================================================
@@ -595,7 +646,7 @@ jobs:
             <string>manual</string>
 
             <key>signingCertificate</key>
-            <string>Apple Distribution</string>
+            <string>Apple Development</string>
 
             <key>teamID</key>
             <string>${APP_SECRETS_IOS_TEAM_ID}</string>
