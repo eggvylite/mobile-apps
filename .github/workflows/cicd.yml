@@ -388,7 +388,7 @@ jobs:
       - name: Decode App Store API Key
         run: |
           echo "DECODED_API_KEY<<EOF" >> $GITHUB_ENV
-          echo "${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}" | base64 --decode >> $GITHUB_ENV
+          echo "${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}" | base64 --decode | tr -d '\r' >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Download App Store Provisioning Profile
