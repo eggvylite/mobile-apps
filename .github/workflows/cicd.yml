@@ -375,7 +375,7 @@ jobs:
       # ========================================================
       # APPLE CERTIFICATE
       # ========================================================
-      - name: Import Apple Distribution Certificate
+      - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
@@ -476,7 +476,7 @@ jobs:
       # ========================================================
       # VERIFY CERTIFICATE
       # ========================================================
-      -  name: Import Apple Distribution Certificate
+      -  name: Import Apple Development Certificate
          shell: bash
          run: |
            set -euo pipefail
@@ -503,8 +503,8 @@ jobs:
            echo "Verifying Certificate Installation..."
            security find-identity -v -p codesigning
            
-           if ! security find-identity -v -p codesigning | grep -q "Apple Distribution"; then
-             echo "ERROR: Apple Distribution certificate not found in keychain."
+           if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
+             echo "ERROR: Apple Development certificate not found in keychain."
              echo "Debug: Listing all identities..."
              security find-identity -v -p codesigning || true
              exit 1
@@ -609,7 +609,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID" \
             PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_IDENTITY="Apple Development"
 
 
       # ========================================================
@@ -639,7 +639,7 @@ jobs:
             <string>manual</string>
 
             <key>signingCertificate</key>
-            <string>Apple Distribution</string>
+            <string>Apple Development</string>
 
             <key>teamID</key>
             <string>${APP_SECRETS_IOS_TEAM_ID}</string>
