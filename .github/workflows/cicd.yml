@@ -597,18 +597,25 @@ jobs:
           rm -rf ios/build
           mkdir -p ios/build
 
-          xcodebuild \
-            -workspace "$WORKSPACE_PATH" \
+      - name: Build and Archive
+        run: |
+          set -euo pipefail
+          
+          # Automatically find the main workspace scheme (ignoring Pods and dependencies)
+          SCHEME_NAME=$(xcodebuild -workspace ios/DemoROJA.xcworkspace -list -json | jq -r '.workspace.schemes[] | select(. != "Pods-DemoROJA" and . != "BEMCheckBox")' | head -n 1)
+          echo "Using discovered scheme: $SCHEME_NAME"
+          
+          xcodebuild -workspace ios/DemoROJA.xcworkspace \
             -scheme "$SCHEME_NAME" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            -archivePath "$PWD/ios/build/roja.xcarchive" \
             clean archive \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$APP_SECRETS_IOS_TEAM_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
+            DEVELOPMENT_TEAM="${{ env.APP_SECRETS_IOS_TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.IOS_PROFILE_NAME }}" \
             CODE_SIGN_IDENTITY="Apple Development"
 
 
