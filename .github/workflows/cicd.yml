@@ -385,6 +385,12 @@ jobs:
       # ========================================================
       # APP STORE PROVISIONING PROFILE
       # ========================================================
+      - name: Decode App Store API Key
+        run: |
+          echo "DECODED_API_KEY<<EOF" >> $GITHUB_ENV
+          echo "${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}" | base64 --decode >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Download App Store Provisioning Profile
         uses: Apple-Actions/download-provisioning-profiles@v3
         with:
@@ -392,7 +398,7 @@ jobs:
           profile-type: IOS_APP_STORE
           issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
+          api-private-key: ${{ env.DECODED_API_KEY }}
 
 
       # ========================================================
