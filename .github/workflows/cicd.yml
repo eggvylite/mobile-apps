@@ -401,6 +401,26 @@ jobs:
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
           api-private-key: ${{ env.DECODED_API_KEY }}
 
+      - name: Debug Downloaded Profiles and Secrets
+        shell: bash
+        run: |
+          echo "Expected Bundle ID length: ${#APP_SECRETS_IOS_BUNDLE_ID}"
+          
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          
+          echo "--- Listing all downloaded profiles ---"
+          ls -la "$PROFILE_DIR" || echo "Directory is empty or missing. (Apple returned nothing)"
+          
+          echo "--- Checking Entitlements for downloaded profiles ---"
+          for file in "$PROFILE_DIR"/*.mobileprovision; do
+            if [ -f "$file" ]; then
+              echo "File: $(basename "$file")"
+              APP_ID=$(security cms -D -i "$file" 2>/dev/null | /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /dev/stdin 2>/dev/null || echo "None")
+              echo "Embedded App Identifier: $APP_ID"
+              echo "---------------------------"
+            fi
+          done
+
 
       # ========================================================
       # FIND INSTALLED PROVISIONING PROFILE
