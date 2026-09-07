@@ -476,41 +476,45 @@ jobs:
       # ========================================================
       # VERIFY CERTIFICATE
       # ========================================================
-      - name: Install and Verify Apple Certificate
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          CERT_PATH=$RUNNER_TEMP/build_certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=temporary_password
-          
-          echo "Decoding Certificate..."
-          # Strip any hidden Windows line breaks before decoding to prevent corruption
-          echo "${{ env.APP_SECRETS_IOS_P12_BASE64 }}" | tr -d '\n\r' | base64 --decode > $CERT_PATH
-          
-          echo "Creating temporary keychain..."
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          
-          echo "Importing certificate to keychain..."
-          security import $CERT_PATH -P "${{ env.APP_SECRETS_IOS_P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          
-          echo "Setting keychain search list..."
-          security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
-          
-          echo "Verifying Certificate Installation..."
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
-          
-          if ! security find-identity -v -p codesigning | grep -q "Apple Distribution"; then
-            echo "ERROR: Apple Distribution certificate not found in keychain."
-            exit 1
-          fi
-          
-          echo "Certificate successfully installed and verified!"
-
+      -  name: Import Apple Distribution Certificate
+         shell: bash
+         run: |
+           set -euo pipefail
+           
+           CERT_PATH=$RUNNER_TEMP/build_certificate.p12
+           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+           KEYCHAIN_PASSWORD=temporary_password
+           
+           echo "Decoding Certificate..."
+           echo "${{ env.APP_SECRETS_IOS_P12_BASE64 }}" | tr -d '\n\r' | base64 --decode > $CERT_PATH
+           
+           echo "Creating temporary keychain..."
+           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+           
+           echo "Importing certificate to keychain..."
+           security import $CERT_PATH -P "${{ env.APP_SECRETS_IOS_P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+           
+           echo "Setting keychain search list..."
+           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
+           
+           echo "Verifying Certificate Installation..."
+           security find-identity -v -p codesigning
+           
+           if ! security find-identity -v -p codesigning | grep -q "Apple Distribution"; then
+             echo "ERROR: Apple Distribution certificate not found in keychain."
+             echo "Debug: Listing all identities..."
+             security find-identity -v -p codesigning || true
+             exit 1
+           fi
+           
+           echo "Certificate successfully installed and verified!"
+           
+           # Export keychain info for later steps
+           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+           echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
 
       # ========================================================
       # VERSION
