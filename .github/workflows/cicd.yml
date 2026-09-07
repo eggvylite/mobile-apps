@@ -440,31 +440,27 @@ jobs:
           fi
           
           PROFILE_FILE=""
-          # Use a while loop instead of xargs to avoid ARG_MAX limits
+          
+          # Iterate through downloaded profiles
           while IFS= read -r -d '' file; do
-            if security cms -D -i "$file" 2>/dev/null | \
-               /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /dev/stdin 2>/dev/null | \
-               grep -q "\.${APP_SECRETS_IOS_BUNDLE_ID}$"; then
+            # 1. Decode CMS message to a temporary plist file to avoid /dev/stdin pipe issues
+            security cms -D -i "$file" > temp_profile.plist 2>/dev/null || continue
+            
+            # 2. Check if the Bundle ID matches
+            if /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" temp_profile.plist 2>/dev/null | grep -q "\.${APP_SECRETS_IOS_BUNDLE_ID}$"; then
               PROFILE_FILE="$file"
               break
             fi
           done < <(find "$PROFILE_DIR" -name "*.mobileprovision" -type f -print0)
           
           if [ -z "$PROFILE_FILE" ]; then
-            echo "ERROR: No provisioning profile found for:"
-            echo "$APP_SECRETS_IOS_BUNDLE_ID"
+            echo "ERROR: No provisioning profile found for: $APP_SECRETS_IOS_BUNDLE_ID"
             exit 1
           fi
           
-          PROFILE_UUID="$(
-            security cms -D -i "$PROFILE_FILE" |
-            /usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin
-          )"
-          
-          PROFILE_NAME="$(
-            security cms -D -i "$PROFILE_FILE" |
-            /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin
-          )"
+          # Extract metadata from the matched temp file
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c "Print :UUID" temp_profile.plist)"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c "Print :Name" temp_profile.plist)"
           
           echo "Provisioning profile found:"
           echo "Name: $PROFILE_NAME"
@@ -472,6 +468,9 @@ jobs:
           
           echo "IOS_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
           echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          
+          # Cleanup
+          rm -f temp_profile.plist
 
 
       # ========================================================
