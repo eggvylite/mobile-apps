@@ -502,7 +502,7 @@ jobs:
           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
           
           echo "Verifying Certificate Installation..."
-          security find-identity -v -p codesigning
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           
           if ! security find-identity -v -p codesigning | grep -q "Apple Distribution"; then
             echo "ERROR: Apple Distribution certificate not found in keychain."
