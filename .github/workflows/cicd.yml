@@ -313,18 +313,22 @@ jobs:
       # ========================================================
       # PODFILE
       # ========================================================
-      - name: Patch iOS Podfile
+      - name: Configure Pod Build Settings
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
           
-          path = Path("apps/roja/ios/Podfile")
+          # Since working-directory is apps/Roja, we just look inside ios/
+          path = Path("ios/Podfile")
           
           if not path.exists():
-              raise SystemExit("ERROR: apps/roja/ios/Podfile not found")
+              raise SystemExit("ERROR: ios/Podfile not found")
           
           content = path.read_text()
           
+          # This MUST be the new marker
           marker = "post_install do |installer|"
           
           if marker not in content:
