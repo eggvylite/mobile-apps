@@ -320,7 +320,6 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           
-          # Since working-directory is apps/Roja, we just look inside ios/
           path = Path("ios/Podfile")
           
           if not path.exists():
@@ -328,7 +327,6 @@ jobs:
           
           content = path.read_text()
           
-          # This MUST be the new marker
           marker = "post_install do |installer|"
           
           if marker not in content:
