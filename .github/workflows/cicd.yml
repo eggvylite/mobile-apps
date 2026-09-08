@@ -596,30 +596,41 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Install the required gem quietly
           gem install xcodeproj --no-document
           
           ruby <<'RUBY'
           require 'xcodeproj'
           
-          # Open the main Xcode project
           project_path = Dir.glob('ios/*.xcodeproj').first
           project = Xcodeproj::Project.open(project_path)
           
-          # Apply signing settings only to the main application targets (skip tests)
           project.targets.each do |target|
             next if target.name.include?('Test')
             
+            # 1. Force the high-level Xcode toggle to Manual
+            attributes = project.root_object.attributes['TargetAttributes'] || {}
+            attributes[target.uuid] ||= {}
+            attributes[target.uuid]['ProvisioningStyle'] = 'Manual'
+            project.root_object.attributes['TargetAttributes'] = attributes
+            
+            # 2. Inject the manual credentials into the build settings
             target.build_configurations.each do |config|
               config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
               config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ENV['IOS_PROFILE_NAME']
+              
+              # Force Apple Distribution across all SDKs
               config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
+              config.build_settings['"CODE_SIGN_IDENTITY[sdk=iphoneos*]"'] = 'Apple Distribution'
+              
               config.build_settings['DEVELOPMENT_TEAM'] = ENV['APP_SECRETS_IOS_TEAM_ID']
+              
+              # Strip any legacy automatic profile UUIDs that cause conflicts
+              config.build_settings.delete('PROVISIONING_PROFILE')
             end
           end
           
           project.save
-          puts "Successfully configured code signing for #{project_path}"
+          puts "Successfully configured manual code signing for #{project_path}"
           RUBY
 
       # ========================================================
