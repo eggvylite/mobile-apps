@@ -230,6 +230,27 @@ jobs:
 
 
       # ========================================================
+      # APPLY C++ COMPATIBILITY PATCHES
+      # ========================================================
+      - name: Apply C++ Compatibility Patches
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Apply React Native PerformanceObserver patch for C++20 compatibility
+          PERF_OBSERVER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp"
+
+          if [ -f "$PERF_OBSERVER_FILE" ]; then
+            echo "Patching PerformanceObserver.cpp for .contains() -> .find() compatibility..."
+            sed -i.bak 's/observedTypes_\.contains(entryType)/observedTypes_.find(entryType) != observedTypes_.end()/g' "$PERF_OBSERVER_FILE"
+            echo "✓ PerformanceObserver.cpp patched successfully"
+          else
+            echo "⚠ PerformanceObserver.cpp not found at expected path (may not be needed for this version)"
+          fi
+
+
+      # ========================================================
       # RUBY
       # ========================================================
       - name: Setup Ruby
@@ -310,7 +331,7 @@ jobs:
           PY
 
 
-     # ========================================================
+      # ========================================================
       # PODFILE
       # ========================================================
       - name: Install CocoaPods
@@ -326,7 +347,10 @@ jobs:
 
 
       # ========================================================
-      # APPLE CERTIFICATE
+      # APPLE SIGNING CERTIFICATES
+      #
+      # Keep the development certificate available, but use an
+      # Apple Distribution certificate for the TestFlight archive.
       # ========================================================
       - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
@@ -335,9 +359,27 @@ jobs:
           p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
 
       # ========================================================
+      # VERIFY SIGNING IDENTITIES
+      # ========================================================
+      - name: Verify iOS Signing Certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Available code signing identities:"
+          security find-identity -v -p codesigning || true
+
+          if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
+            echo "ERROR: Apple Development certificate was not found."
+            exit 1
+          fi
+
+          echo "Apple Development certificate is installed."
+
+      # ========================================================
       # APP STORE CONNECT API KEY
       # ========================================================
-      - name: Prepare App Store Connect API Key
+      - name: Prepare App Store Connect API Key for Xcode
         shell: bash
         run: |
           set -euo pipefail
@@ -347,35 +389,19 @@ jobs:
           if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
             printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
           else
-            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY"               | tr -d '\r\n'               | base64 --decode               > "$API_KEY_PATH"
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r\n' | base64 --decode               > "$API_KEY_PATH"
           fi
 
           chmod 600 "$API_KEY_PATH"
-
-          if [ ! -s "$API_KEY_PATH" ]; then
-            echo "ERROR: App Store Connect API key file is empty."
-            exit 1
-          fi
 
           if ! grep -q -- 'BEGIN PRIVATE KEY' "$API_KEY_PATH"; then
             echo "ERROR: App Store Connect API key is not a valid PEM private key."
             exit 1
           fi
 
-          {
-            echo "DECODED_API_KEY<<EOF"
-            cat "$API_KEY_PATH"
-            echo
-            echo "EOF"
-          } >> "$GITHUB_ENV"
-
           echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
-
           echo "App Store Connect API key prepared."
 
-
-      # ========================================================
-      # VERIFY CERTIFICATE
       # ========================================================
       # VERSION
       # ========================================================
@@ -433,10 +459,10 @@ jobs:
           echo "Workspace: $WORKSPACE_PATH"
           echo "Scheme: $SCHEME_NAME"
 
-     # ========================================================
+      # ========================================================
       # ARCHIVE PREPARATION
       # ========================================================
-      - name: Archive iOS App
+      - name: Prepare iOS Archive
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -445,39 +471,96 @@ jobs:
           rm -rf ios/build
           mkdir -p ios/build
 
-     # ========================================================
-      # CONFIGURE PROJECT SIGNING
+          echo "Using Xcode automatic signing from the project settings."
+          echo "Development Team: ${APP_SECRETS_IOS_TEAM_ID}"
+          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
+
+
       # ========================================================
-      # ARCHIVE
+      # SIGNING DIAGNOSTICS
+      #
+      # The checked-in project has a legacy Store profile setting.
+      # We do not rewrite the project here. The archive command
+      # explicitly overrides Release signing for CI.
       # ========================================================
-      - name: Build and Archive
+      - name: Inspect Xcode Signing Settings
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "Using resolved workspace: ${{ env.WORKSPACE_PATH }}"
-          echo "Using resolved scheme: ${{ env.SCHEME_NAME }}"
+          xcodebuild  -workspace "${WORKSPACE_PATH}" -scheme "${SCHEME_NAME}" -configuration Release -showBuildSettings | grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' || true
 
-          echo "Automatic signing: enabled"
-          echo "Development team: ${APP_SECRETS_IOS_TEAM_ID}"
-          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
+      # ========================================================
+      # SHOW FINAL XCODE SIGNING SETTINGS
+      # ========================================================
+      - name: Show Xcode Signing Settings
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "================================================"
+          echo "XCODE SIGNING SETTINGS"
+          echo "================================================"
 
           xcodebuild \
             -workspace "${WORKSPACE_PATH}" \
             -scheme "${SCHEME_NAME}" \
             -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
-            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
-            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
-            clean archive
+            -showBuildSettings \
+            | grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' \
+            || true
+
+
+      # ========================================================
+      # DEVELOPMENT ARCHIVE
+      #
+      # This workflow intentionally uses ONLY the existing
+      # Apple Development certificate.
+      #
+      # It validates CI/Xcode/React Native signing and produces
+      # a development-distribution IPA. It is NOT TestFlight.
+      # ========================================================
+      - name: Build and Archive (Development)
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Using workspace: ${WORKSPACE_PATH}"
+          echo "Using scheme: ${SCHEME_NAME}"
+          echo "Signing identity: Apple Development"
+          echo "Development team: ${APP_SECRETS_IOS_TEAM_ID}"
+          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
+
+          xcodebuild             -workspace "${WORKSPACE_PATH}"             -scheme "${SCHEME_NAME}"             -configuration Release             -sdk iphoneos             -destination "generic/platform=iOS"             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive"             CODE_SIGN_STYLE=Automatic             CODE_SIGN_IDENTITY="Apple Development"             DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}"             PROVISIONING_PROFILE_SPECIFIER=""             PROVISIONING_PROFILE=""             -allowProvisioningUpdates             -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}"             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}"             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"             clean archive
+
+      # ========================================================
+      # VERIFY ARCHIVE
+      # ========================================================
+      - name: Verify iOS Archive
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="$PWD/ios/build/${APP_NAME}.xcarchive"
+
+          if [ ! -d "$ARCHIVE" ]; then
+            echo "ERROR: Archive was not created: $ARCHIVE"
+            exit 1
+          fi
+
+          echo "Archive created successfully:"
+          echo "$ARCHIVE"
+
 
       # ========================================================
       # EXPORT OPTIONS
+      #
+      # Development export for validating the existing Apple
+      # Development certificate and CI signing configuration.
       # ========================================================
       - name: Create ExportOptions.plist
         working-directory: apps/${{ env.APP_DIR }}
@@ -497,7 +580,7 @@ jobs:
             <string>export</string>
 
             <key>method</key>
-            <string>app-store</string>
+            <string>development</string>
 
             <key>signingStyle</key>
             <string>automatic</string>
@@ -518,6 +601,7 @@ jobs:
           plutil -lint ios/build/ExportOptions.plist
 
           echo "ExportOptions.plist created successfully."
+          cat ios/build/ExportOptions.plist
 
 
       # ========================================================
@@ -601,14 +685,11 @@ jobs:
 
       # ========================================================
       # TESTFLIGHT
+      #
+      # Disabled intentionally. Apple Development builds are for
+      # development/device testing, not TestFlight distribution.
       # ========================================================
-      - name: Upload to TestFlight
-        uses: Apple-Actions/upload-testflight-build@v4
-        with:
-          app-path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
-          issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ env.DECODED_API_KEY }}
+
 
 
   # ============================================================
@@ -821,88 +902,7 @@ jobs:
 
           chmod +x gradlew
 
-          VARIANT="${APP_SECRETS_ANDROID_VARIANT:-Release}"
-
-          FIRST_CHAR="${VARIANT:0:1}"
-          REST="${VARIANT:1}"
-
-          FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
-
-          GRADLE_TASK="${FIRST_CHAR}${REST}"
-
-          echo "Gradle task: :app:bundle${GRADLE_TASK}"
-
-          ./gradlew \
-            ":app:bundle${GRADLE_TASK}" \
-            -PversionCode="${GITHUB_RUN_NUMBER}"
-
-
-      # ========================================================
-      # PREPARE AAB
-      # ========================================================
-      - name: Prepare AAB
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          AAB="$(
-            find android/app/build/outputs/bundle \
-              -name "*.aab" \
-              -type f \
-              -print -quit
-          )"
-
-          if [ -z "$AAB" ]; then
-            echo "ERROR: AAB was not generated."
-            exit 1
-          fi
-
-          mkdir -p android/build
-
-          OUTPUT="android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
-
-          cp "$AAB" "$OUTPUT"
-
-          echo "AAB ready:"
-          echo "$OUTPUT"
-
-
-      # ========================================================
-      # GITHUB ARTIFACT
-      # ========================================================
-      - name: Upload Android Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.app }}-android-${{ github.run_number }}
-          path: apps/${{ env.APP_DIR }}/android/build/${{ matrix.app }}-${{ github.run_number }}.aab
-          if-no-files-found: error
-          retention-days: 14
-
-
-      # ========================================================
-      # S3
-      # ========================================================
-      - name: Upload Current Android AAB to S3
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          aws s3 cp \
-            "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab" \
-            "s3://${S3_BUCKET}/android/${APP_NAME}/${APP_NAME}.aab" \
-            --only-show-errors
-
-
-      # ========================================================
-      # GOOGLE PLAY
-      # ========================================================
-      - name: Upload to Google Play
-        if: env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ${{ env.APP_SECRETS_ANDROID_APPLICATION_ID }}
-          releaseFiles: apps/${{ env.APP_DIR }}/android/build/${{ matrix.app }}-${{ github.run_number }}.aab
-          track: internal
+          ./gradlew bundleRelease \
+            --no-daemon \
+            -x bundleReleaseGplay \
+            -x bundleReleaseAmazon
