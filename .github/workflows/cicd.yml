@@ -375,7 +375,10 @@ jobs:
 
 
       # ========================================================
-      # APPLE CERTIFICATE
+      # APPLE DEVELOPMENT CERTIFICATE
+      #
+      # This matches the working Xcode configuration shown in the
+      # screenshots: Apple Development + Automatically manage signing.
       # ========================================================
       - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
@@ -385,138 +388,50 @@ jobs:
 
 
       # ========================================================
-      # APP STORE PROVISIONING PROFILE
+      # VERIFY DEVELOPMENT CERTIFICATE
       # ========================================================
-      - name: Decode App Store API Key
-        run: |
-          echo "DECODED_API_KEY<<EOF" >> $GITHUB_ENV
-          echo "${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}" | base64 --decode | tr -d '\r' >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Download App Store Provisioning Profile
-        uses: Apple-Actions/download-provisioning-profiles@v3
-        with:
-          bundle-id: ${{ env.APP_SECRETS_IOS_BUNDLE_ID }}
-          profile-type: IOS_APP_STORE
-          issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ env.DECODED_API_KEY }}
-
-      - name: Debug Downloaded Profiles and Secrets
-        shell: bash
-        run: |
-          echo "Expected Bundle ID length: ${#APP_SECRETS_IOS_BUNDLE_ID}"
-          
-          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-          
-          echo "--- Listing all downloaded profiles ---"
-          ls -la "$PROFILE_DIR" || echo "Directory is empty or missing. (Apple returned nothing)"
-          
-          echo "--- Checking Entitlements for downloaded profiles ---"
-          for file in "$PROFILE_DIR"/*.mobileprovision; do
-            if [ -f "$file" ]; then
-              echo "File: $(basename "$file")"
-              APP_ID=$(security cms -D -i "$file" 2>/dev/null | /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /dev/stdin 2>/dev/null || echo "None")
-              echo "Embedded App Identifier: $APP_ID"
-              echo "---------------------------"
-            fi
-          done
-
-
-      # ========================================================
-      # FIND INSTALLED PROVISIONING PROFILE
-      #
-      # This avoids guessing the profile name.
-      # ========================================================
-      - name: Find Provisioning Profile
+      - name: Verify Apple Development Certificate
         shell: bash
         run: |
           set -euo pipefail
-          
-          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-          
-          if [ ! -d "$PROFILE_DIR" ]; then
-            echo "ERROR: Provisioning Profiles directory not found."
+
+          echo "Available code signing identities:"
+          security find-identity -v -p codesigning || true
+
+          if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
+            echo "ERROR: Apple Development certificate was not found."
             exit 1
           fi
-          
-          PROFILE_FILE=""
-          
-          # Iterate through downloaded profiles
-          while IFS= read -r -d '' file; do
-            # 1. Decode CMS message to a temporary plist file to avoid /dev/stdin pipe issues
-            security cms -D -i "$file" > temp_profile.plist 2>/dev/null || continue
-            
-            # 2. Check if the Bundle ID matches
-            if /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" temp_profile.plist 2>/dev/null | grep -q "\.${APP_SECRETS_IOS_BUNDLE_ID}$"; then
-              PROFILE_FILE="$file"
-              break
-            fi
-          done < <(find "$PROFILE_DIR" -name "*.mobileprovision" -type f -print0)
-          
-          if [ -z "$PROFILE_FILE" ]; then
-            echo "ERROR: No provisioning profile found for: $APP_SECRETS_IOS_BUNDLE_ID"
-            exit 1
-          fi
-          
-          # Extract metadata from the matched temp file
-          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c "Print :UUID" temp_profile.plist)"
-          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c "Print :Name" temp_profile.plist)"
-          
-          echo "Provisioning profile found:"
-          echo "Name: $PROFILE_NAME"
-          echo "UUID: $PROFILE_UUID"
-          
-          echo "IOS_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
-          echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
-          
-          # Cleanup
-          rm -f temp_profile.plist
+
+          echo "Apple Development certificate successfully verified."
 
 
       # ========================================================
-      # VERIFY CERTIFICATE
+      # APP STORE CONNECT API KEY FOR XCODE AUTOMATIC SIGNING
       # ========================================================
-      -  name: Import Apple Development Certificate
-         shell: bash
-         run: |
-           set -euo pipefail
-           
-           CERT_PATH=$RUNNER_TEMP/build_certificate.p12
-           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-           KEYCHAIN_PASSWORD=temporary_password
-           
-           echo "Decoding Certificate..."
-           echo "${{ env.APP_SECRETS_IOS_P12_BASE64 }}" | tr -d '\n\r' | base64 --decode > $CERT_PATH
-           
-           echo "Creating temporary keychain..."
-           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-           
-           echo "Importing certificate to keychain..."
-           security import $CERT_PATH -P "${{ env.APP_SECRETS_IOS_P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-           
-           echo "Setting keychain search list..."
-           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
-           
-           echo "Verifying Certificate Installation..."
-           security find-identity -v -p codesigning
-           
-           if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
-             echo "ERROR: Apple Development certificate not found in keychain."
-             echo "Debug: Listing all identities..."
-             security find-identity -v -p codesigning || true
-             exit 1
-           fi
-           
-           echo "Certificate successfully installed and verified!"
-           
-           # Export keychain info for later steps
-           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
-           echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+      - name: Prepare App Store Connect API Key for Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8"
+
+          echo "${APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY}" \
+            | tr -d '\r' \
+            | base64 --decode \
+            > "$API_KEY_PATH"
+
+          chmod 600 "$API_KEY_PATH"
+
+          if [ ! -s "$API_KEY_PATH" ]; then
+            echo "ERROR: App Store Connect API key file is empty."
+            exit 1
+          fi
+
+          echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+
+          echo "Xcode App Store Connect API key prepared."
+
 
       # ========================================================
       # VERSION
@@ -575,10 +490,10 @@ jobs:
           echo "Workspace: $WORKSPACE_PATH"
           echo "Scheme: $SCHEME_NAME"
 
-     # ========================================================
+      # ========================================================
       # ARCHIVE PREPARATION
       # ========================================================
-      - name: Archive iOS App
+      - name: Prepare iOS Archive
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -587,74 +502,158 @@ jobs:
           rm -rf ios/build
           mkdir -p ios/build
 
-     # ========================================================
-      # CONFIGURE PROJECT SIGNING
+          echo "Using Xcode automatic signing from the project settings."
+          echo "Development Team: ${APP_SECRETS_IOS_TEAM_ID}"
+          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
+
+
       # ========================================================
-      - name: Configure Xcode Code Signing
+      # VERIFY XCODE AUTOMATIC SIGNING
+      #
+      # Do NOT inject PROVISIONING_PROFILE or manual signing values.
+      # The checked-in project is configured with:
+      #   Automatically manage signing = ON
+      #   Apple Development certificate
+      # ========================================================
+      - name: Verify Xcode Automatic Signing Configuration
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          
+
           gem install xcodeproj --no-document
-          
+
           ruby <<'RUBY'
           require 'xcodeproj'
-          
+
           project_path = Dir.glob('ios/*.xcodeproj').first
+
+          unless project_path
+            abort('ERROR: No .xcodeproj found inside ios/.')
+          end
+
           project = Xcodeproj::Project.open(project_path)
-          
-          project.targets.each do |target|
-            next if target.name.include?('Test')
-            
-            # Force the high-level Xcode toggle to Manual
-            attributes = project.root_object.attributes['TargetAttributes'] || {}
-            attributes[target.uuid] ||= {}
-            attributes[target.uuid]['ProvisioningStyle'] = 'Manual'
-            project.root_object.attributes['TargetAttributes'] = attributes
-            
-            # Inject the manual credentials into the build settings
+          attributes = project.root_object.attributes['TargetAttributes'] || {}
+
+          app_targets = project.targets.reject do |target|
+            target.name.include?('Test') || target.name.include?('Tests')
+          end
+
+          if app_targets.empty?
+            abort('ERROR: No application target was found.')
+          end
+
+          app_targets.each do |target|
+            target_attributes = attributes[target.uuid] || {}
+            provisioning_style = target_attributes['ProvisioningStyle']
+
+            puts "Target: #{target.name}"
+            puts "ProvisioningStyle: #{provisioning_style || 'not explicitly set'}"
+
+            if provisioning_style && provisioning_style != 'Automatic'
+              abort("ERROR: Target #{target.name} is configured for #{provisioning_style} signing. Expected Automatic.")
+            end
+
             target.build_configurations.each do |config|
-              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
-              
-              # Use UUID to force Xcode to bypass the "Xcode-managed" name restriction
-              config.build_settings['PROVISIONING_PROFILE'] = ENV['IOS_PROFILE_UUID']
-              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ENV['IOS_PROFILE_UUID']
-              
-              # Align identity with your uploaded AWS certificate
-              config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
-              config.build_settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] = 'Apple Development'
-              
-              config.build_settings['DEVELOPMENT_TEAM'] = ENV['APP_SECRETS_IOS_TEAM_ID']
+              style = config.build_settings['CODE_SIGN_STYLE']
+              identity = config.build_settings['CODE_SIGN_IDENTITY']
+
+              puts "  #{config.name}: CODE_SIGN_STYLE=#{style || 'default'} CODE_SIGN_IDENTITY=#{identity || 'default'}"
+
+              if style == 'Manual'
+                abort("ERROR: #{target.name} / #{config.name} has CODE_SIGN_STYLE=Manual. Remove manual signing from the project.")
+              end
+
+              if config.build_settings['PROVISIONING_PROFILE'] || config.build_settings['PROVISIONING_PROFILE_SPECIFIER']
+                abort("ERROR: #{target.name} / #{config.name} contains a manual provisioning profile setting. Automatic signing must manage the profile.")
+              end
             end
           end
-          
-          project.save
-          puts "Successfully configured manual code signing for #{project_path}"
+
+          puts 'Xcode project is compatible with automatic signing.'
           RUBY
+
+
+      # ========================================================
+      # SHOW FINAL XCODE SIGNING SETTINGS
+      # ========================================================
+      - name: Show Xcode Signing Settings
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "================================================"
+          echo "XCODE SIGNING SETTINGS"
+          echo "================================================"
+
+          xcodebuild \
+            -workspace "${WORKSPACE_PATH}" \
+            -scheme "${SCHEME_NAME}" \
+            -configuration Release \
+            -showBuildSettings \
+            | grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' \
+            || true
+
+
       # ========================================================
       # ARCHIVE
+      #
+      # Keep the archive developer-signed, matching Apple's Xcode
+      # workflow. Automatic signing is allowed to obtain/update the
+      # Xcode-managed provisioning profile.
       # ========================================================
       - name: Build and Archive
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          
-          echo "Using resolved workspace: ${{ env.WORKSPACE_PATH }}"
-          echo "Using resolved scheme: ${{ env.SCHEME_NAME }}"
-          
-          # Run archive without global signing flags so Pods aren't affected
-          xcodebuild -workspace "${{ env.WORKSPACE_PATH }}" \
-            -scheme "${{ env.SCHEME_NAME }}" \
+
+          echo "Using resolved workspace: ${WORKSPACE_PATH}"
+          echo "Using resolved scheme: ${SCHEME_NAME}"
+          echo "Automatic signing: enabled"
+          echo "Development team: ${APP_SECRETS_IOS_TEAM_ID}"
+
+          xcodebuild \
+            -workspace "${WORKSPACE_PATH}" \
+            -scheme "${SCHEME_NAME}" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
             clean archive
+
+
+      # ========================================================
+      # VERIFY ARCHIVE
+      # ========================================================
+      - name: Verify iOS Archive
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="$PWD/ios/build/${APP_NAME}.xcarchive"
+
+          if [ ! -d "$ARCHIVE" ]; then
+            echo "ERROR: Archive was not created: $ARCHIVE"
+            exit 1
+          fi
+
+          echo "Archive created successfully:"
+          echo "$ARCHIVE"
+
 
       # ========================================================
       # EXPORT OPTIONS
+      #
+      # Match Xcode Organizer's automatic TestFlight/App Store
+      # distribution flow. Xcode handles distribution signing and
+      # provisioning during export.
       # ========================================================
       - name: Create ExportOptions.plist
         working-directory: apps/${{ env.APP_DIR }}
@@ -677,19 +676,10 @@ jobs:
             <string>app-store</string>
 
             <key>signingStyle</key>
-            <string>manual</string>
-
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
+            <string>automatic</string>
 
             <key>teamID</key>
             <string>${APP_SECRETS_IOS_TEAM_ID}</string>
-
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>${APP_SECRETS_IOS_BUNDLE_ID}</key>
-              <string>${IOS_PROFILE_NAME}</string>
-            </dict>
 
             <key>stripSwiftSymbols</key>
             <true/>
@@ -704,6 +694,7 @@ jobs:
           plutil -lint ios/build/ExportOptions.plist
 
           echo "ExportOptions.plist created successfully."
+          cat ios/build/ExportOptions.plist
 
 
       # ========================================================
@@ -722,7 +713,11 @@ jobs:
             -exportArchive \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             -exportPath "$PWD/ios/build/export" \
-            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist"
+            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
 
 
       # ========================================================
