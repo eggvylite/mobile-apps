@@ -561,13 +561,14 @@ jobs:
           if [ -n "${APP_SECRETS_IOS_SCHEME:-}" ]; then
             SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
           else
+            # Filter out known Pod dependency schemes and pick the actual app scheme
             SCHEME_NAME="$(
-              xcodebuild \
-                -list \
-                -workspace "$WORKSPACE_PATH" \
-                -json \
-              | python3 -c \
-                'import sys,json; print(json.load(sys.stdin)["workspace"]["schemes"][0])'
+              xcodebuild -list -workspace "$WORKSPACE_PATH" -json \
+              | python3 -c '
+          import sys, json
+          schemes = json.load(sys.stdin)["workspace"]["schemes"]
+          filtered = [s for s in schemes if not s.startswith("Pods-") and s not in ["boost", "BEMCheckBox", "RCT-Folly", "DoubleConversion", "glog"]]
+          print(filtered[0] if filtered else schemes[0])'
             )"
           fi
 
