@@ -598,6 +598,8 @@ jobs:
           mkdir -p ios/build
 
       - name: Build and Archive
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
         run: |
           set -euo pipefail
           
