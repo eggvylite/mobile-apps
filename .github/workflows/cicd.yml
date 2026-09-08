@@ -532,6 +532,7 @@ jobs:
           fi
 
 
+
       # ========================================================
       # RESOLVE WORKSPACE
       # ========================================================
@@ -561,20 +562,9 @@ jobs:
           if [ -n "${APP_SECRETS_IOS_SCHEME:-}" ]; then
             SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
           else
-            # Filter out known Pod dependency schemes and pick the actual app scheme
-            SCHEME_NAME="$(
-              xcodebuild -list -workspace "$WORKSPACE_PATH" -json \
-              | python3 -c '
-          import sys, json
-          schemes = json.load(sys.stdin)["workspace"]["schemes"]
-          filtered = [s for s in schemes if not s.startswith("Pods-") and s not in ["boost", "BEMCheckBox", "RCT-Folly", "DoubleConversion", "glog"]]
-          print(filtered[0] if filtered else schemes[0])'
-            )"
-          fi
-
-          if [ -z "$SCHEME_NAME" ]; then
-            echo "ERROR: Xcode scheme not found."
-            exit 1
+            # Extract the exact base name of the workspace to use as the scheme
+            # This permanently avoids accidentally selecting CocoaPods dependencies.
+            SCHEME_NAME=$(basename "$WORKSPACE_PATH" .xcworkspace)
           fi
 
           echo "WORKSPACE_PATH=$WORKSPACE_PATH" >> "$GITHUB_ENV"
@@ -582,7 +572,6 @@ jobs:
 
           echo "Workspace: $WORKSPACE_PATH"
           echo "Scheme: $SCHEME_NAME"
-
 
       # ========================================================
       # ARCHIVE
