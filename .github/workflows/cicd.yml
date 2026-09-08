@@ -603,12 +603,11 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Automatically find the main workspace scheme using the dynamic workspace path
-          SCHEME_NAME=$(xcodebuild -workspace "${{ env.WORKSPACE_PATH }}" -list -json | jq -r '.workspace.schemes[] | select(. != "Pods-DemoROJA" and . != "BEMCheckBox")' | head -n 1)
-          echo "Using discovered scheme: $SCHEME_NAME"
+          echo "Using resolved workspace: ${{ env.WORKSPACE_PATH }}"
+          echo "Using resolved scheme: ${{ env.SCHEME_NAME }}"
           
           xcodebuild -workspace "${{ env.WORKSPACE_PATH }}" \
-            -scheme "$SCHEME_NAME" \
+            -scheme "${{ env.SCHEME_NAME }}" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
@@ -619,7 +618,6 @@ jobs:
             DEVELOPMENT_TEAM="${{ env.APP_SECRETS_IOS_TEAM_ID }}" \
             PROVISIONING_PROFILE_SPECIFIER="${{ env.IOS_PROFILE_NAME }}" \
             CODE_SIGN_IDENTITY="Apple Distribution"
-
 
       # ========================================================
       # EXPORT OPTIONS
