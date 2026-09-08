@@ -1,4 +1,4 @@
-name: Mobile CI/CD
+name: Mobile CI/CD - v6 Development Test
 
 on:
   workflow_dispatch:
@@ -239,15 +239,61 @@ jobs:
           set -euo pipefail
 
           # Apply React Native PerformanceObserver patch for C++20 compatibility
+          HERMES_EXECUTOR_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
+
+          if [ ! -f "$HERMES_EXECUTOR_FILE" ]; then
+            echo "ERROR: HermesExecutorFactory.cpp not found: $HERMES_EXECUTOR_FILE"
+            exit 1
+          fi
+
+          # HermesExecutorFactory.cpp uses std::thread and std::this_thread.
+          # Make the standard header explicit so Xcode 16.4/libc++ does not
+          # depend on an indirect include.
+          python3 - "$HERMES_EXECUTOR_FILE" <<'PY'
+          import sys
+
+          path = sys.argv[1]
+
+          with open(path, "r", encoding="utf-8") as f:
+              content = f.read()
+
+          if "#include <thread>" not in content:
+              lines = content.splitlines(True)
+              insert_at = 0
+
+              for i, line in enumerate(lines):
+                  if line.startswith("#include "):
+                      insert_at = i
+                      break
+
+              if insert_at == 0 and not any(line.startswith("#include ") for line in lines):
+                  raise SystemExit("ERROR: No C++ include section found.")
+
+              lines.insert(insert_at, "#include <thread>\n")
+              content = "".join(lines)
+
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(content)
+
+          print("HermesExecutorFactory.cpp: <thread> present")
+          PY
+
+          # Keep the existing React Native PerformanceObserver compatibility patch.
           PERF_OBSERVER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp"
 
           if [ -f "$PERF_OBSERVER_FILE" ]; then
-            echo "Patching PerformanceObserver.cpp for .contains() -> .find() compatibility..."
             sed -i.bak 's/observedTypes_\.contains(entryType)/observedTypes_.find(entryType) != observedTypes_.end()/g' "$PERF_OBSERVER_FILE"
-            echo "✓ PerformanceObserver.cpp patched successfully"
-          else
-            echo "⚠ PerformanceObserver.cpp not found at expected path (may not be needed for this version)"
+            echo "PerformanceObserver.cpp compatibility patch applied."
           fi
+
+          grep -n '#include <thread>' "$HERMES_EXECUTOR_FILE"
+
+          if ! grep -q '#include <thread>' "$HERMES_EXECUTOR_FILE"; then
+            echo "ERROR: Hermes <thread> patch was not applied."
+            exit 1
+          fi
+
+          echo "Hermes patch verification passed."
 
 
       # ========================================================
@@ -344,6 +390,16 @@ jobs:
           bundle exec pod cache clean RCT-Folly --all || true
 
           bundle exec pod install --repo-update
+
+          echo "Verifying Pods project C++ configuration..."
+          if [ ! -f Pods/Pods.xcodeproj/project.pbxproj ]; then
+            echo "ERROR: Pods project was not generated."
+            exit 1
+          fi
+
+          grep -q "CLANG_CXX_LANGUAGE_STANDARD = c++20"             Pods/Pods.xcodeproj/project.pbxproj             || echo "WARNING: C++20 setting was not serialized as a literal value; inspect Xcode build settings if needed."
+
+          echo "CocoaPods installation completed."
 
 
       # ========================================================
@@ -573,6 +629,16 @@ jobs:
       # It validates CI/Xcode/React Native signing and produces
       # a development-distribution IPA. It is NOT TestFlight.
       # ========================================================
+      - name: Clean iOS Derived Data
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*
+          rm -rf ios/build
+          mkdir -p ios/build
+          echo "Clean iOS build state prepared."
+
       - name: Build and Archive (Development)
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
