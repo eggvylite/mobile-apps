@@ -603,16 +603,16 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Automatically find the main workspace scheme (ignoring Pods and dependencies)
-          SCHEME_NAME=$(xcodebuild -workspace ios/DemoROJA.xcworkspace -list -json | jq -r '.workspace.schemes[] | select(. != "Pods-DemoROJA" and . != "BEMCheckBox")' | head -n 1)
+          # Automatically find the main workspace scheme using the dynamic workspace path
+          SCHEME_NAME=$(xcodebuild -workspace "${{ env.WORKSPACE_PATH }}" -list -json | jq -r '.workspace.schemes[] | select(. != "Pods-DemoROJA" and . != "BEMCheckBox")' | head -n 1)
           echo "Using discovered scheme: $SCHEME_NAME"
           
-          xcodebuild -workspace ios/DemoROJA.xcworkspace \
+          xcodebuild -workspace "${{ env.WORKSPACE_PATH }}" \
             -scheme "$SCHEME_NAME" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath "$PWD/ios/build/roja.xcarchive" \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             clean archive \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGN_STYLE=Manual \
