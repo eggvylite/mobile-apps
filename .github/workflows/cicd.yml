@@ -389,7 +389,7 @@ jobs:
           if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
             printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
           else
-            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r\n' | base64 --decode               > "$API_KEY_PATH"
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY"               | tr -d '\r\n'               | base64 --decode               > "$API_KEY_PATH"
           fi
 
           chmod 600 "$API_KEY_PATH"
@@ -477,19 +477,70 @@ jobs:
 
 
       # ========================================================
-      # SIGNING DIAGNOSTICS
+      # FIX PROJECT SIGNING SETTINGS
       #
-      # The checked-in project has a legacy Store profile setting.
-      # We do not rewrite the project here. The archive command
-      # explicitly overrides Release signing for CI.
+      # The checked-in DemoROJA.xcodeproj contains a legacy Store
+      # provisioning profile and manual signing metadata. Passing
+      # CODE_SIGN_STYLE=Automatic on xcodebuild is NOT enough when
+      # TargetAttributes/Release still says Manual.
+      #
+      # Convert the app target to Automatic signing and remove the
+      # stale provisioning-profile build settings before archiving.
+      # This does NOT require an Apple Distribution certificate.
       # ========================================================
-      - name: Inspect Xcode Signing Settings
+      - name: Normalize Xcode Development Signing
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
 
-          xcodebuild  -workspace "${WORKSPACE_PATH}" -scheme "${SCHEME_NAME}" -configuration Release -showBuildSettings | grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' || true
+          gem install xcodeproj --no-document
+
+          ruby <<'RUBY'
+          require 'xcodeproj'
+
+          project_path = Dir.glob('ios/*.xcodeproj').first
+          abort('ERROR: No .xcodeproj found inside ios/.') unless project_path
+
+          project = Xcodeproj::Project.open(project_path)
+
+          target = project.targets.find { |t| t.name == 'DemoROJA' }
+          abort('ERROR: DemoROJA application target was not found.') unless target
+
+          # Xcode stores the manual/automatic choice in TargetAttributes.
+          attrs = project.root_object.attributes['TargetAttributes'] ||= {}
+          target_attrs = attrs[target.uuid] ||= {}
+          target_attrs['ProvisioningStyle'] = 'Automatic'
+
+          target.build_configurations.each do |config|
+            # Remove legacy manually-selected profiles.
+            config.build_settings.delete('PROVISIONING_PROFILE')
+            config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
+
+            # Explicitly select automatic development signing.
+            config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+            config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
+            config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
+          end
+
+          project.save
+
+          puts 'Xcode signing normalized for development.'
+          puts 'Target: DemoROJA'
+          puts 'ProvisioningStyle: Automatic'
+          puts 'PROVISIONING_PROFILE: removed'
+          puts 'PROVISIONING_PROFILE_SPECIFIER: removed'
+          puts 'CODE_SIGN_STYLE: Automatic'
+          puts 'CODE_SIGN_IDENTITY: Apple Development'
+          RUBY
+
+          echo "Verifying project file no longer contains stale profile settings..."
+          if grep -nE 'PROVISIONING_PROFILE(_SPECIFIER)?[[:space:]]*=' ios/DemoROJA.xcodeproj/project.pbxproj; then
+            echo "ERROR: Stale provisioning profile setting remains in project.pbxproj."
+            exit 1
+          fi
+
+          echo "Development signing project configuration is clean."
 
       # ========================================================
       # SHOW FINAL XCODE SIGNING SETTINGS
@@ -534,7 +585,22 @@ jobs:
           echo "Development team: ${APP_SECRETS_IOS_TEAM_ID}"
           echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
 
-          xcodebuild             -workspace "${WORKSPACE_PATH}"             -scheme "${SCHEME_NAME}"             -configuration Release             -sdk iphoneos             -destination "generic/platform=iOS"             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive"             CODE_SIGN_STYLE=Automatic             CODE_SIGN_IDENTITY="Apple Development"             DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}"             PROVISIONING_PROFILE_SPECIFIER=""             PROVISIONING_PROFILE=""             -allowProvisioningUpdates             -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}"             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}"             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"             clean archive
+          xcodebuild \
+            -workspace "${WORKSPACE_PATH}" \
+            -scheme "${SCHEME_NAME}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
+            clean archive
 
       # ========================================================
       # VERIFY ARCHIVE
