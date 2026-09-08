@@ -32,7 +32,7 @@ target 'DemoROJA' do
   pod 'FirebaseCore', :modular_headers => true
   
 
- # ==========================================================
+  # ==========================================================
   # POST INSTALL
   # ==========================================================
   post_install do |installer|
@@ -44,33 +44,34 @@ target 'DemoROJA' do
       # :ccache_enabled => true
     )
 
-
     # ========================================================
     # POD BUILD SETTINGS
     # ========================================================
-target.build_configurations.each do |config|
+    installer.pods_project.targets.each do |target|
 
-  # Pods must not be code signed.
-  config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      target.build_configurations.each do |build_config|
 
-  # iOS deployment target
-  config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        # Pods must not be code signed.
+        build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
 
-  # C++ standard
-  config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-  
-  # ADD THIS LINE - Explicitly enable C++20 compiler flag
-  config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
+        # iOS deployment target
+        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
 
-  # Warnings
-  config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+        # C++ standard
+        build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
 
-  config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+        # Explicitly enable C++20 compiler flag
+        build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] =
+          '-std=c++20 -fno-aligned-new'
 
-        
+        # Warnings
+        build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+
+        build_config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
 
       end
+    end
 
-   end
+  end
 
 end
