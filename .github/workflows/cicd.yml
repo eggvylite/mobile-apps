@@ -575,10 +575,8 @@ jobs:
           echo "Workspace: $WORKSPACE_PATH"
           echo "Scheme: $SCHEME_NAME"
 
-      # ========================================================
-      # ARCHIVE
-      #
-      # Explicitly use the downloaded profile.
+     # ========================================================
+      # ARCHIVE PREPARATION
       # ========================================================
       - name: Archive iOS App
         working-directory: apps/${{ env.APP_DIR }}
@@ -589,6 +587,39 @@ jobs:
           rm -rf ios/build
           mkdir -p ios/build
 
+      # ========================================================
+      # CONFIGURE PROJECT SIGNING
+      # ========================================================
+      - name: Configure Xcode Code Signing
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          
+          # Open the main Xcode project
+          project_path = Dir.glob('ios/*.xcodeproj').first
+          project = Xcodeproj::Project.open(project_path)
+          
+          # Apply signing settings only to the main application targets (skip tests)
+          project.targets.each do |target|
+            next if target.name.include?('Test')
+            
+            target.build_configurations.each do |config|
+              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ENV['IOS_PROFILE_NAME']
+              config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
+              config.build_settings['DEVELOPMENT_TEAM'] = ENV['APP_SECRETS_IOS_TEAM_ID']
+            end
+          end
+          
+          project.save
+          puts "Successfully configured code signing for #{project_path}"
+          RUBY
+
+      # ========================================================
+      # ARCHIVE
+      # ========================================================
       - name: Build and Archive
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
@@ -598,18 +629,14 @@ jobs:
           echo "Using resolved workspace: ${{ env.WORKSPACE_PATH }}"
           echo "Using resolved scheme: ${{ env.SCHEME_NAME }}"
           
+          # Run archive without global signing flags so Pods aren't affected
           xcodebuild -workspace "${{ env.WORKSPACE_PATH }}" \
             -scheme "${{ env.SCHEME_NAME }}" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            clean archive \
-            CODE_SIGNING_ALLOWED=YES \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ env.APP_SECRETS_IOS_TEAM_ID }}" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ env.IOS_PROFILE_NAME }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            clean archive
 
       # ========================================================
       # EXPORT OPTIONS
