@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp b/node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp
+index 1234567..abcdefg 100644
+--- a/node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp
++++ b/node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp
+@@ -16,7 +16,7 @@ void PerformanceObserver::observe(
+     return;
+   }
+ 
+-  if (observedTypes_.contains(entryType)) {
++  if (observedTypes_.find(entryType) != observedTypes_.end()) {
+     return;
+   }
+ 
