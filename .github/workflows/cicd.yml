@@ -212,7 +212,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: npm
           cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
@@ -227,27 +227,6 @@ jobs:
           set -euo pipefail
 
           npm ci --legacy-peer-deps
-
-
-      # ========================================================
-      # APPLY C++ COMPATIBILITY PATCHES
-      # ========================================================
-      - name: Apply C++ Compatibility Patches
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Apply React Native PerformanceObserver patch for C++20 compatibility
-          PERF_OBSERVER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp"
-          
-          if [ -f "$PERF_OBSERVER_FILE" ]; then
-            echo "Patching PerformanceObserver.cpp for .contains() -> .find() compatibility..."
-            sed -i.bak 's/observedTypes_\.contains(entryType)/observedTypes_.find(entryType) != observedTypes_.end()/g' "$PERF_OBSERVER_FILE"
-            echo "✓ PerformanceObserver.cpp patched successfully"
-          else
-            echo "⚠ PerformanceObserver.cpp not found at expected path (may not be needed for this version)"
-          fi
 
 
       # ========================================================
@@ -331,57 +310,8 @@ jobs:
           PY
 
 
-      # ========================================================
+     # ========================================================
       # PODFILE
-      # ========================================================
-      - name: Configure Pod Build Settings
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          
-          path = Path("ios/Podfile")
-          
-          if not path.exists():
-              raise SystemExit("ERROR: ios/Podfile not found")
-          
-          content = path.read_text()
-          marker = "post_install do |installer|"
-          
-          if marker not in content:
-              raise SystemExit(
-                  "ERROR: Could not find expected CocoaPods post_install marker."
-              )
-          
-          settings = '''
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings["IPHONEOS_DEPLOYMENT_TARGET"] = "15.1"
-                config.build_settings["CLANG_CXX_LANGUAGE_STANDARD"] = "c++20"
-                config.build_settings["GCC_WARN_INHIBIT_ALL_WARNINGS"] = "YES"
-                config.build_settings["GCC_TREAT_WARNINGS_AS_ERRORS"] = "NO"
-                
-                # Explicitly disable code signing for all Pods to prevent archive crashes
-                config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"
-              end
-            end
-          '''
-          
-          # Inject the settings if they aren't already present
-          if 'CODE_SIGNING_ALLOWED"] = "NO"' not in content:
-              content = content.replace(
-                  marker,
-                  marker + "\n" + settings,
-                  1
-              )
-              path.write_text(content)
-              print("Podfile patched successfully with CODE_SIGNING_ALLOWED=NO.")
-          else:
-              print("Podfile already patched.")
-          PY
-      # ========================================================
-      # COCOAPODS
       # ========================================================
       - name: Install CocoaPods
         working-directory: apps/${{ env.APP_DIR }}/ios
@@ -396,10 +326,7 @@ jobs:
 
 
       # ========================================================
-      # APPLE DEVELOPMENT CERTIFICATE
-      #
-      # This matches the working Xcode configuration shown in the
-      # screenshots: Apple Development + Automatically manage signing.
+      # APPLE CERTIFICATE
       # ========================================================
       - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
@@ -407,40 +334,21 @@ jobs:
           p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
           p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
 
-
       # ========================================================
-      # VERIFY DEVELOPMENT CERTIFICATE
+      # APP STORE CONNECT API KEY
       # ========================================================
-      - name: Verify Apple Development Certificate
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Available code signing identities:"
-          security find-identity -v -p codesigning || true
-
-          if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
-            echo "ERROR: Apple Development certificate was not found."
-            exit 1
-          fi
-
-          echo "Apple Development certificate successfully verified."
-
-
-      # ========================================================
-      # APP STORE CONNECT API KEY FOR XCODE AUTOMATIC SIGNING
-      # ========================================================
-      - name: Prepare App Store Connect API Key for Xcode
+      - name: Prepare App Store Connect API Key
         shell: bash
         run: |
           set -euo pipefail
 
           API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8"
 
-          echo "${APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY}" \
-            | tr -d '\r' \
-            | base64 --decode \
-            > "$API_KEY_PATH"
+          if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
+          else
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY"               | tr -d '\r\n'               | base64 --decode               > "$API_KEY_PATH"
+          fi
 
           chmod 600 "$API_KEY_PATH"
 
@@ -449,11 +357,25 @@ jobs:
             exit 1
           fi
 
+          if ! grep -q -- 'BEGIN PRIVATE KEY' "$API_KEY_PATH"; then
+            echo "ERROR: App Store Connect API key is not a valid PEM private key."
+            exit 1
+          fi
+
+          {
+            echo "DECODED_API_KEY<<EOF"
+            cat "$API_KEY_PATH"
+            echo
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
           echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
 
-          echo "Xcode App Store Connect API key prepared."
+          echo "App Store Connect API key prepared."
 
 
+      # ========================================================
+      # VERIFY CERTIFICATE
       # ========================================================
       # VERSION
       # ========================================================
@@ -511,10 +433,10 @@ jobs:
           echo "Workspace: $WORKSPACE_PATH"
           echo "Scheme: $SCHEME_NAME"
 
-      # ========================================================
+     # ========================================================
       # ARCHIVE PREPARATION
       # ========================================================
-      - name: Prepare iOS Archive
+      - name: Archive iOS App
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -523,106 +445,10 @@ jobs:
           rm -rf ios/build
           mkdir -p ios/build
 
-          echo "Using Xcode automatic signing from the project settings."
-          echo "Development Team: ${APP_SECRETS_IOS_TEAM_ID}"
-          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
-
-
-      # ========================================================
-      # VERIFY XCODE AUTOMATIC SIGNING
-      #
-      # Do NOT inject PROVISIONING_PROFILE or manual signing values.
-      # The checked-in project is configured with:
-      #   Automatically manage signing = ON
-      #   Apple Development certificate
-      # ========================================================
-      - name: Verify Xcode Automatic Signing Configuration
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          gem install xcodeproj --no-document
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-
-          project_path = Dir.glob('ios/*.xcodeproj').first
-
-          unless project_path
-            abort('ERROR: No .xcodeproj found inside ios/.')
-          end
-
-          project = Xcodeproj::Project.open(project_path)
-          attributes = project.root_object.attributes['TargetAttributes'] || {}
-
-          app_targets = project.targets.reject do |target|
-            target.name.include?('Test') || target.name.include?('Tests')
-          end
-
-          if app_targets.empty?
-            abort('ERROR: No application target was found.')
-          end
-
-          app_targets.each do |target|
-            target_attributes = attributes[target.uuid] || {}
-            provisioning_style = target_attributes['ProvisioningStyle']
-
-            puts "Target: #{target.name}"
-            puts "ProvisioningStyle: #{provisioning_style || 'not explicitly set'}"
-
-            if provisioning_style && provisioning_style != 'Automatic'
-              abort("ERROR: Target #{target.name} is configured for #{provisioning_style} signing. Expected Automatic.")
-            end
-
-            target.build_configurations.each do |config|
-              style = config.build_settings['CODE_SIGN_STYLE']
-              identity = config.build_settings['CODE_SIGN_IDENTITY']
-
-              puts "  #{config.name}: CODE_SIGN_STYLE=#{style || 'default'} CODE_SIGN_IDENTITY=#{identity || 'default'}"
-
-              if style == 'Manual'
-                abort("ERROR: #{target.name} / #{config.name} has CODE_SIGN_STYLE=Manual. Remove manual signing from the project.")
-              end
-
-              if config.build_settings['PROVISIONING_PROFILE'] || config.build_settings['PROVISIONING_PROFILE_SPECIFIER']
-                abort("ERROR: #{target.name} / #{config.name} contains a manual provisioning profile setting. Automatic signing must manage the profile.")
-              end
-            end
-          end
-
-          puts 'Xcode project is compatible with automatic signing.'
-          RUBY
-
-
-      # ========================================================
-      # SHOW FINAL XCODE SIGNING SETTINGS
-      # ========================================================
-      - name: Show Xcode Signing Settings
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "================================================"
-          echo "XCODE SIGNING SETTINGS"
-          echo "================================================"
-
-          xcodebuild \
-            -workspace "${WORKSPACE_PATH}" \
-            -scheme "${SCHEME_NAME}" \
-            -configuration Release \
-            -showBuildSettings \
-            | grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' \
-            || true
-
-
+     # ========================================================
+      # CONFIGURE PROJECT SIGNING
       # ========================================================
       # ARCHIVE
-      #
-      # Keep the archive developer-signed, matching Apple's Xcode
-      # workflow. Automatic signing is allowed to obtain/update the
-      # Xcode-managed provisioning profile.
       # ========================================================
       - name: Build and Archive
         working-directory: apps/${{ env.APP_DIR }}
@@ -630,10 +456,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Using resolved workspace: ${WORKSPACE_PATH}"
-          echo "Using resolved scheme: ${SCHEME_NAME}"
+          echo "Using resolved workspace: ${{ env.WORKSPACE_PATH }}"
+          echo "Using resolved scheme: ${{ env.SCHEME_NAME }}"
+
           echo "Automatic signing: enabled"
           echo "Development team: ${APP_SECRETS_IOS_TEAM_ID}"
+          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
 
           xcodebuild \
             -workspace "${WORKSPACE_PATH}" \
@@ -648,33 +476,8 @@ jobs:
             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
             clean archive
 
-
-      # ========================================================
-      # VERIFY ARCHIVE
-      # ========================================================
-      - name: Verify iOS Archive
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ARCHIVE="$PWD/ios/build/${APP_NAME}.xcarchive"
-
-          if [ ! -d "$ARCHIVE" ]; then
-            echo "ERROR: Archive was not created: $ARCHIVE"
-            exit 1
-          fi
-
-          echo "Archive created successfully:"
-          echo "$ARCHIVE"
-
-
       # ========================================================
       # EXPORT OPTIONS
-      #
-      # Match Xcode Organizer's automatic TestFlight/App Store
-      # distribution flow. Xcode handles distribution signing and
-      # provisioning during export.
       # ========================================================
       - name: Create ExportOptions.plist
         working-directory: apps/${{ env.APP_DIR }}
@@ -715,7 +518,6 @@ jobs:
           plutil -lint ios/build/ExportOptions.plist
 
           echo "ExportOptions.plist created successfully."
-          cat ios/build/ExportOptions.plist
 
 
       # ========================================================
@@ -806,7 +608,7 @@ jobs:
           app-path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
           issuer-id: ${{ env.APP_SECRETS_IOS_APPSTORE_ISSUER_ID }}
           api-key-id: ${{ env.APP_SECRETS_IOS_APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ env.APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY }}
+          api-private-key: ${{ env.DECODED_API_KEY }}
 
 
   # ============================================================
@@ -1019,7 +821,88 @@ jobs:
 
           chmod +x gradlew
 
-          ./gradlew bundleRelease \
-            --no-daemon \
-            -x bundleReleaseGplay \
-            -x bundleReleaseAmazon
+          VARIANT="${APP_SECRETS_ANDROID_VARIANT:-Release}"
+
+          FIRST_CHAR="${VARIANT:0:1}"
+          REST="${VARIANT:1}"
+
+          FIRST_CHAR="$(echo "$FIRST_CHAR" | tr '[:lower:]' '[:upper:]')"
+
+          GRADLE_TASK="${FIRST_CHAR}${REST}"
+
+          echo "Gradle task: :app:bundle${GRADLE_TASK}"
+
+          ./gradlew \
+            ":app:bundle${GRADLE_TASK}" \
+            -PversionCode="${GITHUB_RUN_NUMBER}"
+
+
+      # ========================================================
+      # PREPARE AAB
+      # ========================================================
+      - name: Prepare AAB
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AAB="$(
+            find android/app/build/outputs/bundle \
+              -name "*.aab" \
+              -type f \
+              -print -quit
+          )"
+
+          if [ -z "$AAB" ]; then
+            echo "ERROR: AAB was not generated."
+            exit 1
+          fi
+
+          mkdir -p android/build
+
+          OUTPUT="android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab"
+
+          cp "$AAB" "$OUTPUT"
+
+          echo "AAB ready:"
+          echo "$OUTPUT"
+
+
+      # ========================================================
+      # GITHUB ARTIFACT
+      # ========================================================
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-android-${{ github.run_number }}
+          path: apps/${{ env.APP_DIR }}/android/build/${{ matrix.app }}-${{ github.run_number }}.aab
+          if-no-files-found: error
+          retention-days: 14
+
+
+      # ========================================================
+      # S3
+      # ========================================================
+      - name: Upload Current Android AAB to S3
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws s3 cp \
+            "android/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.aab" \
+            "s3://${S3_BUCKET}/android/${APP_NAME}/${APP_NAME}.aab" \
+            --only-show-errors
+
+
+      # ========================================================
+      # GOOGLE PLAY
+      # ========================================================
+      - name: Upload to Google Play
+        if: env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ env.APP_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.APP_SECRETS_ANDROID_APPLICATION_ID }}
+          releaseFiles: apps/${{ env.APP_DIR }}/android/build/${{ matrix.app }}-${{ github.run_number }}.aab
+          track: internal
