@@ -59,7 +59,7 @@ target 'DemoROJA' do
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
 
         # C++ standard
-        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
 
         # Warnings
         config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
