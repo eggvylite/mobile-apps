@@ -594,6 +594,11 @@ jobs:
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
+          set -euo pipefail
+          
+          # Install the required gem quietly
+          gem install xcodeproj --no-document
+          
           ruby <<'RUBY'
           require 'xcodeproj'
           
