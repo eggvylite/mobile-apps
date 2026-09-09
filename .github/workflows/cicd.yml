@@ -693,7 +693,6 @@ jobs:
             -scheme "${SCHEME_NAME}" \
             -configuration Release \
             -sdk iphoneos \
-            -destination "generic/platform=iOS" \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             CODE_SIGN_STYLE=Automatic \
             CODE_SIGN_IDENTITY="Apple Development" \
@@ -704,7 +703,6 @@ jobs:
             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
             archive
-
       # ========================================================
       # VERIFY ARCHIVE
       # ========================================================
