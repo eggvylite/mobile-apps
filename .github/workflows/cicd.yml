@@ -230,7 +230,7 @@ jobs:
 
 
       # ========================================================
-      # APPLY C++ COMPATIBILITY PATCHES
+      # APPLY C++ COMPATIBILITY PATCHES (UPDATED WITH REANIMATED FIX)
       # ========================================================
       - name: Apply C++ Compatibility Patches
         working-directory: apps/${{ env.APP_DIR }}
@@ -238,7 +238,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Apply React Native PerformanceObserver patch for C++20 compatibility
+          # 1. HermesExecutorFactory.cpp patch
           HERMES_EXECUTOR_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
 
           if [ ! -f "$HERMES_EXECUTOR_FILE" ]; then
@@ -246,9 +246,6 @@ jobs:
             exit 1
           fi
 
-          # HermesExecutorFactory.cpp uses std::thread and std::this_thread.
-          # Make the standard header explicit so Xcode 16.4/libc++ does not
-          # depend on an indirect include.
           python3 - "$HERMES_EXECUTOR_FILE" <<'PY'
           import sys
 
@@ -278,7 +275,7 @@ jobs:
           print("HermesExecutorFactory.cpp: <thread> present")
           PY
 
-          # Keep the existing React Native PerformanceObserver compatibility patch.
+          # 2. PerformanceObserver.cpp patch
           PERF_OBSERVER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp"
 
           if [ -f "$PERF_OBSERVER_FILE" ]; then
@@ -286,6 +283,40 @@ jobs:
             echo "PerformanceObserver.cpp compatibility patch applied."
           fi
 
+          # 3. ReanimatedVersion.cpp patch (Xcode 16 C++20 compatibility)
+          REANIMATED_VERSION_FILE="node_modules/react-native-reanimated/Common/cpp/worklets/Tools/ReanimatedVersion.cpp"
+
+          if [ -f "$REANIMATED_VERSION_FILE" ]; then
+            echo "🔧 Patching ReanimatedVersion.cpp for Xcode 16 compatibility..."
+            
+            if ! grep -q "REANIMATED_VERSION_STRING" "$REANIMATED_VERSION_FILE"; then
+              # Create a temporary file with the missing defines
+              echo '#ifndef REANIMATED_VERSION_STRING' > /tmp/reanimated_patch.h
+              echo '#define REANIMATED_VERSION_STRING "3.0.0"' >> /tmp/reanimated_patch.h
+              echo '#endif' >> /tmp/reanimated_patch.h
+              
+              # Append the original file content to the temp file
+              cat "$REANIMATED_VERSION_FILE" >> /tmp/reanimated_patch.h
+              
+              # Overwrite the original file safely
+              mv /tmp/reanimated_patch.h "$REANIMATED_VERSION_FILE"
+              echo "✅ Applied REANIMATED_VERSION_STRING patch"
+            else
+              echo "✅ REANIMATED_VERSION_STRING already present, skipping patch."
+            fi
+            
+            # Verify the patch was applied
+            if grep -q "REANIMATED_VERSION_STRING" "$REANIMATED_VERSION_FILE"; then
+              echo "✅ ReanimatedVersion.cpp patch verification passed"
+            else
+              echo "❌ ERROR: ReanimatedVersion.cpp patch verification failed"
+              exit 1
+            fi
+          else
+            echo "⚠️ Warning: ReanimatedVersion.cpp not found at expected location, skipping patch."
+          fi
+
+          # Final verification for Hermes
           grep -n '#include <thread>' "$HERMES_EXECUTOR_FILE"
 
           if ! grep -q '#include <thread>' "$HERMES_EXECUTOR_FILE"; then
@@ -293,7 +324,7 @@ jobs:
             exit 1
           fi
 
-          echo "Hermes patch verification passed."
+          echo "All C++ compatibility patches applied and verified successfully."
 
 
       # ========================================================
@@ -397,15 +428,13 @@ jobs:
             exit 1
           fi
 
-          grep -q "CLANG_CXX_LANGUAGE_STANDARD = c++20"             Pods/Pods.xcodeproj/project.pbxproj             || echo "WARNING: C++20 setting was not serialized as a literal value; inspect Xcode build settings if needed."
+          grep -q "CLANG_CXX_LANGUAGE_STANDARD = c++20" Pods/Pods.xcodeproj/project.pbxproj || echo "WARNING: C++20 setting was not serialized as a literal value; inspect Xcode build settings if needed."
 
           echo "CocoaPods installation completed."
 
 
       # ========================================================
       # APPLE SIGNING CERTIFICATES
-      #
-      # This workflow uses the existing Apple Development certificate.
       # ========================================================
       - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
@@ -444,7 +473,7 @@ jobs:
           if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
             printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
           else
-            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY"               | tr -d '\r\n'               | base64 --decode               > "$API_KEY_PATH"
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r\n' | base64 --decode > "$API_KEY_PATH"
           fi
 
           chmod 600 "$API_KEY_PATH"
@@ -471,8 +500,6 @@ jobs:
           if [ -n "${{ inputs.version_name }}" ]; then
             xcrun agvtool new-marketing-version "${{ inputs.version_name }}"
           fi
-
-
 
       # ========================================================
       # RESOLVE WORKSPACE
@@ -503,8 +530,6 @@ jobs:
           if [ -n "${APP_SECRETS_IOS_SCHEME:-}" ]; then
             SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
           else
-            # Extract the exact base name of the workspace to use as the scheme
-            # This permanently avoids accidentally selecting CocoaPods dependencies.
             SCHEME_NAME=$(basename "$WORKSPACE_PATH" .xcworkspace)
           fi
 
@@ -523,10 +548,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # IMPORTANT:
-          # React Native Codegen generates sources under ios/build/generated.
-          # Do not delete ios/build here or those generated sources can disappear
-          # before xcodebuild compiles ReactCodegen.
           mkdir -p ios/build
 
           echo "Preserving ios/build so React Native Codegen sources remain available."
@@ -534,18 +555,8 @@ jobs:
           echo "Development Team: ${APP_SECRETS_IOS_TEAM_ID}"
           echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
 
-
       # ========================================================
       # FIX PROJECT SIGNING SETTINGS
-      #
-      # The checked-in DemoROJA.xcodeproj contains a legacy Store
-      # provisioning profile and manual signing metadata. Passing
-      # CODE_SIGN_STYLE=Automatic on xcodebuild is NOT enough when
-      # TargetAttributes/Release still says Manual.
-      #
-      # Convert the app target to Automatic signing and remove the
-      # stale provisioning-profile build settings before archiving.
-      # This does NOT require an Apple Distribution certificate.
       # ========================================================
       - name: Normalize Xcode Development Signing
         working-directory: apps/${{ env.APP_DIR }}
@@ -579,20 +590,18 @@ jobs:
             end
 
           abort(
-            'ERROR: Could not resolve the iOS application target. '             'Set APP_SECRETS_IOS_TARGET_NAME in the app secret when the scheme name differs from the target name.'
+            'ERROR: Could not resolve the iOS application target. ' +
+            'Set APP_SECRETS_IOS_TARGET_NAME in the app secret when the scheme name differs from the target name.'
           ) unless target
 
-          # Xcode stores the manual/automatic choice in TargetAttributes.
           attrs = project.root_object.attributes['TargetAttributes'] ||= {}
           target_attrs = attrs[target.uuid] ||= {}
           target_attrs['ProvisioningStyle'] = 'Automatic'
 
           target.build_configurations.each do |config|
-            # Remove legacy manually-selected profiles.
             config.build_settings.delete('PROVISIONING_PROFILE')
             config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
 
-            # Explicitly select automatic development signing.
             config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
             config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
             config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
@@ -645,24 +654,14 @@ jobs:
             | grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' \
             || true
 
-
       # ========================================================
       # DEVELOPMENT ARCHIVE
-      #
-      # This workflow intentionally uses ONLY the existing
-      # Apple Development certificate.
-      #
-      # It validates CI/Xcode/React Native signing and produces
-      # a development-distribution IPA. It is NOT TestFlight.
       # ========================================================
       - name: Clean iOS Derived Data
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          # Clean Xcode DerivedData only.
-          # Do NOT remove ios/build: React Native Codegen places generated
-          # ReactCodegen sources under ios/build/generated.
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*
           mkdir -p ios/build
           echo "Clean iOS DerivedData state prepared; preserving ios/build Codegen output."
@@ -715,12 +714,8 @@ jobs:
           echo "Archive created successfully:"
           echo "$ARCHIVE"
 
-
       # ========================================================
       # EXPORT OPTIONS
-      #
-      # Development export for validating the existing Apple
-      # Development certificate and CI signing configuration.
       # ========================================================
       - name: Create ExportOptions.plist
         working-directory: apps/${{ env.APP_DIR }}
@@ -732,37 +727,26 @@ jobs:
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
             "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-
           <plist version="1.0">
           <dict>
-
             <key>destination</key>
             <string>export</string>
-
             <key>method</key>
             <string>development</string>
-
             <key>signingStyle</key>
             <string>automatic</string>
-
             <key>teamID</key>
             <string>${APP_SECRETS_IOS_TEAM_ID}</string>
-
             <key>stripSwiftSymbols</key>
             <true/>
-
             <key>uploadSymbols</key>
             <true/>
-
           </dict>
           </plist>
           EOF
 
           plutil -lint ios/build/ExportOptions.plist
-
           echo "ExportOptions.plist created successfully."
-          cat ios/build/ExportOptions.plist
-
 
       # ========================================================
       # EXPORT IPA
@@ -786,7 +770,6 @@ jobs:
             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
 
-
       # ========================================================
       # PREPARE IPA
       # ========================================================
@@ -796,12 +779,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          IPA="$(
-            find ios/build/export \
-              -name "*.ipa" \
-              -type f \
-              -print -quit
-          )"
+          IPA="$(find ios/build/export -name "*.ipa" -type f -print -quit)"
 
           if [ -z "$IPA" ]; then
             echo "ERROR: IPA was not generated."
@@ -809,12 +787,10 @@ jobs:
           fi
 
           OUTPUT="ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
-
           cp "$IPA" "$OUTPUT"
 
           echo "IPA ready:"
           echo "$OUTPUT"
-
 
       # ========================================================
       # GITHUB ARTIFACT
@@ -826,7 +802,6 @@ jobs:
           path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
           if-no-files-found: error
           retention-days: 14
-
 
       # ========================================================
       # S3
@@ -841,15 +816,6 @@ jobs:
             "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" \
             "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" \
             --only-show-errors
-
-
-      # ========================================================
-      # TESTFLIGHT
-      #
-      # Disabled intentionally. Apple Development builds are for
-      # development/device testing, not TestFlight distribution.
-      # ========================================================
-
 
 
   # ============================================================
@@ -884,7 +850,6 @@ jobs:
         with:
           persist-credentials: false
 
-
       # ========================================================
       # RESOLVE APP DIRECTORY
       # ========================================================
@@ -910,7 +875,6 @@ jobs:
 
           echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
 
-
       # ========================================================
       # AWS OIDC
       # ========================================================
@@ -920,7 +884,6 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: github-mobile-${{ github.run_id }}-${{ matrix.app }}
-
 
       # ========================================================
       # VERIFY AWS
@@ -937,7 +900,6 @@ jobs:
             exit 1
           fi
 
-
       # ========================================================
       # LOAD APP SECRETS
       # ========================================================
@@ -947,7 +909,6 @@ jobs:
           secret-ids: |
             APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
-
 
       # ========================================================
       # VALIDATE ANDROID
@@ -975,7 +936,6 @@ jobs:
           echo "Android configuration is present."
           echo "Application ID: $APP_SECRETS_ANDROID_APPLICATION_ID"
 
-
       # ========================================================
       # NODE
       # ========================================================
@@ -985,7 +945,6 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
-
 
       # ========================================================
       # NPM
@@ -998,7 +957,6 @@ jobs:
 
           npm ci --legacy-peer-deps
 
-
       # ========================================================
       # JAVA
       # ========================================================
@@ -1008,7 +966,6 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
-
 
       # ========================================================
       # ANDROID KEYSTORE
@@ -1032,7 +989,6 @@ jobs:
             exit 1
           fi
 
-
       # ========================================================
       # ANDROID SIGNING
       # ========================================================
@@ -1049,7 +1005,6 @@ jobs:
           MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
           VERSION_CODE=${GITHUB_RUN_NUMBER}
           EOF
-
 
       # ========================================================
       # ANDROID BUILD
