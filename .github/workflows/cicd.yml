@@ -405,8 +405,7 @@ jobs:
       # ========================================================
       # APPLE SIGNING CERTIFICATES
       #
-      # Keep the development certificate available, but use an
-      # Apple Distribution certificate for the TestFlight archive.
+      # This workflow uses the existing Apple Development certificate.
       # ========================================================
       - name: Import Apple Development Certificate
         uses: apple-actions/import-codesign-certs@v7
@@ -524,9 +523,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          rm -rf ios/build
+          # IMPORTANT:
+          # React Native Codegen generates sources under ios/build/generated.
+          # Do not delete ios/build here or those generated sources can disappear
+          # before xcodebuild compiles ReactCodegen.
           mkdir -p ios/build
 
+          echo "Preserving ios/build so React Native Codegen sources remain available."
           echo "Using Xcode automatic signing from the project settings."
           echo "Development Team: ${APP_SECRETS_IOS_TEAM_ID}"
           echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
@@ -560,8 +563,24 @@ jobs:
 
           project = Xcodeproj::Project.open(project_path)
 
-          target = project.targets.find { |t| t.name == 'DemoROJA' }
-          abort('ERROR: DemoROJA application target was not found.') unless target
+          target_name = ENV['APP_SECRETS_IOS_TARGET_NAME']
+          application_targets = project.targets.select do |t|
+            t.respond_to?(:product_type) &&
+              t.product_type == 'com.apple.product-type.application'
+          end
+
+          target =
+            if target_name && !target_name.empty?
+              application_targets.find { |t| t.name == target_name }
+            elsif ENV['SCHEME_NAME'] && !ENV['SCHEME_NAME'].empty?
+              application_targets.find { |t| t.name == ENV['SCHEME_NAME'] }
+            elsif application_targets.length == 1
+              application_targets.first
+            end
+
+          abort(
+            'ERROR: Could not resolve the iOS application target. '             'Set APP_SECRETS_IOS_TARGET_NAME in the app secret when the scheme name differs from the target name.'
+          ) unless target
 
           # Xcode stores the manual/automatic choice in TargetAttributes.
           attrs = project.root_object.attributes['TargetAttributes'] ||= {}
@@ -582,7 +601,7 @@ jobs:
           project.save
 
           puts 'Xcode signing normalized for development.'
-          puts 'Target: DemoROJA'
+          puts "Target: #{target.name}"
           puts 'ProvisioningStyle: Automatic'
           puts 'PROVISIONING_PROFILE: removed'
           puts 'PROVISIONING_PROFILE_SPECIFIER: removed'
@@ -591,7 +610,14 @@ jobs:
           RUBY
 
           echo "Verifying project file no longer contains stale profile settings..."
-          if grep -nE 'PROVISIONING_PROFILE(_SPECIFIER)?[[:space:]]*=' ios/DemoROJA.xcodeproj/project.pbxproj; then
+          PROJECT_PBXPROJ="$(find ios -maxdepth 2 -path '*.xcodeproj/project.pbxproj' -type f -print -quit)"
+
+          if [ -z "$PROJECT_PBXPROJ" ]; then
+            echo "ERROR: Could not locate project.pbxproj."
+            exit 1
+          fi
+
+          if grep -nE 'PROVISIONING_PROFILE(_SPECIFIER)?[[:space:]]*=' "$PROJECT_PBXPROJ"; then
             echo "ERROR: Stale provisioning profile setting remains in project.pbxproj."
             exit 1
           fi
@@ -634,10 +660,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Clean Xcode DerivedData only.
+          # Do NOT remove ios/build: React Native Codegen places generated
+          # ReactCodegen sources under ios/build/generated.
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*
-          rm -rf ios/build
           mkdir -p ios/build
-          echo "Clean iOS build state prepared."
+          echo "Clean iOS DerivedData state prepared; preserving ios/build Codegen output."
 
       - name: Build and Archive (Development)
         working-directory: apps/${{ env.APP_DIR }}
@@ -666,7 +694,7 @@ jobs:
             -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
-            clean archive
+            archive
 
       # ========================================================
       # VERIFY ARCHIVE
