@@ -230,7 +230,7 @@ jobs:
 
 
       # ========================================================
-      # APPLY C++ COMPATIBILITY PATCHES (UPDATED WITH REANIMATED FIX)
+      # APPLY C++ COMPATIBILITY PATCHES (UPDATED WITH CORRECT PATH)
       # ========================================================
       - name: Apply C++ Compatibility Patches
         working-directory: apps/${{ env.APP_DIR }}
@@ -284,15 +284,21 @@ jobs:
           fi
 
           # 3. ReanimatedVersion.cpp patch (Xcode 16 C++20 compatibility)
-          REANIMATED_VERSION_FILE="node_modules/react-native-reanimated/Common/cpp/worklets/Tools/ReanimatedVersion.cpp"
+          # Check both possible paths in react-native-reanimated 3.x
+          REANIMATED_VERSION_FILE=""
+          if [ -f "node_modules/react-native-reanimated/Common/cpp/reanimated/Tools/ReanimatedVersion.cpp" ]; then
+            REANIMATED_VERSION_FILE="node_modules/react-native-reanimated/Common/cpp/reanimated/Tools/ReanimatedVersion.cpp"
+          elif [ -f "node_modules/react-native-reanimated/Common/cpp/worklets/Tools/ReanimatedVersion.cpp" ]; then
+            REANIMATED_VERSION_FILE="node_modules/react-native-reanimated/Common/cpp/worklets/Tools/ReanimatedVersion.cpp"
+          fi
 
-          if [ -f "$REANIMATED_VERSION_FILE" ]; then
-            echo "🔧 Patching ReanimatedVersion.cpp for Xcode 16 compatibility..."
+          if [ -n "$REANIMATED_VERSION_FILE" ]; then
+            echo "🔧 Patching $REANIMATED_VERSION_FILE for Xcode 16 compatibility..."
             
             if ! grep -q "REANIMATED_VERSION_STRING" "$REANIMATED_VERSION_FILE"; then
               # Create a temporary file with the missing defines
               echo '#ifndef REANIMATED_VERSION_STRING' > /tmp/reanimated_patch.h
-              echo '#define REANIMATED_VERSION_STRING "3.0.0"' >> /tmp/reanimated_patch.h
+              echo '#define REANIMATED_VERSION_STRING "3.19.5"' >> /tmp/reanimated_patch.h
               echo '#endif' >> /tmp/reanimated_patch.h
               
               # Append the original file content to the temp file
@@ -313,7 +319,11 @@ jobs:
               exit 1
             fi
           else
-            echo "⚠️ Warning: ReanimatedVersion.cpp not found at expected location, skipping patch."
+            echo "⚠️ Warning: ReanimatedVersion.cpp not found at expected locations."
+            echo "Searching for ReanimatedVersion.cpp to help debug..."
+            find node_modules/react-native-reanimated -name "ReanimatedVersion.cpp" || true
+            # We do not exit 1 here in case the specific version doesn't need the patch, 
+            # but the find command will show us the real path if it fails later.
           fi
 
           # Final verification for Hermes
