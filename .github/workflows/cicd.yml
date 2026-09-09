@@ -109,10 +109,10 @@ jobs:
           persist-credentials: false
                
     # ➕ ADD THIS STEP HERE TO FORCE XCODE 16.2
-#      - name: Select Xcode Version
-#        uses: maxim-lobanov/setup-xcode@v1
-#        with:
-#          xcode-version: '16.2'
+      - name: Select Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.2'
 
 
       # ========================================================
