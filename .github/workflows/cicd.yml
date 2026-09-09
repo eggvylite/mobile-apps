@@ -460,10 +460,12 @@ jobs:
             
             # Aggressively disable code signing for ALL resource bundles and PrivacyInfo targets in Pods
             project.targets.each do |target|
-              if target.product_type == 'com.apple.product-type.bundle' || 
-                 target.name.include?('QBImagePicker') || 
-                 target.name.include?('PrivacyInfo')
-                 
+              # Safely check if it's a bundle (only native targets have product_type)
+              is_bundle = target.respond_to?(:product_type) && target.product_type == 'com.apple.product-type.bundle'
+              is_qb_image_picker = target.name.include?('QBImagePicker')
+              is_privacy_info = target.name.include?('PrivacyInfo')
+              
+              if is_bundle || is_qb_image_picker || is_privacy_info
                 target.build_configurations.each do |config|
                   config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
                   config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
@@ -477,7 +479,6 @@ jobs:
             puts "✅ Disabled code signing for all Pod resource bundles."
           end
           RUBY
-
       # ========================================================
       # APPLE SIGNING CERTIFICATES
       # ========================================================
