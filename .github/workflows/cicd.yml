@@ -442,38 +442,39 @@ jobs:
 
           echo "CocoaPods installation completed."
 
-      # ➕ ADD THIS NEW STEP RIGHT HERE
-      - name: Fix QBImagePicker Xcode 16 Signing
+      # ========================================================
+      # FIX POD RESOURCE BUNDLE SIGNING (BULLETPROOF)
+      # ========================================================
+      - name: Fix Pod Resource Bundle Signing
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
 
           ruby <<'RUBY'
           require 'xcodeproj'
-
           project_path = 'Pods/Pods.xcodeproj'
           if File.exist?(project_path)
             project = Xcodeproj::Project.open(project_path)
             
-            target = project.targets.find { |t| t.name == 'RNImageCropPicker-QBImagePicker' }
-            
-            if target
-              target.build_configurations.each do |config|
-                # Aggressively disable ALL code signing for this resource bundle
-                config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-                config.build_settings['CODE_SIGN_IDENTITY'] = ''
-                config.build_settings['DEVELOPMENT_TEAM'] = ''
-                config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+            # Aggressively disable code signing for ALL resource bundles and PrivacyInfo targets in Pods
+            project.targets.each do |target|
+              if target.product_type == 'com.apple.product-type.bundle' || 
+                 target.name.include?('QBImagePicker') || 
+                 target.name.include?('PrivacyInfo')
+                 
+                target.build_configurations.each do |config|
+                  config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+                  config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+                  config.build_settings['CODE_SIGN_IDENTITY'] = ''
+                  config.build_settings['DEVELOPMENT_TEAM'] = ''
+                  config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+                end
               end
-              project.save
-              puts "✅ Disabled ALL code signing for RNImageCropPicker-QBImagePicker to fix Xcode 16 storyboard compilation."
-            else
-              puts "ℹ️ RNImageCropPicker-QBImagePicker target not found, skipping."
             end
+            project.save
+            puts "✅ Disabled code signing for all Pod resource bundles."
           end
           RUBY
 
