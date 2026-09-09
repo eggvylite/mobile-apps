@@ -731,7 +731,7 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            -parallelizeTargets NO \
+            -jobs 1 \
             CODE_SIGN_STYLE=Automatic \
             CODE_SIGN_IDENTITY="Apple Development" \
             DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
