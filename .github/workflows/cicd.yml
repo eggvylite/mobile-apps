@@ -80,8 +80,6 @@ jobs:
       inputs.platform == 'ios'
 
     # ✅ CRITICAL: macos-14 uses Xcode 15.4 by default
-    # Xcode 15.4 is forgiving about the react-native / reanimated API mismatch
-    # Xcode 16.x treats it as a fatal error and cannot be patched around
     runs-on: macos-14
 
     strategy:
@@ -101,8 +99,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      # ⚠️ NO "Select Xcode Version" step - let it use default Xcode 15.4
 
 
       # ========================================================
