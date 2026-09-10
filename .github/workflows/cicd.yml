@@ -225,9 +225,9 @@ jobs:
       # ========================================================
       # PATCH 3: FIX REANIMATED MOUNT HOOK
       # ✅ Runs AFTER pod install
-      # ✅ Removes the #if/#else/#endif conditional entirely
-      # ✅ Forces HighResTimeStamp unconditionally
-      # ✅ Patches ALL copies (Pods headers + node_modules)
+      # ✅ Removes RN version conditional block
+      # ✅ Removes leftover REACT_NATIVE_MINOR_VERSION comments
+      # ✅ Forces HighResTimeStamp for RN 0.81
       # ========================================================
       - name: Fix ReanimatedMountHook HighResTimeStamp
         working-directory: apps/${{ env.APP_DIR }}
@@ -235,7 +235,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Write Python script to temp file to avoid all escaping issues
           cat > /tmp/fix_mount_hook.py << 'ENDSCRIPT'
           import re, sys, os
 
@@ -247,13 +246,34 @@ jobs:
 
           original = content
 
-          # Remove the entire #if REACT_NATIVE_MINOR_VERSION >= 81 / #else / #endif block
-          # and keep only the HighResTimeStamp branch
+          # Replace RN version conditional block with the RN 0.81+ branch only.
           content = re.sub(
-              r'#if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#else\s*\n.*?#endif',
+              r'#if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#else\s*\n.*?#endif\s*(?://[^\n]*)?',
               r'\1',
               content,
               flags=re.DOTALL
+          )
+
+          # Clean any leftover comments mentioning REACT_NATIVE_MINOR_VERSION
+          content = re.sub(
+              r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*\n?',
+              '',
+              content,
+              flags=re.MULTILINE
+          )
+
+          # Safety fallback: if a parameter still says double in the mount hook signature, replace it.
+          content = content.replace(
+              'double /*unmountTime*/',
+              'HighResTimeStamp /*unmountTime*/'
+          )
+          content = content.replace(
+              'double commitTime',
+              'HighResTimeStamp commitTime'
+          )
+          content = content.replace(
+              'double startTime',
+              'HighResTimeStamp startTime'
           )
 
           if content != original:
@@ -261,7 +281,7 @@ jobs:
                   f.write(content)
               print(f'✅ Fixed: {real_path}')
           else:
-              print(f'ℹ️ No #if block found in: {real_path}')
+              print(f'ℹ️ No changes needed: {real_path}')
           ENDSCRIPT
 
           echo "🔍 Finding all ReanimatedMountHook files..."
@@ -278,7 +298,7 @@ jobs:
           done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" 2>/dev/null)
 
           if [ "$FOUND" -eq 0 ]; then
-            echo "⚠️ WARNING: No ReanimatedMountHook files found!"
+            echo "❌ ERROR: No ReanimatedMountHook files found!"
             exit 1
           fi
 
@@ -291,33 +311,41 @@ jobs:
         run: |
           set -euo pipefail
           echo "=== Verifying ReanimatedMountHook fix ==="
+
           FOUND=0
+
           while IFS= read -r f; do
             FOUND=1
             REAL_F=$(readlink -f "$f" 2>/dev/null || echo "$f")
             echo "--- $REAL_F ---"
-            # Show the shadowTreeDidMount signature area
-            grep -B2 -A8 "shadowTreeDidMount" "$REAL_F" || echo "Function not found!"
+
             echo ""
-            # Check if #if REACT_NATIVE_MINOR_VERSION still exists
-            if grep -q "REACT_NATIVE_MINOR_VERSION" "$REAL_F"; then
-              echo "❌ FAIL: #if REACT_NATIVE_MINOR_VERSION block still present!"
+            echo "shadowTreeDidMount context:"
+            grep -B2 -A8 "shadowTreeDidMount" "$REAL_F" || echo "Function not found!"
+
+            echo ""
+            echo "Checking for active preprocessor RN version conditionals..."
+            if grep -Eq '^\s*#\s*(if|elif|else|endif).*REACT_NATIVE_MINOR_VERSION' "$REAL_F"; then
+              echo "❌ FAIL: Active REACT_NATIVE_MINOR_VERSION preprocessor block still present!"
               exit 1
             else
-              echo "✅ PASS: No conditional block remaining"
+              echo "✅ PASS: No active REACT_NATIVE_MINOR_VERSION preprocessor block"
             fi
-            # Check if double still appears near shadowTreeDidMount
+
+            echo ""
+            echo "Checking for double in shadowTreeDidMount..."
             if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
               echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
               exit 1
             else
-              echo "✅ PASS: Uses HighResTimeStamp"
+              echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
             fi
+
             echo ""
-          done < <(find ios/Pods/Headers -name "ReanimatedMountHook.h" 2>/dev/null)
+          done < <(find ios/Pods/Headers node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
 
           if [ "$FOUND" -eq 0 ]; then
-            echo "⚠️ No ReanimatedMountHook.h found in Pods headers!"
+            echo "❌ ERROR: No ReanimatedMountHook.h found!"
             exit 1
           fi
 
