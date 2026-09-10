@@ -29,8 +29,8 @@ target 'DemoROJA' do
   pod 'FirebaseCoreInternal', :modular_headers => true
   pod 'GoogleUtilities', :modular_headers => true
   pod 'FirebaseCore', :modular_headers => true
-  
-    post_install do |installer|
+
+  post_install do |installer|
     react_native_post_install(installer, config[:reactNativePath], :mac_catalyst_enabled => false)
 
     installer.pods_project.targets.each do |target|
@@ -39,7 +39,7 @@ target 'DemoROJA' do
         build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
         build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
 
-        # ✅ CRITICAL: Define REACT_NATIVE_MINOR_VERSION for RNReanimated
+        # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
         if target.name == 'RNReanimated'
           existing_flags = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
           existing_flags = [existing_flags] if existing_flags.is_a?(String)
@@ -54,3 +54,4 @@ target 'DemoROJA' do
       end
     end
   end
+end
