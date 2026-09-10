@@ -62,7 +62,6 @@ jobs:
       inputs.platform == 'all' ||
       inputs.platform == 'ios'
     
-    # ✅ macos-15 with default Xcode 16.4 (satisfies Podfile >= 16.1)
     runs-on: macos-15
 
     strategy:
@@ -131,7 +130,7 @@ jobs:
           npm ci --legacy-peer-deps
 
       # ========================================================
-      # RUBY SETUP (CRITICAL FOR YOUR GEMFILE)
+      # RUBY SETUP
       # ========================================================
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -141,7 +140,7 @@ jobs:
           working-directory: apps/${{ env.APP_DIR }}
 
       # ========================================================
-      # PATCH 1: REANIMATED VERSION STRING (C++20 compat)
+      # PATCH 1: REANIMATED VERSION STRING
       # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
@@ -157,32 +156,27 @@ jobs:
           fi
           
           echo "✅ Found: $REANIMATED_FILE"
-          echo "🔧 Applying unconditional REANIMATED_VERSION_STRING patch..."
-          
           TEMP_FILE=$(mktemp)
           echo '#ifndef REANIMATED_VERSION_STRING' > "$TEMP_FILE"
           echo '#define REANIMATED_VERSION_STRING "3.19.5"' >> "$TEMP_FILE"
           echo '#endif' >> "$TEMP_FILE"
           cat "$REANIMATED_FILE" >> "$TEMP_FILE"
           mv "$TEMP_FILE" "$REANIMATED_FILE"
-          echo "✅ Patch applied successfully."
+          echo "✅ ReanimatedVersion.cpp patched."
 
       # ========================================================
-      # PATCH 2: HERMES EXECUTOR MISSING <thread> HEADER
-      # Fixes all 13 cascading errors in HermesExecutorFactory.cpp
+      # PATCH 2: HERMES EXECUTOR MISSING <thread>
       # ========================================================
       - name: Patch HermesExecutorFactory.cpp
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          
           HERMES_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
           
           if [ -f "$HERMES_FILE" ]; then
             if ! grep -q "#include <thread>" "$HERMES_FILE"; then
-              echo "🔧 Adding missing #include <thread> to HermesExecutorFactory.cpp..."
-              
+              echo "🔧 Adding #include <thread>..."
               python3 -c "
           path = '$HERMES_FILE'
           with open(path, 'r') as f:
@@ -195,13 +189,54 @@ jobs:
           lines.insert(insert_at, '#include <thread>\n')
           with open(path, 'w') as f:
               f.writelines(lines)
-          print('✅ HermesExecutorFactory.cpp patched successfully.')
+          print('✅ HermesExecutorFactory.cpp patched.')
           "
             else
               echo "ℹ️ #include <thread> already present."
             fi
           else
-            echo "⚠️ Warning: HermesExecutorFactory.cpp not found."
+            echo "⚠️ HermesExecutorFactory.cpp not found."
+          fi
+
+      # ========================================================
+      # PATCH 3: REANIMATED MOUNT HOOK FOR RN 0.81
+      # Fixes: HighResTimeStamp vs double type mismatch
+      # ========================================================
+      - name: Patch ReanimatedMountHook for RN 0.81
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          MOUNT_HOOK_H="node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.h"
+          MOUNT_HOOK_CPP="node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.cpp"
+          
+          if [ -f "$MOUNT_HOOK_H" ]; then
+            echo "🔧 Patching ReanimatedMountHook.h..."
+            python3 -c "
+          path = '$MOUNT_HOOK_H'
+          with open(path, 'r') as f:
+              content = f.read()
+          content = content.replace('double commitTime', 'facebook::react::HighResTimeStamp commitTime')
+          content = content.replace('double startTime', 'facebook::react::HighResTimeStamp startTime')
+          with open(path, 'w') as f:
+              f.write(content)
+          print('✅ ReanimatedMountHook.h patched.')
+          "
+          fi
+          
+          if [ -f "$MOUNT_HOOK_CPP" ]; then
+            echo "🔧 Patching ReanimatedMountHook.cpp..."
+            python3 -c "
+          path = '$MOUNT_HOOK_CPP'
+          with open(path, 'r') as f:
+              content = f.read()
+          content = content.replace('double commitTime', 'facebook::react::HighResTimeStamp commitTime')
+          content = content.replace('double startTime', 'facebook::react::HighResTimeStamp startTime')
+          with open(path, 'w') as f:
+              f.write(content)
+          print('✅ ReanimatedMountHook.cpp patched.')
+          "
           fi
 
       - name: Patch iOS Dependencies
