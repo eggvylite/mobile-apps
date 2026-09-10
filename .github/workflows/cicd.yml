@@ -223,92 +223,87 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH 3: REANIMATED MOUNT HOOK IN PODS HEADERS
-      # ✅ Uses find -L to follow symlinks to real files
-      # ✅ Writes Python script to temp file (no heredoc issues)
-      # ✅ Runs AFTER pod install
-      # ✅ Patches BOTH .h and .cpp
+      # PATCH 3: ADD REACT_NATIVE_MINOR_VERSION=81 TO PREFIX HEADER
+      # This is the file included via -include flag by the compiler
+      # It makes the #if REACT_NATIVE_MINOR_VERSION >= 81 select HighResTimeStamp
       # ========================================================
-      - name: Patch ReanimatedMountHook in Pods Headers
-        working-directory: apps/${{ env.APP_DIR }}
+      - name: Add REACT_NATIVE_MINOR_VERSION to RNReanimated Prefix Header
+        working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-
-          # Write Python patch script to temp file
-          cat > /tmp/patch_mount_hook.py << 'ENDSCRIPT'
-          import re, sys, os
-
-          pattern = re.compile(r'(shadowTreeDidMount\s*\([^)]*?)\bdouble\s+(\w+)', re.DOTALL)
-
-          path = sys.argv[1]
-          # Resolve symlinks to get the real file
-          real_path = os.path.realpath(path)
           
-          with open(real_path, 'r') as f:
+          PREFIX_HEADER="Pods/Target Support Files/RNReanimated/RNReanimated-prefix.pch"
+          
+          if [ -f "$PREFIX_HEADER" ]; then
+            if ! grep -q "REACT_NATIVE_MINOR_VERSION" "$PREFIX_HEADER"; then
+              # Insert BEFORE #ifdef __cplusplus so it's available to all C++ code
+              python3 << 'PYEOF'
+          path = "Pods/Target Support Files/RNReanimated/RNReanimated-prefix.pch"
+          with open(path, "r") as f:
               content = f.read()
-          
-          original = content
-          content = pattern.sub(r'\1facebook::react::HighResTimeStamp \2', content)
-          
-          if content != original:
-              with open(real_path, 'w') as f:
-                  f.write(content)
-              print(f'✅ Patched: {real_path}')
+          define_line = "#define REACT_NATIVE_MINOR_VERSION 81\n"
+          # Insert at the very top after any existing #import/#include guards
+          if "#ifdef __cplusplus" in content:
+              content = content.replace("#ifdef __cplusplus", define_line + "#ifdef __cplusplus")
           else:
-              print(f'ℹ️ No changes needed: {real_path}')
-          ENDSCRIPT
-
-          echo "🔍 Finding all ReanimatedMountHook files (following symlinks)..."
-          
-          FOUND=0
-          # Use find -L to follow symlinks
-          while IFS= read -r FILE; do
-            FOUND=1
-            echo "Found: $FILE -> $(readlink -f "$FILE" 2>/dev/null || echo "$FILE")"
-            python3 /tmp/patch_mount_hook.py "$FILE"
-          done < <(find -L ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
-
-          while IFS= read -r FILE; do
-            FOUND=1
-            python3 /tmp/patch_mount_hook.py "$FILE"
-          done < <(find -L ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" 2>/dev/null)
-
-          if [ "$FOUND" -eq 0 ]; then
-            echo "⚠️ WARNING: No ReanimatedMountHook files found!"
-            echo "🔍 Listing all RNReanimated headers:"
-            find -L ios/Pods/Headers -path "*RNReanimated*" -name "*.h" 2>/dev/null | head -20 || true
+              content = define_line + content
+          with open(path, "w") as f:
+              f.write(content)
+          print("✅ Added REACT_NATIVE_MINOR_VERSION=81 to prefix header")
+          PYEOF
+            else
+              echo "ℹ️ REACT_NATIVE_MINOR_VERSION already defined in prefix header"
+            fi
+            
+            echo ""
+            echo "=== Prefix header contents ==="
+            cat "$PREFIX_HEADER"
+          else
+            echo "⚠️ Prefix header not found at: $PREFIX_HEADER"
+            echo "🔍 Searching for it..."
+            find Pods -name "*RNReanimated*prefix*" -o -name "*RNReanimated*.pch" 2>/dev/null || true
             exit 1
           fi
 
       # ========================================================
-      # VERIFY PATCH ACTUALLY WORKED
+      # VERIFY PREPROCESSOR DEFINE IS SET
       # ========================================================
-      - name: Verify ReanimatedMountHook Patch
-        working-directory: apps/${{ env.APP_DIR }}
+      - name: Verify RNReanimated Preprocessor Define
+        working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "=== Verifying ReanimatedMountHook patches ==="
-          FOUND=0
-          while IFS= read -r f; do
-            FOUND=1
-            REAL_F=$(readlink -f "$f" 2>/dev/null || echo "$f")
-            echo "--- $REAL_F ---"
-            grep -A5 "shadowTreeDidMount" "$REAL_F" || echo "Function not found!"
-            echo ""
-            if grep -A5 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
-              echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
-              exit 1
-            else
-              echo "✅ PASS: No 'double' in shadowTreeDidMount"
-            fi
-            echo ""
-          done < <(find -L ios/Pods/Headers -name "ReanimatedMountHook.h" 2>/dev/null)
+          echo "=== Checking RNReanimated GCC_PREPROCESSOR_DEFINITIONS ==="
+          ruby -e "
+            require 'xcodeproj'
+            project = Xcodeproj::Project.open('Pods/Pods.xcodeproj')
+            target = project.targets.find { |t| t.name == 'RNReanimated' }
+            abort('ERROR: RNReanimated target not found!') unless target
+            target.build_configurations.each do |config|
+              defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+              puts \"#{config.name}: #{defs.inspect}\"
+            end
+          "
           
-          if [ "$FOUND" -eq 0 ]; then
-            echo "⚠️ No ReanimatedMountHook.h found in Pods headers!"
+          echo ""
+          echo "=== Checking prefix header for REACT_NATIVE_MINOR_VERSION ==="
+          PREFIX_HEADER="Pods/Target Support Files/RNReanimated/RNReanimated-prefix.pch"
+          if grep -q "REACT_NATIVE_MINOR_VERSION" "$PREFIX_HEADER"; then
+            echo "✅ PASS: REACT_NATIVE_MINOR_VERSION found in prefix header"
+            grep "REACT_NATIVE_MINOR_VERSION" "$PREFIX_HEADER"
+          else
+            echo "❌ FAIL: REACT_NATIVE_MINOR_VERSION NOT found in prefix header!"
             exit 1
+          fi
+          
+          echo ""
+          echo "=== Checking ReanimatedMountHook.h for #if guard ==="
+          HOOK_FILE=$(find Pods/Headers -name "ReanimatedMountHook.h" -type f 2>/dev/null | head -n 1)
+          if [ -n "$HOOK_FILE" ]; then
+            REAL_HOOK=$(readlink -f "$HOOK_FILE" 2>/dev/null || echo "$HOOK_FILE")
+            echo "File: $REAL_HOOK"
+            grep -A3 "REACT_NATIVE_MINOR_VERSION\|shadowTreeDidMount" "$REAL_HOOK" || echo "No matches"
           fi
 
       - name: Fix Pod Resource Bundle Signing
