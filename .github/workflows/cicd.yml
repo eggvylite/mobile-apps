@@ -144,20 +144,19 @@ jobs:
           if [ -f "$PERF_OBSERVER_FILE" ]; then
             echo "🔧 Patching PerformanceObserver.cpp for C++17 compatibility..."
             
-            # Replace .contains() with .find() != .end() which works in C++17
-            sed -i.bak 's/observedTypes_\.contains(entryType)/observedTypes_.find(entryType) != observedTypes_.end()/g' "$PERF_OBSERVER_FILE"
-            
-            echo "✅ PerformanceObserver.cpp patched successfully."
+            python3 -c "
+          import re
+          path = '$PERF_OBSERVER_FILE'
+          with open(path, 'r') as f:
+              content = f.read()
+          new_content = content.replace('observedTypes_.contains(entryType)', 'observedTypes_.find(entryType) != observedTypes_.end()')
+          with open(path, 'w') as f:
+              f.write(new_content)
+          print('✅ PerformanceObserver.cpp patched successfully.')
+          "
           else
             echo "⚠️ Warning: PerformanceObserver.cpp not found at expected path."
           fi
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: true
-          working-directory: apps/${{ env.APP_DIR }}
 
       - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
