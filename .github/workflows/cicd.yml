@@ -130,6 +130,31 @@ jobs:
           set -euo pipefail
           npm ci --legacy-peer-deps
 
+      # ✅ UNCONDITIONAL PATCH FOR REANIMATED ON XCODE 16
+      - name: Patch Reanimated for Xcode 16
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Finding ReanimatedVersion.cpp..."
+          REANIMATED_FILE=$(find node_modules/react-native-reanimated -name "ReanimatedVersion.cpp" -type f 2>/dev/null | head -n 1)
+          
+          if [ -z "$REANIMATED_FILE" ]; then
+            echo "⚠️ Warning: ReanimatedVersion.cpp not found. Skipping patch."
+            exit 0
+          fi
+          
+          echo "✅ Found: $REANIMATED_FILE"
+          echo "🔧 Applying unconditional REANIMATED_VERSION_STRING patch..."
+          
+          TEMP_FILE=$(mktemp)
+          echo '#ifndef REANIMATED_VERSION_STRING' > "$TEMP_FILE"
+          echo '#define REANIMATED_VERSION_STRING "3.19.5"' >> "$TEMP_FILE"
+          echo '#endif' >> "$TEMP_FILE"
+          cat "$REANIMATED_FILE" >> "$TEMP_FILE"
+          mv "$TEMP_FILE" "$REANIMATED_FILE"
+          echo "✅ Patch applied successfully."
+
       # ========================================================
       # PATCH REACT NATIVE PERFORMANCE OBSERVER FOR C++17 COMPAT
       # ========================================================
