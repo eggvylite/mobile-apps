@@ -168,31 +168,51 @@ jobs:
           echo "✅ Patch applied successfully."
 
       # ========================================================
-      # PATCH REACT NATIVE PERFORMANCE OBSERVER FOR C++17 COMPAT
+      # PATCH REACT NATIVE PERFORMANCE TIMELINE FOR C++17 COMPAT
       # ========================================================
-      - name: Patch PerformanceObserver.cpp
+      - name: Patch React Native Performance Timeline
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          
+
           PERF_OBSERVER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp"
-          
+          PERF_REPORTER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceEntryReporter.cpp"
+
+          # Patch 1: .contains() -> .find() != .end()
           if [ -f "$PERF_OBSERVER_FILE" ]; then
-            echo "🔧 Patching PerformanceObserver.cpp for C++17 compatibility..."
-            
+            echo "🔧 Patching PerformanceObserver.cpp (.contains)..."
             python3 -c "
-          import re
           path = '$PERF_OBSERVER_FILE'
           with open(path, 'r') as f:
               content = f.read()
           new_content = content.replace('observedTypes_.contains(entryType)', 'observedTypes_.find(entryType) != observedTypes_.end()')
           with open(path, 'w') as f:
               f.write(new_content)
-          print('✅ PerformanceObserver.cpp patched successfully.')
+          print('✅ PerformanceObserver.cpp patched.')
+          "
+          fi
+
+          # Patch 2: .starts_with() -> .compare() == 0 (C++17 compatible)
+          if [ -f "$PERF_REPORTER_FILE" ]; then
+            echo "🔧 Patching PerformanceEntryReporter.cpp (.starts_with)..."
+            python3 -c "
+          import re
+          path = '$PERF_REPORTER_FILE'
+          with open(path, 'r') as f:
+              content = f.read()
+          # Replace name.starts_with(X) with name.compare(0, X.length(), X) == 0
+          new_content = re.sub(
+              r'(\w+)\.starts_with\(([^)]+)\)',
+              r'\1.compare(0, \2.length(), \2) == 0',
+              content
+          )
+          with open(path, 'w') as f:
+              f.write(new_content)
+          print('✅ PerformanceEntryReporter.cpp patched.')
           "
           else
-            echo "⚠️ Warning: PerformanceObserver.cpp not found at expected path."
+            echo "⚠️ Warning: PerformanceEntryReporter.cpp not found."
           fi
 
       - name: Patch iOS Dependencies
