@@ -45,7 +45,7 @@ target 'DemoROJA' do
           existing_flags = [existing_flags] if existing_flags.is_a?(String)
           existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
           build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing_flags
-        end
+        
 
         build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
