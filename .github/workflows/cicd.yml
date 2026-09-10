@@ -63,7 +63,7 @@ jobs:
       inputs.platform == 'ios'
     
     # ✅ CRITICAL: Must use macos-15 to satisfy Podfile's Xcode >= 16.1 requirement
-    runs-on: macos-15
+    runs-on: macos-26
 
     strategy:
       fail-fast: false
