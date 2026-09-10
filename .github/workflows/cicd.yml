@@ -63,7 +63,7 @@ jobs:
       inputs.platform == 'ios'
     
     # ✅ CRITICAL: Must use macos-15 to satisfy Podfile's Xcode >= 16.1 requirement
-    runs-on: macos-26
+    runs-on: macos-15
 
     strategy:
       fail-fast: false
@@ -130,7 +130,19 @@ jobs:
           set -euo pipefail
           npm ci --legacy-peer-deps
 
-      # ✅ UNCONDITIONAL PATCH FOR REANIMATED ON XCODE 16
+      # ========================================================
+      # RUBY SETUP (CRITICAL FOR YOUR GEMFILE)
+      # ========================================================
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2' # Matches the stable version on macos-15
+          bundler-cache: true # Automatically installs gems from your Gemfile.lock
+          working-directory: apps/${{ env.APP_DIR }} # Point to where your Gemfile is located
+
+      # ========================================================
+      # UNCONDITIONAL PATCH FOR REANIMATED ON XCODE 16
+      # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
