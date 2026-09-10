@@ -25,13 +25,12 @@ target 'DemoROJA' do
 
   permissions_path = '../node_modules/react-native-permissions/ios'
   pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
-   pod 'RNFBMessaging', :path => '../node_modules/@react-native-firebase/messaging'
+  pod 'RNFBMessaging', :path => '../node_modules/@react-native-firebase/messaging'
   pod 'Firebase'
   pod 'FirebaseCoreInternal', :modular_headers => true
   pod 'GoogleUtilities', :modular_headers => true
   pod 'FirebaseCore', :modular_headers => true
   
-
   # ==========================================================
   # POST INSTALL
   # ==========================================================
@@ -45,30 +44,37 @@ target 'DemoROJA' do
     )
 
     # ========================================================
-    # POD BUILD SETTINGS
+    # DYNAMIC C++ STANDARD RESOLVER & POD SETTINGS
     # ========================================================
     installer.pods_project.targets.each do |target|
-
       target.build_configurations.each do |build_config|
 
-        # Pods must not be code signed.
+        # 1. Define which targets strictly require C++20 (Modern RN Core)
+        requires_cxx20 = [
+          'React-Core', 
+          'ReactCommon', 
+          'React-Fabric', 
+          'React-Codegen',
+          'hermes-engine'
+        ].include?(target.name)
+
+        if requires_cxx20
+          # Enforce C++20 only for modern RN core components
+          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
+        else
+          # Safely fall back to C++17 for all other pods (e.g., old Reanimated)
+          # This prevents fatal API mismatch errors on Xcode 15.4
+          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++17 -fno-aligned-new'
+        end
+
+        # Keep your existing safe settings
         build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-
-        # iOS deployment target
         build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
-
-        # C++ standard
-        build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-
-        # Explicitly enable C++20 compiler flag
-        build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] =
-          '-std=c++20 -fno-aligned-new'
-
-        # Warnings
         build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
-
         build_config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
-
+        
       end
     end
 
