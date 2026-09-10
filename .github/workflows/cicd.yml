@@ -147,14 +147,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔍 Finding ReanimatedVersion.cpp..."
           REANIMATED_FILE=$(find node_modules/react-native-reanimated -name "ReanimatedVersion.cpp" -type f 2>/dev/null | head -n 1)
-          
           if [ -z "$REANIMATED_FILE" ]; then
-            echo "⚠️ Warning: ReanimatedVersion.cpp not found. Skipping patch."
+            echo "⚠️ ReanimatedVersion.cpp not found. Skipping."
             exit 0
           fi
-          
           echo "✅ Found: $REANIMATED_FILE"
           TEMP_FILE=$(mktemp)
           echo '#ifndef REANIMATED_VERSION_STRING' > "$TEMP_FILE"
@@ -166,6 +163,7 @@ jobs:
 
       # ========================================================
       # PATCH 2: HERMES EXECUTOR MISSING <thread>
+      # Fixes 13 cascading errors in HermesExecutorFactory.cpp
       # ========================================================
       - name: Patch HermesExecutorFactory.cpp
         working-directory: apps/${{ env.APP_DIR }}
@@ -173,11 +171,9 @@ jobs:
         run: |
           set -euo pipefail
           HERMES_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
-          
-          if [ -f "$HERMES_FILE" ]; then
-            if ! grep -q "#include <thread>" "$HERMES_FILE"; then
-              echo "🔧 Adding #include <thread>..."
-              python3 << 'PYEOF'
+          if [ -f "$HERMES_FILE" ] && ! grep -q "#include <thread>" "$HERMES_FILE"; then
+            echo "🔧 Adding #include <thread>..."
+            python3 << 'PYEOF'
           path = "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
           with open(path, "r") as f:
               lines = f.readlines()
@@ -191,69 +187,9 @@ jobs:
               f.writelines(lines)
           print("✅ HermesExecutorFactory.cpp patched.")
           PYEOF
-            else
-              echo "ℹ️ #include <thread> already present."
-            fi
           else
-            echo "⚠️ HermesExecutorFactory.cpp not found."
+            echo "ℹ️ HermesExecutorFactory.cpp already has #include <thread> or not found."
           fi
-
-      # ========================================================
-      # PATCH 3: REANIMATED MOUNT HOOK FOR RN 0.81
-      # Uses regex to catch ANY double parameter name
-      # Patches BOTH node_modules source AND Pods header copy
-      # ========================================================
-      - name: Patch ReanimatedMountHook for RN 0.81
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          # Find ALL copies of ReanimatedMountHook.h (source + Pods headers)
-          echo "🔍 Searching for all ReanimatedMountHook files..."
-          find node_modules/react-native-reanimated ios/Pods -name "ReanimatedMountHook.h" -type f 2>/dev/null | while read -r HFILE; do
-            echo "🔧 Patching $HFILE..."
-            python3 - "$HFILE" << 'PYEOF'
-          import re, sys
-          path = sys.argv[1]
-          with open(path, "r") as f:
-              content = f.read()
-          # Replace any 'double <identifier>' followed by comma, paren, or whitespace
-          new_content = re.sub(
-              r'\bdouble\s+(\w+)',
-              r'facebook::react::HighResTimeStamp \1',
-              content
-          )
-          if new_content != content:
-              with open(path, "w") as f:
-                  f.write(new_content)
-              print(f"✅ {path} patched.")
-          else:
-              print(f"ℹ️ {path} - no changes needed.")
-          PYEOF
-          done
-          
-          # Also patch .cpp files
-          find node_modules/react-native-reanimated ios/Pods -name "ReanimatedMountHook.cpp" -type f 2>/dev/null | while read -r CFILE; do
-            echo "🔧 Patching $CFILE..."
-            python3 - "$CFILE" << 'PYEOF'
-          import re, sys
-          path = sys.argv[1]
-          with open(path, "r") as f:
-              content = f.read()
-          new_content = re.sub(
-              r'\bdouble\s+(\w+)',
-              r'facebook::react::HighResTimeStamp \1',
-              content
-          )
-          if new_content != content:
-              with open(path, "w") as f:
-                  f.write(new_content)
-              print(f"✅ {path} patched.")
-          else:
-              print(f"ℹ️ {path} - no changes needed.")
-          PYEOF
-          done
 
       - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
@@ -288,34 +224,78 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH 4: RE-PATCH PODS HEADERS AFTER POD INSTALL
-      # CocoaPods copies headers during pod install, overwriting source patches
+      # PATCH 3: REANIMATED MOUNT HOOK IN PODS HEADERS
+      # ✅ Runs AFTER pod install to patch the Pods header copy
+      # ✅ Scoped to shadowTreeDidMount signature only
+      # ✅ Patches BOTH .h and .cpp in Pods headers AND node_modules
       # ========================================================
-      - name: Re-patch ReanimatedMountHook in Pods Headers
+      - name: Patch ReanimatedMountHook in Pods Headers
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔍 Re-patching Pods headers after pod install..."
-          find ios/Pods -name "ReanimatedMountHook.h" -type f 2>/dev/null | while read -r HFILE; do
-            echo "🔧 Re-patching $HFILE..."
-            python3 - "$HFILE" << 'PYEOF'
+          echo "🔍 Patching ReanimatedMountHook after pod install..."
+
+          PATCH_SCRIPT='
           import re, sys
           path = sys.argv[1]
           with open(path, "r") as f:
               content = f.read()
-          new_content = re.sub(
-              r'\bdouble\s+(\w+)',
-              r'facebook::react::HighResTimeStamp \1',
-              content
+          original = content
+          content = re.sub(
+              r"(shadowTreeDidMount\s*\([^)]*?)\bdouble\s+(\w+)",
+              r"\1facebook::react::HighResTimeStamp \2",
+              content,
+              flags=re.DOTALL
           )
-          if new_content != content:
+          if content != original:
               with open(path, "w") as f:
-                  f.write(new_content)
-              print(f"✅ {path} re-patched.")
+                  f.write(content)
+              print(f"✅ Patched: {path}")
           else:
-              print(f"ℹ️ {path} - already correct.")
-          PYEOF
+              print(f"ℹ️ No changes needed: {path}")
+          '
+
+          FOUND=0
+          while IFS= read -r FILE; do
+            FOUND=1
+            python3 -c "$PATCH_SCRIPT" "$FILE"
+          done < <(find ios/Pods/Headers -name "ReanimatedMountHook.h" -type f 2>/dev/null)
+
+          while IFS= read -r FILE; do
+            FOUND=1
+            python3 -c "$PATCH_SCRIPT" "$FILE"
+          done < <(find ios/Pods/Headers -name "ReanimatedMountHook.cpp" -type f 2>/dev/null)
+
+          while IFS= read -r FILE; do
+            FOUND=1
+            python3 -c "$PATCH_SCRIPT" "$FILE"
+          done < <(find node_modules/react-native-reanimated -name "ReanimatedMountHook.h" -type f 2>/dev/null)
+
+          while IFS= read -r FILE; do
+            FOUND=1
+            python3 -c "$PATCH_SCRIPT" "$FILE"
+          done < <(find node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" -type f 2>/dev/null)
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "⚠️ WARNING: No ReanimatedMountHook files found!"
+            find ios/Pods/Headers -path "*RNReanimated*" -name "*.h" -type f 2>/dev/null | head -20 || true
+          fi
+
+      # ========================================================
+      # VERIFY PATCHES
+      # ========================================================
+      - name: Verify All Patches
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          echo "=== Verifying HermesExecutorFactory.cpp ==="
+          grep -n "#include <thread>" node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp || echo "❌ MISSING #include <thread>"
+          echo ""
+          echo "=== Verifying ReanimatedMountHook in Pods Headers ==="
+          find ios/Pods/Headers -name "ReanimatedMountHook.h" -type f 2>/dev/null | while read -r f; do
+            echo "--- $f ---"
+            grep -A5 "shadowTreeDidMount" "$f" | grep "double" && echo "❌ STILL HAS double" || echo "✅ No double in shadowTreeDidMount"
           done
 
       - name: Fix Pod Resource Bundle Signing
