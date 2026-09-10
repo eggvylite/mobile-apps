@@ -177,20 +177,20 @@ jobs:
           if [ -f "$HERMES_FILE" ]; then
             if ! grep -q "#include <thread>" "$HERMES_FILE"; then
               echo "🔧 Adding #include <thread>..."
-              python3 -c "
-          path = '$HERMES_FILE'
-          with open(path, 'r') as f:
+              python3 << 'PYEOF'
+          path = "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
+          with open(path, "r") as f:
               lines = f.readlines()
           insert_at = 0
           for i, line in enumerate(lines):
-              if line.startswith('#include '):
+              if line.startswith("#include "):
                   insert_at = i
                   break
-          lines.insert(insert_at, '#include <thread>\n')
-          with open(path, 'w') as f:
+          lines.insert(insert_at, "#include <thread>\n")
+          with open(path, "w") as f:
               f.writelines(lines)
-          print('✅ HermesExecutorFactory.cpp patched.')
-          "
+          print("✅ HermesExecutorFactory.cpp patched.")
+          PYEOF
             else
               echo "ℹ️ #include <thread> already present."
             fi
@@ -200,7 +200,8 @@ jobs:
 
       # ========================================================
       # PATCH 3: REANIMATED MOUNT HOOK FOR RN 0.81
-      # Fixes: HighResTimeStamp vs double type mismatch
+      # Uses regex to catch ANY double parameter name
+      # Patches BOTH node_modules source AND Pods header copy
       # ========================================================
       - name: Patch ReanimatedMountHook for RN 0.81
         working-directory: apps/${{ env.APP_DIR }}
@@ -208,36 +209,51 @@ jobs:
         run: |
           set -euo pipefail
           
-          MOUNT_HOOK_H="node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.h"
-          MOUNT_HOOK_CPP="node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.cpp"
-          
-          if [ -f "$MOUNT_HOOK_H" ]; then
-            echo "🔧 Patching ReanimatedMountHook.h..."
-            python3 -c "
-          path = '$MOUNT_HOOK_H'
-          with open(path, 'r') as f:
+          # Find ALL copies of ReanimatedMountHook.h (source + Pods headers)
+          echo "🔍 Searching for all ReanimatedMountHook files..."
+          find node_modules/react-native-reanimated ios/Pods -name "ReanimatedMountHook.h" -type f 2>/dev/null | while read -r HFILE; do
+            echo "🔧 Patching $HFILE..."
+            python3 - "$HFILE" << 'PYEOF'
+          import re, sys
+          path = sys.argv[1]
+          with open(path, "r") as f:
               content = f.read()
-          content = content.replace('double commitTime', 'facebook::react::HighResTimeStamp commitTime')
-          content = content.replace('double startTime', 'facebook::react::HighResTimeStamp startTime')
-          with open(path, 'w') as f:
-              f.write(content)
-          print('✅ ReanimatedMountHook.h patched.')
-          "
-          fi
+          # Replace any 'double <identifier>' followed by comma, paren, or whitespace
+          new_content = re.sub(
+              r'\bdouble\s+(\w+)',
+              r'facebook::react::HighResTimeStamp \1',
+              content
+          )
+          if new_content != content:
+              with open(path, "w") as f:
+                  f.write(new_content)
+              print(f"✅ {path} patched.")
+          else:
+              print(f"ℹ️ {path} - no changes needed.")
+          PYEOF
+          done
           
-          if [ -f "$MOUNT_HOOK_CPP" ]; then
-            echo "🔧 Patching ReanimatedMountHook.cpp..."
-            python3 -c "
-          path = '$MOUNT_HOOK_CPP'
-          with open(path, 'r') as f:
+          # Also patch .cpp files
+          find node_modules/react-native-reanimated ios/Pods -name "ReanimatedMountHook.cpp" -type f 2>/dev/null | while read -r CFILE; do
+            echo "🔧 Patching $CFILE..."
+            python3 - "$CFILE" << 'PYEOF'
+          import re, sys
+          path = sys.argv[1]
+          with open(path, "r") as f:
               content = f.read()
-          content = content.replace('double commitTime', 'facebook::react::HighResTimeStamp commitTime')
-          content = content.replace('double startTime', 'facebook::react::HighResTimeStamp startTime')
-          with open(path, 'w') as f:
-              f.write(content)
-          print('✅ ReanimatedMountHook.cpp patched.')
-          "
-          fi
+          new_content = re.sub(
+              r'\bdouble\s+(\w+)',
+              r'facebook::react::HighResTimeStamp \1',
+              content
+          )
+          if new_content != content:
+              with open(path, "w") as f:
+                  f.write(new_content)
+              print(f"✅ {path} patched.")
+          else:
+              print(f"ℹ️ {path} - no changes needed.")
+          PYEOF
+          done
 
       - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
@@ -270,6 +286,37 @@ jobs:
           bundle exec pod cache clean boost --all || true
           bundle exec pod cache clean RCT-Folly --all || true
           bundle exec pod install --repo-update
+
+      # ========================================================
+      # PATCH 4: RE-PATCH PODS HEADERS AFTER POD INSTALL
+      # CocoaPods copies headers during pod install, overwriting source patches
+      # ========================================================
+      - name: Re-patch ReanimatedMountHook in Pods Headers
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Re-patching Pods headers after pod install..."
+          find ios/Pods -name "ReanimatedMountHook.h" -type f 2>/dev/null | while read -r HFILE; do
+            echo "🔧 Re-patching $HFILE..."
+            python3 - "$HFILE" << 'PYEOF'
+          import re, sys
+          path = sys.argv[1]
+          with open(path, "r") as f:
+              content = f.read()
+          new_content = re.sub(
+              r'\bdouble\s+(\w+)',
+              r'facebook::react::HighResTimeStamp \1',
+              content
+          )
+          if new_content != content:
+              with open(path, "w") as f:
+                  f.write(new_content)
+              print(f"✅ {path} re-patched.")
+          else:
+              print(f"ℹ️ {path} - already correct.")
+          PYEOF
+          done
 
       - name: Fix Pod Resource Bundle Signing
         working-directory: apps/${{ env.APP_DIR }}/ios
