@@ -62,7 +62,7 @@ jobs:
       inputs.platform == 'all' ||
       inputs.platform == 'ios'
     
-    # ✅ CRITICAL: Must use macos-15 to satisfy Podfile's Xcode >= 16.1 requirement
+    # ✅ Uses macos-15 with default Xcode 16.4 (satisfies Podfile >= 16.1)
     runs-on: macos-15
 
     strategy:
@@ -136,9 +136,9 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2' # Matches the stable version on macos-15
-          bundler-cache: true # Automatically installs gems from your Gemfile.lock
-          working-directory: apps/${{ env.APP_DIR }} # Point to where your Gemfile is located
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: apps/${{ env.APP_DIR }}
 
       # ========================================================
       # UNCONDITIONAL PATCH FOR REANIMATED ON XCODE 16
@@ -166,54 +166,6 @@ jobs:
           cat "$REANIMATED_FILE" >> "$TEMP_FILE"
           mv "$TEMP_FILE" "$REANIMATED_FILE"
           echo "✅ Patch applied successfully."
-
-      # ========================================================
-      # PATCH REACT NATIVE PERFORMANCE TIMELINE FOR C++17 COMPAT
-      # ========================================================
-      - name: Patch React Native Performance Timeline
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          PERF_OBSERVER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceObserver.cpp"
-          PERF_REPORTER_FILE="node_modules/react-native/ReactCommon/react/performance/timeline/PerformanceEntryReporter.cpp"
-
-          # Patch 1: .contains() -> .find() != .end()
-          if [ -f "$PERF_OBSERVER_FILE" ]; then
-            echo "🔧 Patching PerformanceObserver.cpp (.contains)..."
-            python3 -c "
-          path = '$PERF_OBSERVER_FILE'
-          with open(path, 'r') as f:
-              content = f.read()
-          new_content = content.replace('observedTypes_.contains(entryType)', 'observedTypes_.find(entryType) != observedTypes_.end()')
-          with open(path, 'w') as f:
-              f.write(new_content)
-          print('✅ PerformanceObserver.cpp patched.')
-          "
-          fi
-
-          # Patch 2: .starts_with() -> .compare() == 0 (C++17 compatible)
-          if [ -f "$PERF_REPORTER_FILE" ]; then
-            echo "🔧 Patching PerformanceEntryReporter.cpp (.starts_with)..."
-            python3 -c "
-          import re
-          path = '$PERF_REPORTER_FILE'
-          with open(path, 'r') as f:
-              content = f.read()
-          # Replace name.starts_with(X) with name.compare(0, X.length(), X) == 0
-          new_content = re.sub(
-              r'(\w+)\.starts_with\(([^)]+)\)',
-              r'\1.compare(0, \2.length(), \2) == 0',
-              content
-          )
-          with open(path, 'w') as f:
-              f.write(new_content)
-          print('✅ PerformanceEntryReporter.cpp patched.')
-          "
-          else
-            echo "⚠️ Warning: PerformanceEntryReporter.cpp not found."
-          fi
 
       - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
