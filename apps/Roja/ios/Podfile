@@ -38,27 +38,22 @@ target 'DemoROJA' do
     )
 
     # ========================================================
-    # DYNAMIC C++ STANDARD RESOLVER & POD SETTINGS
+    # CORRECTED C++ STANDARD RESOLVER FOR RN 0.81
     # ========================================================
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |build_config|
         
-        # Define which targets strictly require C++20 (Modern RN Core)
-        requires_cxx20 = [
-          'React-Core', 
-          'ReactCommon', 
-          'React-Fabric', 
-          'React-Codegen',
-          'hermes-engine'
-        ].include?(target.name)
+        # ✅ RN 0.81 REQUIRES C++20 for ALL React-* targets
+        # Only RNReanimated needs C++17 due to known API mismatch
+        needs_cpp17 = ['RNReanimated'].include?(target.name)
 
-        if requires_cxx20
-          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
-        else
-          # Safely fall back to C++17 for all other pods (e.g., old Reanimated)
+        if needs_cpp17
           build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
           build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++17 -fno-aligned-new'
+        else
+          # Default to C++20 for everything else (required by RN 0.81)
+          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
         end
 
         # Keep existing safe settings
