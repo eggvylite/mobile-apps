@@ -62,7 +62,7 @@ jobs:
       inputs.platform == 'all' ||
       inputs.platform == 'ios'
     
-    # ✅ Uses macos-15 with default Xcode 16.4 (satisfies Podfile >= 16.1)
+    # ✅ macos-15 with default Xcode 16.4 (satisfies Podfile >= 16.1)
     runs-on: macos-15
 
     strategy:
@@ -141,7 +141,7 @@ jobs:
           working-directory: apps/${{ env.APP_DIR }}
 
       # ========================================================
-      # UNCONDITIONAL PATCH FOR REANIMATED ON XCODE 16
+      # PATCH 1: REANIMATED VERSION STRING (C++20 compat)
       # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
@@ -168,7 +168,7 @@ jobs:
           echo "✅ Patch applied successfully."
 
       # ========================================================
-      # PATCH HERMES EXECUTOR FOR MISSING <thread> HEADER
+      # PATCH 2: HERMES EXECUTOR MISSING <thread> HEADER
       # Fixes all 13 cascading errors in HermesExecutorFactory.cpp
       # ========================================================
       - name: Patch HermesExecutorFactory.cpp
