@@ -167,6 +167,43 @@ jobs:
           mv "$TEMP_FILE" "$REANIMATED_FILE"
           echo "✅ Patch applied successfully."
 
+      # ========================================================
+      # PATCH HERMES EXECUTOR FOR MISSING <thread> HEADER
+      # Fixes all 13 cascading errors in HermesExecutorFactory.cpp
+      # ========================================================
+      - name: Patch HermesExecutorFactory.cpp
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          HERMES_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
+          
+          if [ -f "$HERMES_FILE" ]; then
+            if ! grep -q "#include <thread>" "$HERMES_FILE"; then
+              echo "🔧 Adding missing #include <thread> to HermesExecutorFactory.cpp..."
+              
+              python3 -c "
+          path = '$HERMES_FILE'
+          with open(path, 'r') as f:
+              lines = f.readlines()
+          insert_at = 0
+          for i, line in enumerate(lines):
+              if line.startswith('#include '):
+                  insert_at = i
+                  break
+          lines.insert(insert_at, '#include <thread>\n')
+          with open(path, 'w') as f:
+              f.writelines(lines)
+          print('✅ HermesExecutorFactory.cpp patched successfully.')
+          "
+            else
+              echo "ℹ️ #include <thread> already present."
+            fi
+          else
+            echo "⚠️ Warning: HermesExecutorFactory.cpp not found."
+          fi
+
       - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
