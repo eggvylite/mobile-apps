@@ -13,7 +13,6 @@ on:
           - paiio
           - jackpot
         default: all
-
       platform:
         description: "Which platform should be built?"
         required: true
@@ -23,7 +22,6 @@ on:
           - ios
           - android
         default: all
-
       version_name:
         description: "App Version (example: 1.9). Leave blank to keep project version."
         required: false
@@ -39,10 +37,6 @@ permissions:
   id-token: write
 
 jobs:
-
-  # ============================================================
-  # SELECT APPS
-  # ============================================================
   setup:
     name: Select Apps
     runs-on: ubuntu-latest
@@ -56,501 +50,21 @@ jobs:
           set -euo pipefail
           APP="${{ inputs.app }}"
           case "$APP" in
-            all|"")
-              echo 'apps=["roja","paiio","jackpot"]' >> "$GITHUB_OUTPUT"
-              ;;
-            roja|paiio|jackpot)
-              echo "apps=[\"$APP\"]" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "ERROR: Invalid app: $APP"
-              exit 1
-              ;;
+            all|"") echo 'apps=["roja","paiio","jackpot"]' >> "$GITHUB_OUTPUT" ;;
+            roja|paiio|jackpot) echo "apps=[\"$APP\"]" >> "$GITHUB_OUTPUT" ;;
+            *) echo "ERROR: Invalid app: $APP"; exit 1 ;;
           esac
 
-
-  # ============================================================
-  # IOS
-  # ============================================================
   build-ios:
     name: iOS - ${{ matrix.app }}
     needs: setup
     if: >
       inputs.platform == 'all' ||
       inputs.platform == 'ios'
+    
+    # ✅ CRITICAL: Must use macos-15 to satisfy Podfile's Xcode >= 16.1 requirement
+    runs-on: macos-15
 
-    # ✅ CRITICAL: macos-14 uses Xcode 15.4 by default
-    runs-on: macos-14
-
-    strategy:
-      fail-fast: false
-      matrix:
-        app: ${{ fromJSON(needs.setup.outputs.apps) }}
-
-    env:
-      APP_NAME: ${{ matrix.app }}
-
-    steps:
-
-      # ========================================================
-      # CHECKOUT
-      # ========================================================
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-
-      # ========================================================
-      # RESOLVE APP DIRECTORY
-      # ========================================================
-      - name: Resolve App Directory
-        shell: bash
-        run: |
-          set -euo pipefail
-          APP_DIR="$(
-            find apps \
-              -maxdepth 1 \
-              -mindepth 1 \
-              -type d \
-              -iname "${{ matrix.app }}" \
-              -print -quit \
-            | sed 's|^apps/||'
-          )"
-          if [ -z "$APP_DIR" ]; then
-            echo "ERROR: Could not find apps/${{ matrix.app }}"
-            exit 1
-          fi
-          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
-          echo "Resolved: apps/$APP_DIR"
-
-
-      # ========================================================
-      # AWS OIDC
-      # ========================================================
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: github-mobile-${{ github.run_id }}-${{ matrix.app }}
-
-      - name: Verify AWS Identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          aws sts get-caller-identity
-          if [ -z "${S3_BUCKET:-}" ]; then
-            echo "ERROR: S3_BUCKET is empty."
-            exit 1
-          fi
-
-
-      # ========================================================
-      # LOAD APP SECRETS
-      # ========================================================
-      - name: Get App Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: |
-            APP_SECRETS,app/${{ matrix.app }}/cred
-          parse-json-secrets: true
-
-      - name: Validate iOS Configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          required_vars=(
-            APP_SECRETS_IOS_BUNDLE_ID
-            APP_SECRETS_IOS_TEAM_ID
-            APP_SECRETS_IOS_P12_BASE64
-            APP_SECRETS_IOS_P12_PASSWORD
-            APP_SECRETS_IOS_APPSTORE_ISSUER_ID
-            APP_SECRETS_IOS_APPSTORE_API_KEY_ID
-            APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY
-          )
-          for var in "${required_vars[@]}"; do
-            if [ -z "${!var:-}" ]; then
-              echo "ERROR: Missing required iOS variable: $var"
-              exit 1
-            fi
-          done
-          echo "iOS configuration:"
-          echo "Bundle ID : $APP_SECRETS_IOS_BUNDLE_ID"
-          echo "Team ID   : $APP_SECRETS_IOS_TEAM_ID"
-
-
-      # ========================================================
-      # NODE
-      # ========================================================
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
-
-
-      # ========================================================
-      # NPM
-      # ========================================================
-      - name: Install Dependencies
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci --legacy-peer-deps
-
-
-      # ========================================================
-      # RUBY
-      # ========================================================
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: true
-          working-directory: apps/${{ env.APP_DIR }}
-
-
-      # ========================================================
-      # PATCH IOS DEPENDENCIES (Boost + RCT-Folly)
-      # ========================================================
-      - name: Patch iOS Dependencies
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
-          import glob
-
-          old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
-          new_url = "https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2"
-
-          for path in glob.glob("node_modules/**/boost*.podspec", recursive=True):
-              with open(path, "r", encoding="utf-8") as f:
-                  content = f.read()
-              if old_url in content:
-                  content = content.replace(old_url, new_url)
-                  with open(path, "w", encoding="utf-8") as f:
-                      f.write(content)
-                  print(f"Patched Boost: {path}")
-
-          for path in glob.glob("node_modules/**/RCT-Folly.podspec", recursive=True):
-              with open(path, "r", encoding="utf-8") as f:
-                  content = f.read()
-              if "-Wno-error=unqualified-std-cast-call" not in content:
-                  content = content.replace(
-                      "folly_compiler_flags = [",
-                      'folly_compiler_flags = ["-Wno-error=unqualified-std-cast-call", "-Wno-error=c++11-narrowing", "-DFOLLY_NO_CONFIG=1", ',
-                      1
-                  )
-                  with open(path, "w", encoding="utf-8") as f:
-                      f.write(content)
-                  print(f"Patched RCT-Folly: {path}")
-          PY
-
-
-      # ========================================================
-      # ✅ CRITICAL: PATCH PODFILE TO ALLOW XCODE 15.4
-      # ========================================================
-      - name: Patch Podfile Xcode Check
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Remove the Xcode version guard so Xcode 15.4 is allowed
-          sed -i.bak -e '/Please upgrade XCode/d' -e '/Xcodeproj::Xcode.default.xcode_version/d' Podfile || true
-          echo "✅ Removed Xcode version check from Podfile"
-
-
-      # ========================================================
-      # PODFILE
-      # ========================================================
-      - name: Install CocoaPods
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
-          bundle exec pod cache clean boost --all || true
-          bundle exec pod cache clean RCT-Folly --all || true
-          bundle exec pod install --repo-update
-          echo "✅ CocoaPods installation completed."
-
-
-      # ========================================================
-      # ✅ SAFE RESOURCE BUNDLE SIGNING FIX
-      # ========================================================
-      - name: Fix Pod Resource Bundle Signing
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
-          gem install xcodeproj --no-document > /dev/null 2>&1 || true
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          project_path = 'Pods/Pods.xcodeproj'
-          if File.exist?(project_path)
-            project = Xcodeproj::Project.open(project_path)
-            
-            project.targets.each do |target|
-              is_bundle = target.respond_to?(:product_type) && target.product_type == 'com.apple.product-type.bundle'
-              is_qb_image_picker = target.name.include?('QBImagePicker')
-              is_privacy_info = target.name.include?('PrivacyInfo')
-              
-              if is_bundle || is_qb_image_picker || is_privacy_info
-                target.build_configurations.each do |config|
-                  config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                  config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-                  config.build_settings['CODE_SIGN_IDENTITY'] = ''
-                  config.build_settings['DEVELOPMENT_TEAM'] = ''
-                  config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
-                end
-              end
-            end
-            project.save
-            puts "✅ Disabled code signing for all Pod resource bundles."
-          end
-          RUBY
-
-
-      # ========================================================
-      # APPLE SIGNING CERTIFICATES
-      # ========================================================
-      - name: Import Apple Development Certificate
-        uses: apple-actions/import-codesign-certs@v7
-        with:
-          p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
-          p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
-
-      - name: Verify iOS Signing Certificates
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Available code signing identities:"
-          security find-identity -v -p codesigning || true
-          if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
-            echo "ERROR: Apple Development certificate was not found."
-            exit 1
-          fi
-          echo "✅ Apple Development certificate is installed."
-
-      - name: Prepare App Store Connect API Key for Xcode
-        shell: bash
-        run: |
-          set -euo pipefail
-          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8"
-          if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
-            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
-          else
-            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r\n' | base64 --decode > "$API_KEY_PATH"
-          fi
-          chmod 600 "$API_KEY_PATH"
-          if ! grep -q -- 'BEGIN PRIVATE KEY' "$API_KEY_PATH"; then
-            echo "ERROR: App Store Connect API key is not a valid PEM private key."
-            exit 1
-          fi
-          echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
-
-      - name: Set iOS Version and Build Number
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
-          xcrun agvtool new-version -all "$GITHUB_RUN_NUMBER"
-          if [ -n "${{ inputs.version_name }}" ]; then
-            xcrun agvtool new-marketing-version "${{ inputs.version_name }}"
-          fi
-
-      - name: Resolve Xcode Workspace and Scheme
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${APP_SECRETS_IOS_WORKSPACE:-}" ]; then
-            WORKSPACE_PATH="$APP_SECRETS_IOS_WORKSPACE"
-          else
-            WORKSPACE_PATH="$(find ios -maxdepth 1 -name "*.xcworkspace" -type d -print -quit)"
-          fi
-          if [ -z "$WORKSPACE_PATH" ]; then
-            echo "ERROR: No .xcworkspace found."
-            exit 1
-          fi
-          if [ -n "${APP_SECRETS_IOS_SCHEME:-}" ]; then
-            SCHEME_NAME="$APP_SECRETS_IOS_SCHEME"
-          else
-            SCHEME_NAME=$(basename "$WORKSPACE_PATH" .xcworkspace)
-          fi
-          echo "WORKSPACE_PATH=$WORKSPACE_PATH" >> "$GITHUB_ENV"
-          echo "SCHEME_NAME=$SCHEME_NAME" >> "$GITHUB_ENV"
-
-      - name: Prepare iOS Archive
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ios/build
-
-      - name: Normalize Xcode Development Signing
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gem install xcodeproj --no-document
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          project_path = Dir.glob('ios/*.xcodeproj').first
-          abort('ERROR: No .xcodeproj found inside ios/.') unless project_path
-          project = Xcodeproj::Project.open(project_path)
-          application_targets = project.targets.select { |t| t.respond_to?(:product_type) && t.product_type == 'com.apple.product-type.application' }
-          target = application_targets.find { |t| t.name == ENV['SCHEME_NAME'] } || application_targets.first
-          abort('ERROR: Could not resolve the iOS application target.') unless target
-          
-          attrs = project.root_object.attributes['TargetAttributes'] ||= {}
-          target_attrs = attrs[target.uuid] ||= {}
-          target_attrs['ProvisioningStyle'] = 'Automatic'
-
-          target.build_configurations.each do |config|
-            config.build_settings.delete('PROVISIONING_PROFILE')
-            config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
-            config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
-            config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
-            config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
-          end
-          project.save
-          RUBY
-
-      - name: Clean iOS Derived Data
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*
-          mkdir -p ios/build
-
-      # ========================================================
-      # BUILD AND ARCHIVE
-      # ========================================================
-      - name: Build and Archive (Development)
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Using workspace: ${WORKSPACE_PATH}"
-          echo "Using scheme: ${SCHEME_NAME}"
-          echo "Signing identity: Apple Development"
-          echo "Development team: ${APP_SECRETS_IOS_TEAM_ID}"
-          echo "Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
-
-          xcodebuild \
-            -workspace "${WORKSPACE_PATH}" \
-            -scheme "${SCHEME_NAME}" \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Development" \
-            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
-            -allowProvisioningUpdates \
-            -allowProvisioningDeviceRegistration \
-            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
-            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
-            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
-            archive
-
-      - name: Verify iOS Archive
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          ARCHIVE="$PWD/ios/build/${APP_NAME}.xcarchive"
-          if [ ! -d "$ARCHIVE" ]; then
-            echo "ERROR: Archive was not created: $ARCHIVE"
-            exit 1
-          fi
-          echo "✅ Archive created successfully: $ARCHIVE"
-
-      - name: Create ExportOptions.plist
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > ios/build/ExportOptions.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>destination</key><string>export</string>
-            <key>method</key><string>development</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>teamID</key><string>${APP_SECRETS_IOS_TEAM_ID}</string>
-            <key>stripSwiftSymbols</key><true/>
-            <key>uploadSymbols</key><true/>
-          </dict>
-          </plist>
-          EOF
-          plutil -lint ios/build/ExportOptions.plist
-
-      - name: Export IPA
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf ios/build/export
-          mkdir -p ios/build/export
-          xcodebuild \
-            -exportArchive \
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            -exportPath "$PWD/ios/build/export" \
-            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
-            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
-            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
-
-      - name: Prepare IPA
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          IPA="$(find ios/build/export -name "*.ipa" -type f -print -quit)"
-          if [ -z "$IPA" ]; then
-            echo "ERROR: IPA was not generated."
-            exit 1
-          fi
-          OUTPUT="ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa"
-          cp "$IPA" "$OUTPUT"
-          echo "✅ IPA ready: $OUTPUT"
-
-      - name: Upload iOS Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.app }}-ios-${{ github.run_number }}
-          path: apps/${{ env.APP_DIR }}/ios/build/${{ matrix.app }}-${{ github.run_number }}.ipa
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload Current iOS IPA to S3
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          aws s3 cp "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
-
-
-  # ============================================================
-  # ANDROID
-  # ============================================================
-  build-android:
-    name: Android - ${{ matrix.app }}
-    needs: setup
-    if: >
-      inputs.platform == 'all' ||
-      inputs.platform == 'android'
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -569,10 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           APP_DIR="$(find apps -maxdepth 1 -mindepth 1 -type d -iname "${{ matrix.app }}" -print -quit | sed 's|^apps/||')"
-          if [ -z "$APP_DIR" ]; then
-            echo "ERROR: Could not find apps/${{ matrix.app }}"
-            exit 1
-          fi
+          if [ -z "$APP_DIR" ]; then echo "ERROR: Could not find apps/${{ matrix.app }}"; exit 1; fi
           echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
 
       - name: Configure AWS Credentials
@@ -587,10 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           aws sts get-caller-identity
-          if [ -z "${S3_BUCKET:-}" ]; then
-            echo "ERROR: S3_BUCKET is empty."
-            exit 1
-          fi
+          if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
       - name: Get App Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
@@ -599,18 +107,14 @@ jobs:
             APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
 
-      - name: Validate Android Configuration
+      - name: Validate iOS Configuration
         shell: bash
         run: |
           set -euo pipefail
-          required_vars=(APP_SECRETS_ANDROID_KEYSTORE_BASE64 APP_SECRETS_ANDROID_KEYSTORE_PASSWORD APP_SECRETS_ANDROID_KEY_ALIAS APP_SECRETS_ANDROID_KEY_PASSWORD APP_SECRETS_ANDROID_APPLICATION_ID)
+          required_vars=(APP_SECRETS_IOS_BUNDLE_ID APP_SECRETS_IOS_TEAM_ID APP_SECRETS_IOS_P12_BASE64 APP_SECRETS_IOS_P12_PASSWORD APP_SECRETS_IOS_APPSTORE_ISSUER_ID APP_SECRETS_IOS_APPSTORE_API_KEY_ID APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY)
           for var in "${required_vars[@]}"; do
-            if [ -z "${!var:-}" ]; then
-              echo "ERROR: Missing required Android variable: $var"
-              exit 1
-            fi
+            if [ -z "${!var:-}" ]; then echo "ERROR: Missing required iOS variable: $var"; exit 1; fi
           done
-          echo "✅ Android configuration is present."
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -626,43 +130,204 @@ jobs:
           set -euo pipefail
           npm ci --legacy-peer-deps
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: gradle
-
-      - name: Create Android Keystore
+      # ✅ UNCONDITIONAL PATCH FOR REANIMATED ON XCODE 16
+      - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p android/app
-          printf '%s' "$APP_SECRETS_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
-          chmod 600 android/app/release.keystore
-          if [ ! -s android/app/release.keystore ]; then
-            echo "ERROR: Android keystore is empty."
-            exit 1
+          echo "🔍 Finding ReanimatedVersion.cpp..."
+          REANIMATED_FILE=$(find node_modules/react-native-reanimated -name "ReanimatedVersion.cpp" -type f 2>/dev/null | head -n 1)
+          
+          if [ -z "$REANIMATED_FILE" ]; then
+            echo "⚠️ Warning: ReanimatedVersion.cpp not found. Skipping patch."
+            exit 0
           fi
+          
+          echo "✅ Found: $REANIMATED_FILE"
+          echo "🔧 Applying unconditional REANIMATED_VERSION_STRING patch..."
+          
+          TEMP_FILE=$(mktemp)
+          echo '#ifndef REANIMATED_VERSION_STRING' > "$TEMP_FILE"
+          echo '#define REANIMATED_VERSION_STRING "3.19.5"' >> "$TEMP_FILE"
+          echo '#endif' >> "$TEMP_FILE"
+          cat "$REANIMATED_FILE" >> "$TEMP_FILE"
+          mv "$TEMP_FILE" "$REANIMATED_FILE"
+          echo "✅ Patch applied successfully."
 
-      - name: Configure Android Signing
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: apps/${{ env.APP_DIR }}
+
+      - name: Patch iOS Dependencies
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          cat >> android/gradle.properties <<EOF
-          MYAPP_UPLOAD_STORE_FILE=release.keystore
-          MYAPP_UPLOAD_STORE_PASSWORD=${APP_SECRETS_ANDROID_KEYSTORE_PASSWORD}
-          MYAPP_UPLOAD_KEY_ALIAS=${APP_SECRETS_ANDROID_KEY_ALIAS}
-          MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
-          VERSION_CODE=${GITHUB_RUN_NUMBER}
-          EOF
+          python3 <<'PY'
+          import glob
+          old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
+          new_url = "https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2"
+          for path in glob.glob("node_modules/**/boost*.podspec", recursive=True):
+              with open(path, "r", encoding="utf-8") as f: content = f.read()
+              if old_url in content:
+                  content = content.replace(old_url, new_url)
+                  with open(path, "w", encoding="utf-8") as f: f.write(content)
+                  print(f"Patched Boost: {path}")
+          for path in glob.glob("node_modules/**/RCT-Folly.podspec", recursive=True):
+              with open(path, "r", encoding="utf-8") as f: content = f.read()
+              if "-Wno-error=unqualified-std-cast-call" not in content:
+                  content = content.replace("folly_compiler_flags = [", 'folly_compiler_flags = ["-Wno-error=unqualified-std-cast-call", "-Wno-error=c++11-narrowing", "-DFOLLY_NO_CONFIG=1", ', 1)
+                  with open(path, "w", encoding="utf-8") as f: f.write(content)
+                  print(f"Patched RCT-Folly: {path}")
+          PY
 
-      - name: Build Android AAB
-        working-directory: apps/${{ env.APP_DIR }}/android
+      - name: Install CocoaPods
+        working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon -x bundleReleaseGplay -x bundleReleaseAmazon
+          bundle exec pod cache clean boost --all || true
+          bundle exec pod cache clean RCT-Folly --all || true
+          bundle exec pod install --repo-update
+
+      - name: Fix Pod Resource Bundle Signing
+        working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          gem install xcodeproj --no-document > /dev/null 2>&1 || true
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project_path = 'Pods/Pods.xcodeproj'
+          if File.exist?(project_path)
+            project = Xcodeproj::Project.open(project_path)
+            project.targets.each do |target|
+              is_bundle = target.respond_to?(:product_type) && target.product_type == 'com.apple.product-type.bundle'
+              is_qb_image_picker = target.name.include?('QBImagePicker')
+              is_privacy_info = target.name.include?('PrivacyInfo')
+              if is_bundle || is_qb_image_picker || is_privacy_info
+                target.build_configurations.each do |config|
+                  config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+                  config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+                  config.build_settings['CODE_SIGN_IDENTITY'] = ''
+                  config.build_settings['DEVELOPMENT_TEAM'] = ''
+                  config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+                end
+              end
+            end
+            project.save
+            puts "✅ Disabled code signing for all Pod resource bundles."
+          end
+          RUBY
+
+      - name: Import Apple Development Certificate
+        uses: apple-actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
+          p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
+
+      - name: Prepare App Store Connect API Key for Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8"
+          if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
+          else
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r\n' | base64 --decode > "$API_KEY_PATH"
+          fi
+          chmod 600 "$API_KEY_PATH"
+          echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Resolve Xcode Workspace and Scheme
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKSPACE_PATH="$(find ios -maxdepth 1 -name "*.xcworkspace" -type d -print -quit)"
+          if [ -z "$WORKSPACE_PATH" ]; then echo "ERROR: No .xcworkspace found."; exit 1; fi
+          SCHEME_NAME=$(basename "$WORKSPACE_PATH" .xcworkspace)
+          echo "WORKSPACE_PATH=$WORKSPACE_PATH" >> "$GITHUB_ENV"
+          echo "SCHEME_NAME=$SCHEME_NAME" >> "$GITHUB_ENV"
+
+      - name: Normalize Xcode Development Signing
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gem install xcodeproj --no-document
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project_path = Dir.glob('ios/*.xcodeproj').first
+          abort('ERROR: No .xcodeproj found inside ios/.') unless project_path
+          project = Xcodeproj::Project.open(project_path)
+          application_targets = project.targets.select { |t| t.respond_to?(:product_type) && t.product_type == 'com.apple.product-type.application' }
+          target = application_targets.find { |t| t.name == ENV['SCHEME_NAME'] } || application_targets.first
+          abort('ERROR: Could not resolve the iOS application target.') unless target
+          attrs = project.root_object.attributes['TargetAttributes'] ||= {}
+          target_attrs = attrs[target.uuid] ||= {}
+          target_attrs['ProvisioningStyle'] = 'Automatic'
+          target.build_configurations.each do |config|
+            config.build_settings.delete('PROVISIONING_PROFILE')
+            config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
+            config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+            config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
+            config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
+          end
+          project.save
+          RUBY
+
+      - name: Build and Archive (Development)
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace "${WORKSPACE_PATH}" \
+            -scheme "${SCHEME_NAME}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
+            archive
+
+      - name: Export IPA
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf ios/build/export && mkdir -p ios/build/export
+          cat > ios/build/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>destination</key><string>export</string>
+            <key>method</key><string>development</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>${APP_SECRETS_IOS_TEAM_ID}</string>
+            <key>stripSwiftSymbols</key><true/>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          EOF
+          plutil -lint ios/build/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" -exportPath "$PWD/ios/build/export" -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" -allowProvisioningUpdates -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-ios-${{ github.run_number }}
+          path: apps/${{ env.APP_DIR }}/ios/build/export/*.ipa
+          if-no-files-found: error
+          retention-days: 14
