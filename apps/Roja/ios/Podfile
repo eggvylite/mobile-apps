@@ -38,25 +38,14 @@ target 'DemoROJA' do
     )
 
     # ========================================================
-    # CORRECTED C++ STANDARD RESOLVER FOR RN 0.81
+    # ALL TARGETS USE C++20 (REQUIRED BY RN 0.81)
+    # No exceptions - fixes 'requires' keyword errors in RNReanimated
     # ========================================================
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |build_config|
-        
-        # ✅ RN 0.81 REQUIRES C++20 for ALL React-* targets
-        # Only RNReanimated needs C++17 due to known API mismatch
-        needs_cpp17 = ['RNReanimated'].include?(target.name)
+        build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+        build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
 
-        if needs_cpp17
-          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++17 -fno-aligned-new'
-        else
-          # Default to C++20 for everything else (required by RN 0.81)
-          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
-        end
-
-        # Keep existing safe settings
         build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
         build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
