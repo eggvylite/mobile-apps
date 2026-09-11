@@ -536,6 +536,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload Current iOS IPA to S3
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3 cp "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
+
+          
+
       # ========================================================
       # AUTO CLEAN POD CACHE (runs on success AND failure)
       # ========================================================
