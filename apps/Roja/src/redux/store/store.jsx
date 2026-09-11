@@ -44,7 +44,7 @@ import applabelsSlice from '../slices/applabelsSlice'
 import merketplaceSlice from '../slices/merketplaceSlice'
 import handpicheckSlice from '../slices/handpicheckSlice'
 import insightSlice from '../slices/insightSlice';
-import { reduxStorage } from './ storage';
+import { reduxStorage } from './storage';
 
 const appReducer = combineReducers({
   account: accountSlice,
