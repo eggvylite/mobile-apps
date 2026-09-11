@@ -304,8 +304,8 @@ jobs:
 
       # ========================================================
       # PATCH 4: FIX RNGESTUREHANDLER FOR RN 0.81
-      # ✅ shadowNodeFromValue -> shadowNodeListFromValue + take first element
-      # ✅ Fixes dynamic_pointer_cast on vector type
+      # ✅ shadowNodeListFromValue returns shared_ptr<vector<...>>
+      # ✅ Must dereference shared_ptr before accessing vector methods
       # ========================================================
       - name: Patch RNGestureHandler for RN 0.81
         working-directory: apps/${{ env.APP_DIR }}
@@ -318,16 +318,17 @@ jobs:
           if [ -f "$GH_MODULE" ]; then
             echo "🔧 Patching RNGestureHandlerModule.mm for RN 0.81..."
             python3 << 'PYEOF'
-          import re
           path = "node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
           with open(path, "r") as f:
               content = f.read()
           original = content
 
-          # Fix 1: shadowNodeFromValue -> shadowNodeListFromValue + extract first element
+          # Fix 1: shadowNodeFromValue -> shadowNodeListFromValue
+          # In RN 0.81, this returns shared_ptr<vector<shared_ptr<ShadowNode>>>
           content = content.replace(
               "auto shadowNode = shadowNodeFromValue(runtime, arguments[0]);",
-              "auto shadowNodes = shadowNodeListFromValue(runtime, arguments[0]);\n        auto shadowNode = shadowNodes.empty() ? nullptr : shadowNodes[0];"
+              "auto shadowNodeList = shadowNodeListFromValue(runtime, arguments[0]);\n"
+              "auto shadowNode = (shadowNodeList && !shadowNodeList->empty()) ? (*shadowNodeList)[0] : nullptr;"
           )
 
           if content != original:
@@ -335,7 +336,7 @@ jobs:
                   f.write(content)
               print("✅ RNGestureHandlerModule.mm patched.")
           else:
-              print("ℹ️ No changes needed.")
+              print("ℹ️ No changes needed (may already be patched).")
           PYEOF
           else
             echo "⚠️ RNGestureHandlerModule.mm not found."
