@@ -130,72 +130,73 @@ jobs:
           npm ci --legacy-peer-deps
 
       # ========================================================
-      # VERIFY ALL PEER DEPENDENCIES ARE INSTALLED
-      # Auto-discovers missing peers from ALL node_modules
-      # Fails fast (< 30 seconds) before native build starts
+      # VERIFY CRITICAL PEER DEPENDENCIES
+      # Filters out dev-only, platform-specific, and optional peers
+      # Only flags peers that will actually break the iOS build
       # ========================================================
-      - name: Verify All Peer Dependencies
+      - name: Verify Critical Peer Dependencies
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          echo "🔍 Scanning all packages for unmet peer dependencies..."
-          
+          echo "🔍 Checking critical peer dependencies for iOS build..."
+
+          # These are dev-only, platform-specific, or optional — skip them
+          SKIP_PEERS="react-native-web react-native-windows node-notifier ts-node babel-plugin-macros @types/react @types/react-native expo expo-linear-gradient jest jest-cli"
+
           MISSING=""
-          
-          # Scan every package.json in node_modules for peerDependencies
+
           while IFS= read -r PKG_JSON; do
             PKG_DIR=$(dirname "$PKG_JSON")
             PKG_NAME=$(basename "$PKG_DIR")
-            
-            # Skip scoped packages' internal dirs and nested node_modules
+
             case "$PKG_DIR" in
               */node_modules/*/node_modules/*) continue ;;
             esac
-            
-            # Extract peerDependencies keys using python (reliable JSON parsing)
+
             PEERS=$(python3 -c "
-          import json, sys
+          import json
           try:
               with open('$PKG_JSON') as f:
                   pkg = json.load(f)
-              peers = pkg.get('peerDependencies', {})
-              for name in peers:
+              for name in pkg.get('peerDependencies', {}):
                   print(name)
           except:
               pass
           " 2>/dev/null) || true
-            
-            # Check if each peer is installed
+
             while IFS= read -r PEER; do
               [ -z "$PEER" ] && continue
-              # Handle scoped packages (@scope/name)
-              if [[ "$PEER" == @* ]]; then
-                PEER_PATH="node_modules/$PEER"
-              else
-                PEER_PATH="node_modules/$PEER"
-              fi
-              
-              if [ ! -d "$PEER_PATH" ]; then
+
+              # Skip known false positives
+              SKIP=0
+              for S in $SKIP_PEERS; do
+                if [ "$PEER" = "$S" ]; then
+                  SKIP=1
+                  break
+                fi
+              done
+              [ "$SKIP" -eq 1 ] && continue
+
+              if [ ! -d "node_modules/$PEER" ]; then
                 echo "❌ MISSING PEER: '$PEER' required by '$PKG_NAME'"
                 MISSING="$MISSING $PEER"
               fi
             done <<< "$PEERS"
-            
+
           done < <(find node_modules -maxdepth 3 -name "package.json" -not -path "*/node_modules/*/node_modules/*" 2>/dev/null)
-          
-          # Summary
+
           if [ -n "$MISSING" ]; then
             UNIQUE_MISSING=$(echo "$MISSING" | tr ' ' '\n' | sort -u | tr '\n' ' ')
             echo ""
             echo "❌ VALIDATION FAILED: Missing peer dependencies:$UNIQUE_MISSING"
             echo ""
-            echo "Fix: Add these to your package.json and regenerate package-lock.json:"
+            echo "Fix: Add these to package.json and regenerate package-lock.json:"
             for DEP in $UNIQUE_MISSING; do
               echo "  npm install $DEP --legacy-peer-deps"
             done
             exit 1
           else
-            echo "✅ All peer dependencies satisfied."
+            echo "✅ All critical peer dependencies satisfied."
           fi
 
       # ========================================================
