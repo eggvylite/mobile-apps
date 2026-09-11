@@ -14,6 +14,7 @@ export default function SubmitBtn(props) {
         style,
         textStyle,
         disabled = false,
+        prefix=false,
         gradientColors,
         disableGradient = false,
         order
@@ -67,7 +68,7 @@ export default function SubmitBtn(props) {
                     style={containerStyle}
                 >
                     {
-                        text === 'Add' || text === 'Link' || text === 'Create Tag' || text ==='Unlink' || text === 'Connect Now' ? prefixIcon_content : content
+                        text === 'Add' || text === 'Link' || text === 'Create Tag' || text ==='Unlink' || text === 'Connect Now' || prefix ? prefixIcon_content : content
 
                     }
 

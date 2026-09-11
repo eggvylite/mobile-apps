@@ -19,11 +19,12 @@ import useSubscriptionLabelsHook from '../../../../../hook/Labels/useSubscriptio
 const { width } = Dimensions.get('window');
 const SubscriptionDetailsScreen = ({ route }) => {
     const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
-    const { transaction, subdetailslistloading, suberror, subDetails, his } = useSelector((state) => state.subscription);
+    const { transaction, subscription, subdetailslistloading, suberror, subDetails, his } = useSelector((state) => state.subscription);
     const dispatch = useDispatch();
     const subscriptionID = route?.params?.item;
     const { formatDate, formatTime } = useDashboardUtils();
     const navigation = useNavigation();
+
 
 
     const {
@@ -41,7 +42,8 @@ const SubscriptionDetailsScreen = ({ route }) => {
         manageYourSubscription,
         inControlCancelAnytime,
         cancelAnytimeNoHiddenFees,
-        subscriptionHistory, frequency
+        subscriptionHistory, frequency,
+        subscription_details, cancelsubscription
     } = useSubscriptionLabelsHook()
 
 
@@ -60,8 +62,8 @@ const SubscriptionDetailsScreen = ({ route }) => {
                         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text style={styles.planName}>{subDetails?.plan_title}</Text>
                             <View style={{ backgroundColor: '#fff', borderRadius: 30, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: '#059669', fontSize: 12, fontWeight: '600' }}>
-                                    {subDetails?.status}
+                                <Text style={{ color: subscription?.status === 'Schedule' ? '#f97316' : '#059669', fontSize: 12, fontWeight: '600' }}>
+                                    {subscription?.status === 'Schedule' ? cancelsubscription?.scheduled : subscription?.status}
                                 </Text>
                             </View>
                         </View>
@@ -70,12 +72,12 @@ const SubscriptionDetailsScreen = ({ route }) => {
                             <Text style={styles.planPrice}>{storedata?.currency}{CommonFunction.formatamount(subDetails?.plan_amount || 0)}</Text>
                             <Text style={styles.planPeriod}>/ {subDetails?.plan_type}</Text>
                         </View>
-                        <Text style={[styles.planDescription, { textAlign: 'left' }]}>{subscriptionCardTitle}
+                        <Text style={[styles.planDescription, { textAlign: 'left' }]}>{subscription_details?.subscriptionCardTitle}
                         </Text>
                     </View>
                 </GradientCard>
             </View>
-            {
+            {/* {
                 subDetails?.unsubscribe === 1 && (
                     <View style={[styles.successBanner, { height: 40 }]}>
                         <LinearGradient
@@ -86,78 +88,80 @@ const SubscriptionDetailsScreen = ({ route }) => {
                         >
                             <Feather name="check-circle" size={24} color="#FFFFFF" />
                             <View style={styles.successTextContainer}>
-                                <Text style={styles.successTitle}>{unsubscribeContent}</Text>
+                                <Text style={styles.successTitle}>{cancelsubscription?.unsubscribe}</Text>
 
                             </View>
                         </LinearGradient>
                     </View>
                 )
-            }
+            } */}
 
 
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Cash Limits</Text>
+                <Text style={styles.sectionTitle}>{subscription_details?.cashlimit}</Text>
 
                 <View style={styles.limitsRow}>
                     <View style={styles.limitItem}>
-                        <Text style={styles.limitLabel}>Minimum</Text>
+                        <Text style={styles.limitLabel}>{subscription_details?.mimimum}</Text>
                         <Text style={styles.limitValue}> {`${storedata?.currency}${subDetails?.plan_cash_min}`}</Text>
-                        <Text style={styles.limitDescription}>{minimum}</Text>
+                        <Text style={styles.limitDescription}>{subscription_details?.lowest}</Text>
                     </View>
                     <View style={styles.limitDivider} />
                     <View style={styles.limitItem}>
-                        <Text style={styles.limitLabel}>Maximum</Text>
+                        <Text style={styles.limitLabel}>{subscription_details?.maximum}</Text>
                         <Text style={[styles.limitValue, styles.limitValueHigh]}>{storedata?.currency}{CommonFunction.formatamount(subDetails?.max || 0)}</Text>
-                        <Text style={styles.limitDescription}>{maximum}</Text>
+                        <Text style={styles.limitDescription}>{subscription_details?.highest}</Text>
                     </View>
                 </View>
             </View>
 
 
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>{subscriptionDetails}</Text>
+                <Text style={styles.sectionTitle}>{subscription_details?.details}</Text>
 
                 <View style={styles.detailsTable}>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{subscriptionId}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.subid}</Text>
                         <Text style={styles.detailValue}>{subDetails?.subs_id}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{frequency}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.frequency}</Text>
                         <Text style={styles.detailValue}>{CommonFunction?.captialize(
                             subDetails?.plan_type?.toLowerCase()
                         )}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{status}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.status}</Text>
                         <View style={styles.statusBadge}>
-                            <View style={styles.statusDot} />
-                            <Text style={styles.statusText}>{subDetails?.status}</Text>
+                            <View style={styles.statusBadge}>
+                                <View style={[styles.statusDot, subscription?.status !== 'Active' && { backgroundColor: '#f97316' }]} />
+                                <Text style={[styles.statusText, subscription?.status !== 'Active' && { color: '#f97316' }]}>{subscription?.status === 'Schedule' ? cancelsubscription?.scheduled : subscription?.status}</Text>
+                            </View>
                         </View>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{nextPayment}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.nextpayment}</Text>
                         <Text style={styles.detailValue}>{formatDate(subDetails?.next_payment)}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{subscribedOn}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.subscribedon}</Text>
                         <Text style={styles.detailValue}> {`${formatDate(subDetails?.createdAt)} ${formatTime(subDetails?.createdAt)}`}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{billingPeriod}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.biilperiod}</Text>
                         <Text style={styles.detailValue}>{`${formatDate(subDetails?.start)} To ${formatDate(subDetails?.end)}`}</Text>
                     </View>
                 </View>
             </View>
 
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>{featuresHead}</Text>
+                <Text style={styles.sectionTitle}>{subscription_details?.include}</Text>
 
                 <View style={styles.featuresGrid}>
                     {subDetails?.plan_featureLabel?.length > 0 &&
@@ -214,7 +218,7 @@ const SubscriptionDetailsScreen = ({ route }) => {
                                     <View style={styles.historyIconContainer}>
                                         <Feather name="clock" size={16} color="#3F2B96" />
                                     </View>
-                                    <Text style={styles.historyTitle}>{subscriptionHistory}</Text>
+                                    <Text style={styles.historyTitle}>{subscription_details?.history}</Text>
                                 </View>
 
                             </View>

@@ -76,7 +76,7 @@ export const leadCrate = async (navigation, payload) => {
                 }
                 navigation.navigate('VerifyEmail', { type: 'emailotp', payload: data })
             }
-            CommonFunction.message(response.data.message)
+            // CommonFunction.message(response.data.message)
 
         }
 

@@ -125,7 +125,7 @@ export default function AdvanceSuccess() {
             ]}
           >
             <Image
-              source={require('../../../../../assets/images/advance-received.png')}
+              source={require('../../../../../assets/images/repay.png')}
               style={styles.successImage}
               resizeMode="contain"
             />

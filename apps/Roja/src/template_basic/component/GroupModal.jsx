@@ -1,4 +1,3 @@
-// src/components/SelectCategoryForBudgetModal.js
 import React from 'react';
 import {
   View,
@@ -17,6 +16,7 @@ import CommonFunction from '../../utill/CommonFunction';
 import { useSelector } from 'react-redux';
 import { fontsFamily } from '../../constants/fontsFamily';
 import { getFontSize } from '../../constants/Font';
+import useBudgetLablehook from '../../hook/Labels/useBudgetLablehook';
 
 const { useState, useEffect, useRef } = React;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -35,7 +35,7 @@ const SelectCategoryForBudgetModal = ({
   const [filteredGroups, setFilteredGroups] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
-
+  const { budget } = useBudgetLablehook()
   // Animation values
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -252,8 +252,8 @@ const SelectCategoryForBudgetModal = ({
 
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>{categoryData?.length > 0 ? 'Set Budget' : 'Account Type'}</Text>
-              <Text style={styles.modalSubtitle}>{categoryData?.length > 0 ? 'Select a category to set or edit budget' : 'Choose a account to continue the transaction'}</Text>
+              <Text style={styles.modalTitle}>{categoryData?.length > 0 ? budget?.setbudget : 'Account Type'}</Text>
+              <Text style={styles.modalSubtitle}>{categoryData?.length > 0 ? budget?.select_cat_add_edit_budget : 'Choose a account to continue the transaction'}</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -274,7 +274,7 @@ const SelectCategoryForBudgetModal = ({
             <Icon name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder={categoryData?.length ? "Search categories..." : "Search account type..."}
+              placeholder={categoryData?.length ? budget?.searchcategories: "Search account type..."}
               placeholderTextColor="#94A3B8"
               value={searchText}
               onChangeText={(text) => setSearchText(text)}
@@ -358,16 +358,16 @@ const SelectCategoryForBudgetModal = ({
                   <View style={styles.emptyIcon}>
                     <Icon name="search" size={48} color="#94A3B8" />
                   </View>
-                  <Text style={styles.emptyStateTitle}>No categories found</Text>
+                  <Text style={styles.emptyStateTitle}>{budget?.nobudgetset}</Text>
                   <Text style={styles.emptyStateDescription}>
                     {searchText && searchText.trim()
-                      ? `No categories match "${searchText}"`
-                      : 'Create your first category to start budgeting'}
+                      ? `${budget?.nosearchmatch} ${searchText}`
+                      : budget?.createcategoryfirst }
                   </Text>
                   <TouchableOpacity
                     style={styles.emptyButton}
                     onPress={() => setSearchText('')}>
-                    <Text style={styles.emptyButtonText}>Clear Search</Text>
+                    <Text style={styles.emptyButtonText}>{budget?.clearsearch}</Text>
                   </TouchableOpacity>
                 </View>
               )}

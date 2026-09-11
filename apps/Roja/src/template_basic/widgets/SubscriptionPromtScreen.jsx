@@ -20,6 +20,7 @@ import CommonIcon from '../../themechg_template/component/Commonicons';
 import { appName } from '../../service/environment';
 import { fontsFamily } from '../../constants/fontsFamily';
 import { replaceDynamicValues } from './ConnectBankWidgetScreen';
+import CommonFunction from '../../utill/CommonFunction';
 
 
 
@@ -53,7 +54,7 @@ const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, s
                     <Text style={styles.qualifiedHeaderTitle}>{onSubscribe?.title}</Text>
 
                     <View style={[styles.qualifiedHeaderAmountContainer]}>
-                        <Text style={styles.qualifiedHeaderAmountValue}>{storedata?.currency}{cusDetails?.advance ?? 0}</Text>
+                        <Text style={styles.qualifiedHeaderAmountValue}>{storedata?.currency}{CommonFunction.formatamount(cusDetails?.advance ?? 0)}</Text>
                     </View>
                     {
                         0 < onSubscribe?.notes?.length && <>
@@ -113,7 +114,7 @@ const QualifiedCard = ({ onSubscribe, storedata, cusDetails, subscriptionBage, s
                 0 < onSubscribe?.notes?.length && 0 < plandata?.list?.length && <View style={styles.connectBankPricing}>
                     <View style={styles.qualifiedPricingIconRow}>
                         <FontAwesome5 name="credit-card" size={18} color="#3F2B96" />
-                        <Text style={styles.connectBankPricingTitle}>{onSubscribe?.notes[2]?.label ?? ''}</Text>
+                        <Text style={[styles.connectBankPricingTitle,{marginBottom:0}]}>{onSubscribe?.notes[2]?.label ?? ''}</Text>
                     </View>
                     {
                         0 < plandata?.list?.length && <Text style={styles.connectBankPricingDescription}>

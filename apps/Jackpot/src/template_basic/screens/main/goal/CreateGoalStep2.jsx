@@ -19,6 +19,7 @@ import RBSheet from "react-native-raw-bottom-sheet";
 import { fontsFamily } from "../../../../constants/fontsFamily";
 import { goalApi } from "../../../../constants/Goalapi";
 import { SafeAreaView } from "react-native-safe-area-context";
+import useGoalLabelsHook from "../../../../hook/useGoalLabelsHook";
 
 export default function CreateGoalStep2Screen() {
   const navigation = useNavigation();
@@ -28,6 +29,7 @@ export default function CreateGoalStep2Screen() {
   const { goalList, goalaccount } = useSelector((state) => state.goal);
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
   const currentDate = new Date();
+   const appLabels = useGoalLabelsHook();
 
 
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -340,7 +342,7 @@ export default function CreateGoalStep2Screen() {
         >
 
           <View style={styles.formContainer}>
-            <Text style={styles.formLabel}>Target Name <Text style={styles.require}>*</Text></Text>
+            <Text style={styles.formLabel}>{appLabels.targetNameFieldLabel} <Text style={styles.require}>*</Text></Text>
             <TextInput
               style={styles.customInput}
               placeholder="Enter your goal name"
@@ -363,9 +365,9 @@ export default function CreateGoalStep2Screen() {
 
           <View style={styles.formContainer}>
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>{`Target Amount (${storedata?.currency})`}<Text style={styles.require}>*</Text></Text>
+              <Text style={styles.formLabel}>{`${appLabels.targetAmountFieldLabel} (${storedata?.currency})`}<Text style={styles.require}>*</Text></Text>
               <View style={styles.amountInputContainer}>
-                <Text style={styles.currencySymbol}>$</Text>
+                <Text style={styles.currencySymbol}>{storedata?.currency}</Text>
                 <TextInput
                   style={styles.amountInput}
                   placeholder="0.00"
@@ -407,7 +409,7 @@ export default function CreateGoalStep2Screen() {
 
 
           <View style={styles.targetTypeContainer}>
-            <Text style={styles.targetTypeTitle}>Goal Timeline <Text style={styles.require}>*</Text></Text>
+            <Text style={styles.targetTypeTitle}>{appLabels.goalTimelineSectionLabel} <Text style={styles.require}>*</Text></Text>
 
             <View style={styles.targetTypeCards}>
               <TouchableOpacity
@@ -427,9 +429,9 @@ export default function CreateGoalStep2Screen() {
                 <Text style={[
                   styles.targetTypeCardTitle,
                   record && record?.targetset && styles.targetTypeCardTitleSelected
-                ]}>Set</Text>
+                ]}>{appLabels.timelineSetOptionLabel}</Text>
                 <Text style={styles.targetTypeCardDesc}>
-                  I need this money by a specific date
+                  {appLabels.timelineSetOptionDescription}
                 </Text>
                 {record && record?.targetset && (
                   <View style={styles.selectedCheck}>
@@ -455,9 +457,9 @@ export default function CreateGoalStep2Screen() {
                 <Text style={[
                   styles.targetTypeCardTitle,
                   record && !record?.targetset && styles.targetTypeCardTitleSelected
-                ]}>Don't Set</Text>
+                ]}>{appLabels.timelineDontSetOptionLabel}</Text>
                 <Text style={styles.targetTypeCardDesc}>
-                  I'll save regularly and see when I reach it
+                  {appLabels.timelineDontSetOptionDescription}
                 </Text>
                 {record && !record?.targetset && (
                   <View style={styles.selectedCheck}>
@@ -471,7 +473,7 @@ export default function CreateGoalStep2Screen() {
 
           <View style={styles.formContainer}>
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Start By <Text style={styles.require}>*</Text></Text>
+              <Text style={styles.formLabel}>{appLabels.startByFieldLabel} <Text style={styles.require}>*</Text></Text>
               <TouchableOpacity
                 style={styles.datePicker}
                 onPress={() => setShowStartPicker(true)}
@@ -492,7 +494,7 @@ export default function CreateGoalStep2Screen() {
             record?.targetset &&
             <View style={styles.formContainer}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>End By <Text style={styles.require}>*</Text></Text>
+                <Text style={styles.formLabel}>{appLabels.endByFieldLabel} <Text style={styles.require}>*</Text></Text>
                 <TouchableOpacity
                   style={styles.datePicker}
                   onPress={() => {
@@ -524,9 +526,9 @@ export default function CreateGoalStep2Screen() {
 
           <View style={styles.formContainer}>
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>{`Monthly Savings (${storedata?.currency})`}<Text style={styles.require}>*</Text></Text>
+              <Text style={styles.formLabel}>{`${appLabels.monthlySavingsFieldLabel} (${storedata?.currency})`}<Text style={styles.require}>*</Text></Text>
               <View style={styles.amountInputContainer}>
-                <Text style={styles.currencySymbol}>$</Text>
+                <Text style={styles.currencySymbol}>{storedata?.currency}</Text>
                 <TextInput
                   style={styles.amountInput}
                   placeholder="0.00"
@@ -594,7 +596,7 @@ export default function CreateGoalStep2Screen() {
 
               <View style={{ flexDirection: 'row', marginBottom: 10, marginEnd: 5 }}>
                 <View style={{ flex: 1, justifyContent: 'center' }}>
-                  <Text style={styles.formLabel}>{0 < record?.bankaccount?.length ? 'Enter any amount saved so far' : 'Link Account'}</Text>
+                  <Text style={styles.formLabel}>{0 < record?.bankaccount?.length ? 'Enter any amount saved so far' : appLabels.linkAccountSectionLabel}</Text>
                 </View>
                 {
                   0 < record?.bankaccount?.length && goalaccount.length !== record?.bankaccount?.length &&
@@ -774,11 +776,11 @@ export default function CreateGoalStep2Screen() {
                             fontSize: getFontSize(14),
                             fontWeight: '600',
                             color: themeColors?.primarytextColor,
-                          }}>Select an account</Text>
+                          }}>{appLabels.accountSelectorLabel}</Text>
                           <Text style={{
                             fontSize: getFontSize(11),
                             color: themeColors?.primarytextColor,
-                          }}>Choose where to save your money</Text>
+                          }}>{appLabels.accountSelectorDescription}</Text>
                         </View>
                         <View style={{ marginEnd: 10 }}>
                           <Icon name="chevron-right" size={20} color={themeColors?.primarColor} />
@@ -819,7 +821,7 @@ export default function CreateGoalStep2Screen() {
 
             <View style={{ padding: 20, flexDirection: 'row' }}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.accountName, { color: themeColors?.textinputlabelColor }]}>Select an Account</Text>
+                <Text style={[styles.accountName, { color: themeColors?.textinputlabelColor }]}>{appLabels.accountSelectorLabel}</Text>
               </View>
               <TouchableOpacity onPress={() => accountListref?.current?.close()}>
                 <Icon name="x" size={24} color="#64748B" />

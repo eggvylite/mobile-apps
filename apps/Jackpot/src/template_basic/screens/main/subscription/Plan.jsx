@@ -30,6 +30,7 @@ const Plan = () => {
     const { themeColors, storedata, formatAmount } = useDashboardUtils();
     const { transaction, subdetailslistloading, suberror, subDetails,  } = useSelector((state) => state.subscription);
     const [showProviderModal, setShowProviderModal] = useState(false)
+      const { cusDetails, loading, error } = useSelector((state) => state.customer);
     const [selectedPlan, setSelectedPlan] = useState(null)
     const [isLoading, setLoading] = useState(false)
     const { dashboardLabel } = useSelector((state) => state.labels || {});
@@ -130,13 +131,13 @@ const Plan = () => {
             >
                 {
                     0 < plans?.length && plans.map((value, key) => {
-                        const instantfund = calculateInstantFundFee(storedata?.advance ?? 0, value?.instant_fund_fee ?? [])
+                        const instantfund = calculateInstantFundFee(cusDetails?.advance ?? 0, value?.instant_fund_fee ?? [])
                         return (
                             <View key={key} style={[styles.contentContainer, { marginBottom: 20 }]}>
                                 <Text style={styles.planTitle}>{value?.title ?? ''}</Text>
                                 <Text style={styles.planSubtitle}>Get full access to all premium features</Text>
 
-                                <CashCard type={'subscribe'} title={value?.title} amount={storedata?.advance} />
+                                <CashCard type={'subscribe'} title={value?.title} amount={cusDetails?.advance} />
 
                                 <View style={styles.benefitsContainer}>
                                     {

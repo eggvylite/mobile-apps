@@ -13,6 +13,7 @@ import { fetchAuth } from '../redux/slices/authSlice';
 import { fetchCustomer } from '../redux/slices/customerSlice';
 import { useDashboardUtils } from './useDashboardUtils';
 import useBankConnectionLabelFlow from './Labels/useBankConnectionMagemntLableHook';
+import { fetchEwf } from '../redux/slices/socreMycashSlice';
 
 export const STATUS_COLORS = {
     completed: '#2FA948',
@@ -41,7 +42,7 @@ const useWageVerificationData = () => {
         return bankdata?.records?.find((item) => item?.chirp_request_status === 'Yes');
     }, [bankdata]);
 
-        const { bankAccountDataLabel, wageConnectionLabelData } = useBankConnectionLabelFlow()
+    const { bankAccountDataLabel, wageConnectionLabelData } = useBankConnectionLabelFlow()
 
 
 
@@ -52,7 +53,7 @@ const useWageVerificationData = () => {
             subtitle: `${defaultBankName} ${defaultBankAccountType}`.trim() || 'Chase checking ****0987',
             status: 'completed',
             icon: 'check-circle',
-            date: connectedRecord?.createdAt ? formatDate(connectedRecord.createdAt): '',
+            date: connectedRecord?.createdAt ? formatDate(connectedRecord.createdAt) : '',
         },
         {
             id: 'analyzed',
@@ -68,15 +69,15 @@ const useWageVerificationData = () => {
             subtitle: 'Reviewing selected transactions',
             status: wageStatus === WageStatus.PROCESSING ? 'in-progress' : (wageStatus === WageStatus.VERIFIED ? 'completed' : 'pending'),
             icon: wageStatus === WageStatus.PROCESSING ? 'clock' : (wageStatus === WageStatus.VERIFIED ? 'check-circle' : 'hourglass-half'),
-            date: wageStatus === WageStatus.PROCESSING ? 'In progress' : (wageStatus === WageStatus.VERIFIED ? 'Verified' : 'Pending'),
+            date: wageStatus === WageStatus.PROCESSING ? '' : (wageStatus === WageStatus.VERIFIED ? 'Verified' : 'Rejected'),
         },
         {
             id: 'eligibility',
             title: 'Eligibility Decision',
-            subtitle: 'Awaiting verification completion',
+            subtitle: 'Bank data is 10 days old; the configured maximum is 5 days.',
             status: wageStatus === WageStatus.VERIFIED ? 'completed' : 'pending',
             icon: wageStatus === WageStatus.VERIFIED ? 'check-circle' : 'hourglass-half',
-            date: wageStatus === WageStatus.VERIFIED ? 'Approved' : 'Pending',
+            date: wageStatus === WageStatus.VERIFIED ? 'Approved' : 'Rejected',
         },
     ], [defaultBankName, defaultBankAccountType, connectedRecord, wageStatus]);
 
@@ -112,12 +113,14 @@ const useWageVerificationData = () => {
             });
 
             dispatch(fetchAuth());
-              dispatch(fetchCustomer() )
+            dispatch(fetchCustomer())
+            dispatch(fetchEwf())
             CommonFunction.message(res?.data?.message ?? '')
             return { success: true, message: res?.data?.message };
         } catch (error) {
 
             dispatch(fetchAuth());
+            dispatch(fetchEwf())
 
             return {
                 success: false,
@@ -139,7 +142,8 @@ const useWageVerificationData = () => {
         STATUS_COLORS,
         incomeTransactions,
         submitWageVerification,
-        isSubmitting
+        isSubmitting,
+        connectedRecord
     };
 };
 

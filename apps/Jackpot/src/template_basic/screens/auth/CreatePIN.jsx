@@ -219,7 +219,7 @@ const CreatePIN = ({ navigation, route }) => {
 
   const renderPinDots = (pinArray, isConfirm) => {
     return (
-      <View style={styles.pinContainer}>
+      <View style={[styles.pinContainer, { gap: Platform.OS === 'ios' ? 10 : 5 }]}>
         {pinArray.map((digit, index) => (
           <TextInput
             key={index}

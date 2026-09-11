@@ -24,6 +24,8 @@ import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import CategoryDetailSkeleton from '../../../component/CategoryDetailSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddCategoryModal from '../../../component/AddCategoryModal';
+import appLog from '../../../../constants/logger';
+import { appuseBackHandler } from '../../../../utill/appuseBackHandler';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,6 +50,8 @@ const CategoryDetail = ({ navigation, route }) => {
   }
 
 
+  console.log(route?.params)
+
 
   useEffect(() => {
     setCatname(categoryData?.name)
@@ -58,7 +62,7 @@ const CategoryDetail = ({ navigation, route }) => {
 
   useEffect(() => {
     if (0 < records?.length) {
-      const statement = records.filter((item) => item.category_id === route?.params?.category_id && apiDate(item?.transacted_at) === apiDate(route?.params?.date))
+      const statement = records.filter((item) => item.category_id === route?.params?.category_id && apiDate(item?.transacted_at) === apiDate(route?.params?.date) && item.type === "DEBIT")
       setTransactions(statement)
       disableMenu()
     }
@@ -131,6 +135,12 @@ const CategoryDetail = ({ navigation, route }) => {
 
   };
 
+
+  appuseBackHandler(() => {
+    handleBackPress()
+    return true;
+  });
+
   const handleBackPress = () => {
     enableMenu()
     navigation.goBack();
@@ -184,7 +194,7 @@ const CategoryDetail = ({ navigation, route }) => {
   const isOverBudget = spent > budget && budget > 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+    <SafeAreaView style={styles.container}>
       <TopBar title={'Category Details'} showBack={true} onBackPress={handleBackPress} />
 
 
@@ -281,7 +291,7 @@ const CategoryDetail = ({ navigation, route }) => {
                     <View style={styles.overBudgetBadge}>
                       <Icon name="alert-triangle" size={12} color="#DC2626" />
                       <Text style={styles.overBudgetText}>
-                        Over by {CommonFunction.formatamount(remaining)}
+                        Over by {0 < remaining ? '' : '-'}{storedata?.currency}{CommonFunction.formatamount(Math.abs(remaining))}
                       </Text>
                     </View>
                   )}
@@ -298,6 +308,8 @@ const CategoryDetail = ({ navigation, route }) => {
                   )}
                 </View>
 
+
+
                 {transactions.length > 0 ? (
                   transactions.map((transaction, index) => {
                     const brandLogo = brandata?.Systemlogos?.find((b) => b.brand === transaction.description);
@@ -311,7 +323,7 @@ const CategoryDetail = ({ navigation, route }) => {
                               style={{ height: 30, width: 30, borderRadius: 100 }} />
                           </View>
                           <View>
-                            <Text style={styles.transactionPayee}>{transaction.category}</Text>
+                            <Text style={styles.transactionPayee}>{transaction.description}</Text>
                             <Text style={styles.transactionDate}>{formatDate(transaction.transacted_at)}</Text>
                           </View>
                         </View>

@@ -1,9 +1,10 @@
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getLoginInfo } from '../../service/storage';
 import api from '../../service/api';
 
 
-export const fetchInsights = createAsyncThunk('insights/fetchInsights', 
+export const fetchInsights = createAsyncThunk('insights/fetchInsights',
     async ({ code }, { rejectWithValue }) => {
   var info = await getLoginInfo()
   try {
@@ -35,13 +36,13 @@ const insightSlice = createSlice({
       .addCase(fetchInsights.pending, (state) => {
         state.insightloading = true
       })
-  
+
       .addCase(fetchInsights.fulfilled, (state, action) => {
         state.insightloading = false;
         state.insightdata = action.payload;
 
       })
-  
+
       .addCase(fetchInsights.rejected, (state, action) => {
         state.insightloading = false;
         state.insighterror = action.error.message;

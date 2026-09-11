@@ -174,7 +174,7 @@ export default function Account() {
 
 
                       {
-                        account.map((value, accKey) => {
+                        account?.map((value, accKey) => {
                           if (values?._id === value.bank_id) {
                             return (
                               <TouchableOpacity

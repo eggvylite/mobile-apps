@@ -45,6 +45,7 @@ import merketplaceSlice from '../slices/merketplaceSlice'
 import handpicheckSlice from '../slices/handpicheckSlice'
 import insightSlice from '../slices/insightSlice';
 import { reduxStorage } from './storage';
+import socreMycashSlice from '../slices/socreMycashSlice'
 
 const appReducer = combineReducers({
   account: accountSlice,
@@ -90,7 +91,8 @@ const appReducer = combineReducers({
   appscreenlabels: applabelsSlice,
   marketplace: merketplaceSlice,
   handpicheck: handpicheckSlice,
-  insights: insightSlice
+  insights: insightSlice,
+  ewf:socreMycashSlice
 })
 
 const rootReducer = (state, action) => {

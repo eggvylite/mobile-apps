@@ -19,6 +19,9 @@ import { fontsFamily } from '../../../../../constants/fontsFamily';
 import { getFontSize } from '../../../../../constants/Font';
 import appLog from '../../../../../constants/logger';
 import { BottomContext } from '../../../../../context/BottomContext';
+import { SubscriptionDetailsSkeleton } from '../../subscription/component/SubscriptionLoader';
+import { RimanderDetailsSkeleton } from './RimanderDetailsSkeleton';
+import { appuseBackHandler } from '../../../../../utill/appuseBackHandler';
 
 const { width } = Dimensions.get('window');
 
@@ -31,7 +34,7 @@ export default function ReminderDetail({ }) {
   const [details, setDetails] = useState('')
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [billHistory, setBillhistory] = useState([])
-  const { billdata } = useSelector((state) => state.bill);
+  const { billdata, billloading } = useSelector((state) => state.bill);
   const dispatch = useDispatch()
   const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
   const [loading, setloading] = useState(false)
@@ -40,7 +43,7 @@ export default function ReminderDetail({ }) {
   const { enableMenu, disableMenu } = useContext(BottomContext);
   const cancelContent = 'Ending this reminder will only mark it as completed. It will not delete the reminder or its associated history'
   const deleteContent = "Once it's deleted, you won't be able to recover it"
-
+  const [marlaspaidLoading, setMarkaspaidLoading] = useState(false)
 
   const getReminderStatus = () => reminder?.status || ''
   const reminderStatus = getReminderStatus();
@@ -58,9 +61,9 @@ export default function ReminderDetail({ }) {
   }, []);
 
 
-  const statusTextColor =useMemo(()=>{
-      return details?.status?.toLowerCase() === 'active' ? '#10B981' : '#64748B';
-  },[details?.status])
+  const statusTextColor = useMemo(() => {
+    return details?.status?.toLowerCase() === 'active' ? '#10B981' : '#64748B';
+  }, [details?.status])
 
 
   useEffect(() => {
@@ -86,6 +89,17 @@ export default function ReminderDetail({ }) {
   }
 
 
+  appuseBackHandler(() => {
+    onBackscreen()
+    return true;
+  });
+
+
+  const onBackscreen = () => {
+    enableMenu()
+    navigation.goBack()
+  }
+
 
   if (!reminder) {
     return (
@@ -98,18 +112,19 @@ export default function ReminderDetail({ }) {
 
 
   const payReminder = async (value) => {
-    setloading(true)
+    setMarkaspaidLoading(true)
     try {
       const paid = await markasPaid(value, dispatch)
+      setMarkaspaidLoading(false)
     } catch (error) {
       console.log(error)
     } finally {
-      setloading(false)
+      setMarkaspaidLoading(false)
     }
 
   }
 
-    console.log(details)
+
 
 
   const handleMarkAsPaid = (value) => {
@@ -280,10 +295,8 @@ export default function ReminderDetail({ }) {
 
 
 
-
-
   return (
-    <SafeAreaView style={styles.safeArea} >
+    <SafeAreaView style={styles.safeArea}  >
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
@@ -293,221 +306,221 @@ export default function ReminderDetail({ }) {
           editReminder()
         } : ''}
         onBackPress={() => {
-          enableMenu()
-          navigation.goBack()
+          onBackscreen()
         }}
       />
+      {
+        billloading ? <RimanderDetailsSkeleton /> : <Animated.ScrollView
+          style={[styles.scrollView, { opacity: fadeAnim }]}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
 
-      <Animated.ScrollView
-        style={[styles.scrollView, { opacity: fadeAnim }]}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-
-        {
-          pendingBill.slice(0, 1).map((value, key) => {
+          {
+            pendingBill.slice(0, 1).map((value, key) => {
 
 
-            const accountDetails = value?.account_id
+              const accountDetails = value?.account_id
 
-            var number = ''
-            if (accountDetails?.account_number) {
-              number = 'XX' + CommonFunction.slicenum(accountDetails?.account_number)
-            } else {
-              number = content.manual
-            }
-            if (value && value?.date && value?.status === 'Pending') {
-              const daysAgo = calculateDaysAgo(value.date);
-              let displayText = "";
-              let dispalypast = '';
-
-              if (value.status !== "Paid") {
-                if (daysAgo > 0 && daysAgo <= 7) {
-                  if (1 < daysAgo) {
-                    displayText = `${daysAgo} days ago`;
-                  } else {
-                    displayText = `${daysAgo} day ago`;
-                  }
-
-                }
-                else if (daysAgo > 7) {
-                  displayText = `${formatchDate(value.date)}`;
-                }
-                else if (daysAgo === 0) {
-                  displayText = "Today";
-                }
-                else if (daysAgo < 0 && Math.abs(daysAgo) <= 7) {
-                  // Future within 7 days
-                  if (1 < Math.abs(daysAgo)) {
-                    displayText = `Due In ${Math.abs(daysAgo)} days`;
-                  } else {
-                    displayText = `Due In ${Math.abs(daysAgo)} day`;
-                  }
-
-                }
-                else {
-                  // Future more than 7 days (e.g., -13)
-                  displayText = `${formatchDate(value.date)}`;
-                }
-              }
-
-              if (daysAgo > 0) {
-                dispalypast = 'Past'
+              var number = ''
+              if (accountDetails?.account_number) {
+                number = 'XX' + CommonFunction.slicenum(accountDetails?.account_number)
               } else {
-                dispalypast = ''
+                number = content.manual
+              }
+              if (value && value?.date && value?.status === 'Pending') {
+                const daysAgo = calculateDaysAgo(value.date);
+                let displayText = "";
+                let dispalypast = '';
+
+                if (value.status !== "Paid") {
+                  if (daysAgo > 0 && daysAgo <= 7) {
+                    if (1 < daysAgo) {
+                      displayText = `${daysAgo} days ago`;
+                    } else {
+                      displayText = `${daysAgo} day ago`;
+                    }
+
+                  }
+                  else if (daysAgo > 7) {
+                    displayText = `${formatchDate(value.date)}`;
+                  }
+                  else if (daysAgo === 0) {
+                    displayText = "Today";
+                  }
+                  else if (daysAgo < 0 && Math.abs(daysAgo) <= 7) {
+                    // Future within 7 days
+                    if (1 < Math.abs(daysAgo)) {
+                      displayText = `Due In ${Math.abs(daysAgo)} days`;
+                    } else {
+                      displayText = `Due In ${Math.abs(daysAgo)} day`;
+                    }
+
+                  }
+                  else {
+                    // Future more than 7 days (e.g., -13)
+                    displayText = `${formatchDate(value.date)}`;
+                  }
+                }
+
+                if (daysAgo > 0) {
+                  dispalypast = 'Past'
+                } else {
+                  dispalypast = ''
+                }
+
+                return (
+                  <GradientCard>
+                    <View style={styles.headerBankSection}>
+                      <View style={{
+                        flexDirection: 'row', borderBottomWidth: 0.3,
+                        borderBottomColor: '#fff', paddingBottom: 15
+                      }}>
+                        <View style={styles.bankIconContainer}>
+                          <FontAwesome name="bank" size={16} color="#FFFFFF" />
+                        </View>
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text style={styles.headerBankText}>{value?.account_id?.type} - {number}</Text>
+                        </View>
+                      </View>
+                      <View style={{ marginTop: 10, flexDirection: 'row' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.headerTitle}>{value?.name}</Text>
+                          <Text style={styles.headerDate}>Next : {displayText}</Text>
+                        </View>
+                        <View>
+                          <Text style={styles.headerAmount}>{storedata?.currency}{CommonFunction.formatamount(value.amount)}</Text>
+                        </View>
+
+                      </View>
+                      {
+                        marlaspaidLoading ? <View style={{ alignItems: 'flex-end' }}>
+                          <TouchableOpacity style={{ backgroundColor: '#25A135', borderRadius: 8 }} onPress={() => {
+
+                          }}>
+                            <Text style={[styles.headerAmount, { fontSize: getFontSize(14), padding: 8, paddingStart: 20, paddingEnd: 20 }]}>Loading...</Text>
+                          </TouchableOpacity>
+
+                        </View> : <View style={{ alignItems: 'flex-end' }}>
+                          <TouchableOpacity style={{ backgroundColor: '#25A135', borderRadius: 8 }} onPress={() => {
+                            handleMarkAsPaid(value)
+                          }}>
+                            <Text style={[styles.headerAmount, { fontSize: getFontSize(14), padding: 8, paddingStart: 20, paddingEnd: 20 }]}>Mark as Paid</Text>
+                          </TouchableOpacity>
+
+                        </View>
+                      }
+
+
+                    </View>
+
+
+                  </GradientCard>
+                )
               }
 
-              return (
-                <GradientCard>
-                  <View style={styles.headerBankSection}>
-                    <View style={{
-                      flexDirection: 'row', borderBottomWidth: 0.3,
-                      borderBottomColor: '#fff', paddingBottom: 15
-                    }}>
-                      <View style={styles.bankIconContainer}>
-                        <FontAwesome name="bank" size={16} color="#FFFFFF" />
-                      </View>
-                      <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={styles.headerBankText}>{value?.account_id?.type} - {number}</Text>
-                      </View>
-                    </View>
-                    <View style={{ marginTop: 10, flexDirection: 'row' }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.headerTitle}>{value?.name}</Text>
-                        <Text style={styles.headerDate}>Next : {displayText}</Text>
-                      </View>
-                      <View>
-                        <Text style={styles.headerAmount}>{storedata?.currency}{CommonFunction.formatamount(value.amount)}</Text>
-                      </View>
-
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <TouchableOpacity style={{ backgroundColor: '#25A135', borderRadius: 8 }} onPress={() => {
-                        handleMarkAsPaid(value)
-                      }}>
-                        <Text style={[styles.headerAmount, { fontSize: getFontSize(14), padding: 8, paddingStart: 20, paddingEnd: 20 }]}>Mark as Paid</Text>
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                </GradientCard>
-              )
-            }
-
-          })
-        }
+            })
+          }
 
 
 
-        <View style={styles.detailsSection}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Feather name="info" size={16} color="#2A1B6D" />
-            </View>
-            <Text style={styles.sectionTitle}>Reminder Details</Text>
-            <View style={[styles.statusBadge, { backgroundColor: statusBgColor }]}>
-              <View style={[styles.statusDot, { backgroundColor: statusTextColor }]} />
-              <Text style={[styles.statusBadgeText, { color: statusTextColor }]}>{details?.status}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailsGrid}>
-            <DetailRow label="Name" value={reminder?.name} icon="file-text" />
-            <DetailRow label="Amount" value={`${storedata?.currency || ''}${CommonFunction.formatamount(reminder?.amount || 0)}`} icon="dollar-sign" />
-            <DetailRow label="Category" value={details?.category_id?.category} icon="tag" />
-            <DetailRow label="Type" value={details?.type} icon="file" />
-            <DetailRow label="Start Date" value={formatDate(details?.startdate)} icon="calendar" />
-            <DetailRow label="End Date" value={formatDate(details?.enddate)} icon="calendar" />
-            <DetailRow label="Recurrence" value={details?.frequency} icon="repeat" />
-            <DetailRow label="Occurrence Details" value={details?.occurance} icon="clock" />
-          </View>
-        </View>
-
-        {/* Payment History Section */}
-        {paidBill && paidBill.length > 0 && (
-          <View style={styles.historySection}>
+          <View style={styles.detailsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <Feather name="clock" size={16} color="#2A1B6D" />
+                <Feather name="info" size={16} color="#2A1B6D" />
               </View>
-              <Text style={styles.sectionTitle}>Payment History</Text>
+              <Text style={styles.sectionTitle}>Reminder Details</Text>
+              <View style={[styles.statusBadge, { backgroundColor: statusBgColor }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusTextColor }]} />
+                <Text style={[styles.statusBadgeText, { color: statusTextColor }]}>{details?.status}</Text>
+              </View>
             </View>
 
-            {paidBill.map((item, index) => (
-              <PaymentHistoryItem key={index} item={item} />
-            ))}
+            <View style={styles.detailsGrid}>
+              <DetailRow label="Name" value={reminder?.name} icon="file-text" />
+              <DetailRow label="Amount" value={`${storedata?.currency || ''}${CommonFunction.formatamount(reminder?.amount || 0)}`} icon="dollar-sign" />
+              <DetailRow label="Category" value={details?.category_id?.category} icon="tag" />
+              <DetailRow label="Type" value={details?.type} icon="file" />
+              <DetailRow label="Start Date" value={formatDate(details?.startdate)} icon="calendar" />
+              <DetailRow label="End Date" value={formatDate(details?.enddate)} icon="calendar" />
+              <DetailRow label="Recurrence" value={details?.frequency} icon="repeat" />
+              <DetailRow label="Occurrence Details" value={details?.occurance} icon="clock" />
+            </View>
           </View>
-        )}
+
+          {/* Payment History Section */}
+          {paidBill && paidBill.length > 0 && (
+            <View style={styles.historySection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Feather name="clock" size={16} color="#2A1B6D" />
+                </View>
+                <Text style={styles.sectionTitle}>Payment History</Text>
+              </View>
+
+              {paidBill.map((item, index) => (
+                <PaymentHistoryItem key={index} item={item} />
+              ))}
+            </View>
+          )}
 
 
 
-        <View style={styles.bottomPadding} />
+          <View style={styles.bottomPadding} />
 
 
-      </Animated.ScrollView>
+        </Animated.ScrollView>
+      }
+
+
 
 
 
 
       {/* Fixed Action Buttons at Bottom */}
-      <View style={styles.fixedActionContainer}>
-        {
-          details?.status === 'Active' &&
+      {
+        !billloading && <View style={styles.fixedActionContainer}>
+          {
+            details?.status === 'Active' &&
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: 'transparant', borderWidth: 1, borderColor: themeColors?.bgbtn }]}
+              onPress={() => {
+                setIsCancel(true)
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ justifyContent: 'center' }}>
+                  <CommonIcon name="cancel" family="MaterialDesignIcons" size={16} color={themeColors.bgbtn} />
+                </View>
+                <View style={{ marginStart: 5 }}>
+                  <Text style={[styles.cancelButtonText, { color: themeColors.bgbtn }]}>Cancel</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          }
+
+
           <TouchableOpacity
-            style={[styles.cancelButton, { backgroundColor: 'transparant', borderWidth: 1, borderColor: themeColors?.bgbtn }]}
+            style={[styles.cancelButton, { marginStart: 10, backgroundColor: themeColors?.negativeColor }]}
             onPress={() => {
-              setIsCancel(true)
+              setIsDelete(true)
             }}
             activeOpacity={0.7}
           >
             <View style={{ flexDirection: 'row' }}>
               <View style={{ justifyContent: 'center' }}>
-                <CommonIcon name="cancel" family="MaterialDesignIcons" size={16} color={themeColors.bgbtn} />
+                <CommonIcon name="trash-outline" family="Ionicons" size={16} color={'#fff'} />
               </View>
               <View style={{ marginStart: 5 }}>
-                <Text style={[styles.cancelButtonText, { color: themeColors.bgbtn }]}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>Delete</Text>
               </View>
             </View>
           </TouchableOpacity>
-        }
 
+        </View>
+      }
 
-        <TouchableOpacity
-          style={[styles.cancelButton, { marginStart: 10, backgroundColor: themeColors?.negativeColor }]}
-          onPress={() => {
-            setIsDelete(true)
-          }}
-          activeOpacity={0.7}
-        >
-          <View style={{ flexDirection: 'row' }}>
-            <View style={{ justifyContent: 'center' }}>
-              <CommonIcon name="trash-outline" family="Ionicons" size={16} color={'#fff'} />
-            </View>
-            <View style={{ marginStart: 5 }}>
-              <Text style={styles.cancelButtonText}>Delete</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={handleDelete}
-          activeOpacity={0.7}
-        >
-          <LinearGradient
-            colors={['#DC2626', '#B91C1C']}
-            style={styles.deleteButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Feather name="trash-2" size={18} color="#FFFFFF" />
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </LinearGradient>
-        </TouchableOpacity> */}
-      </View>
 
       <PromptModel
         visible={isCancel || isDelete}
@@ -517,7 +530,7 @@ export default function ReminderDetail({ }) {
         content={isCancel ? cancelContent : deleteContent}
         onClose={() => {
           setIsCancel(false)
-           setIsDelete(false)
+          setIsDelete(false)
         }}
         onSubmit={() => {
           isCancel ? handleCancel() : handleDelete()
@@ -784,11 +797,11 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
   bottomPadding: {
-    height: 20,
+    height: 10,
   },
   // Fixed Action Buttons
   fixedActionContainer: {
-  marginTop:10,
+    marginTop: 10,
     marginStart: 15,
     marginEnd: 15,
     flexDirection: 'row',
@@ -796,7 +809,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    padding:14,
+    padding: 14,
     borderRadius: 14,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',

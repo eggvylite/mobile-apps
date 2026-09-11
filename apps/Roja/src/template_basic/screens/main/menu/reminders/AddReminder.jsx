@@ -65,9 +65,12 @@ export default function AddReminder() {
   }
 
   function formatTime(date) {
-    var zone = storedata.zone
+    if(storedata) {
+    var zone = storedata?.zone
     const df = timezone(date).tz(zone).format("hh:mm a");
     return df
+    }
+
   }
 
   const navigateReminderForm = (item) => {
@@ -135,7 +138,7 @@ export default function AddReminder() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar

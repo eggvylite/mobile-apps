@@ -14,6 +14,7 @@ import { themeColors } from '../../../Common';
 import { fontsFamily } from '../../../../constants/fontsFamily';
 import { getFSInfo } from 'react-native-fs';
 import { getFontSize } from '../../../../constants/Font';
+import useCommonCurrencyFormat from '../../../../hook/useCommonCurrencyFormat';
 
 
 // Enable LayoutAnimation for Android
@@ -282,7 +283,7 @@ export default function BankAccountSummary() {
     }, [getaccount]);
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['left','right','top']}>
+        <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
             <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
             <TopBar
@@ -316,7 +317,7 @@ export default function BankAccountSummary() {
                                 </View>
                             </View>
 
-                            <Text style={styles.headerBalance}>{storedata?.currency}{CommonFunction.formatamount(networth || 0)}</Text>
+                            <Text style={styles.headerBalance}>{useCommonCurrencyFormat(networth ?? 0)}</Text>
                             <Text style={styles.headerLabel}>Total Balance</Text>
                         </View>
                     </GradientCard>

@@ -21,7 +21,7 @@ function DashboardRoute() {
 
     return (
         <Stack.Navigator screenOptions={{
-            animation: 'none',
+            animation: 'default',
             headerShown: false,
             gestureEnabled: false,
         }}>

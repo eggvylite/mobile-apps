@@ -26,6 +26,12 @@ import AppCommonModal from '../../../../common_component/AppCommonModel';
 import useGeneralLabelsHook from '../../../../hook/Labels/useGenerallablehoo';
 import { fontsFamily } from '../../../../constants/fontsFamily';
 import useSubscriptionLabelsHook from '../../../../hook/Labels/useSubscriptionlabelhook';
+import CancelSubscription from '../../../component/CancelSubscription';
+import { themeColors } from '../../../Common';
+import SubmitBtn from '../../../component/SubmitBtn';
+import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
+import useFeatureFlow from '../../../../hook/useFeatureGate';
+import { getFontSize } from '../../../../constants/Font';
 const { width } = Dimensions.get('window');
 
 export default function Subscription() {
@@ -36,7 +42,9 @@ export default function Subscription() {
     const { storedata } = useSelector((state) => state.auth);
     const { cusDetails, cusloading } = useSelector((state) => state.customer);
     const { totalBill, activeSub, minAmount, maxAmount } = useSelector((state) => state.advance);
+    const { workflow: cancelmessage } = useFeatureFlow(WORKFLOW_CONSTANT?.CANCELMESSAGE);
     const [isvisible, setvisible] = useState(false)
+    const [isAlert, setIsAlert] = useState(false)
     const [postloading, setLoading] = useState(false)
     const { formatDate, formatTime } = useDashboardUtils();
     const [openDueModel, setopenDueModel] = useState(false)
@@ -45,23 +53,7 @@ export default function Subscription() {
         subscriptionAdvanceAlertDescription,
         subscriptionAdvanceAlertTitle } = useGeneralLabelsHook()
 
-    const {
-        subscriptionCardTitle,
-        unsubscribeContent,
-        maximum,
-        minimum,
-        subscriptionDetails,
-        subscriptionId,
-        status,
-        nextPayment,
-        subscribedOn,
-        billingPeriod,
-        featuresHead,
-        manageYourSubscription,
-        inControlCancelAnytime,
-        cancelAnytimeNoHiddenFees,
-        subscriptionHistory, frequency
-    } = useSubscriptionLabelsHook()
+    const { subscription_details, cancelsubscription } = useSubscriptionLabelsHook()
 
 
     const {
@@ -93,6 +85,7 @@ export default function Subscription() {
             duration: 500,
             useNativeDriver: true,
         }).start();
+
     }, []);
 
 
@@ -103,6 +96,8 @@ export default function Subscription() {
         } else {
             setvisible(true);
         }
+
+
 
     };
 
@@ -116,9 +111,10 @@ export default function Subscription() {
                     <View style={{ padding: 20 }}>
                         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text style={styles.planName}>{subscription?.plan_title}</Text>
+
                             <View style={{ backgroundColor: '#fff', borderRadius: 30, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: '#059669', fontSize: 12, fontWeight: '600' }}>
-                                    {subscription?.status}
+                                <Text style={{ color: subscription?.status === 'Schedule' ? '#f97316' : '#059669', fontSize: 12, fontWeight: '600' }}>
+                                    {subscription?.status === 'Schedule' ? cancelsubscription?.scheduled : subscription?.status}
                                 </Text>
                             </View>
                         </View>
@@ -127,26 +123,24 @@ export default function Subscription() {
                             <Text style={styles.planPrice}>{storedata?.currency}{CommonFunction.formatamount(subscription?.plan_amount || 0)}</Text>
                             <Text style={styles.planPeriod}>/ {subscription?.plan_type}</Text>
                         </View>
-                        <Text style={[styles.planDescription, { textAlign: 'left' }]}>{subscriptionCardTitle}
+                        <Text style={[styles.planDescription, { textAlign: 'left' }]}>{subscription_details?.subscriptionCardTitle}
                         </Text>
                     </View>
                 </GradientCard>
             </View>
             {
                 subscription?.unsubscribe === 1 && (
-                    <View style={[styles.successBanner, { height: 40 }]}>
-                        <LinearGradient
-                            colors={['#fc8d7c', '#fc987c']}
-                            style={[styles.successGradient, { height: 40 }]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                        >
-                            <Feather name="check-circle" size={24} color="#FFFFFF" />
-                            <View style={styles.successTextContainer}>
-                                <Text style={styles.successTitle}> {unsubscribeContent}</Text>
 
+                    <View style={[styles.reasonCard, { borderColor: '#e69d69' }]}>
+                        <View style={{ justifyContent: 'center' }}>
+                            <Feather name="check-circle" size={24} color={'#f97316'} />
+                        </View>
+                        <View style={{ flex: 1, marginStart: 15 }}>
+                            {/* <Text style={[styles.modalTitle, { fontSize: getFontSize(15), color: '#f97316' }]}>{cancelsubscription?.warningtitle}</Text> */}
+                            <View>
+                                <Text style={[styles.modalTitle, { fontSize: getFontSize(13), color: '#f97316', lineHeight: 20, letterSpacing: 0.3 }]}>{cancelmessage} {formatDate(subscription?.end)}</Text>
                             </View>
-                        </LinearGradient>
+                        </View>
                     </View>
                 )
             }
@@ -155,68 +149,68 @@ export default function Subscription() {
 
             {/* Cash Limits */}
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Cash Limits</Text>
+                <Text style={styles.sectionTitle}>{subscription_details?.cashlimit}</Text>
 
                 <View style={styles.limitsRow}>
                     <View style={styles.limitItem}>
-                        <Text style={styles.limitLabel}>Minimum</Text>
+                        <Text style={styles.limitLabel}>{subscription_details?.mimimum}</Text>
                         <Text style={styles.limitValue}> {`${storedata?.currency}${subscription?.plan_cash_min}`}</Text>
-                        <Text style={styles.limitDescription}>{minimum}</Text>
+                        <Text style={styles.limitDescription}>{subscription_details?.lowest}</Text>
                     </View>
                     <View style={styles.limitDivider} />
                     <View style={styles.limitItem}>
-                        <Text style={styles.limitLabel}>Maximum</Text>
+                        <Text style={styles.limitLabel}>{subscription_details?.maximum}</Text>
                         <Text style={[styles.limitValue, styles.limitValueHigh]}>{storedata?.currency}{CommonFunction.formatamount(subscription?.max || 0)}</Text>
-                        <Text style={styles.limitDescription}>{maximum}</Text>
+                        <Text style={styles.limitDescription}>{subscription_details?.highest}</Text>
                     </View>
                 </View>
             </View>
 
             {/* Subscription Details */}
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>{subscriptionDetails}</Text>
+                <Text style={styles.sectionTitle}>{subscription_details?.details}</Text>
 
                 <View style={styles.detailsTable}>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{subscriptionId}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.subid}</Text>
                         <Text style={styles.detailValue}>{subscription?.subs_id}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{frequency}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.frequency}</Text>
                         <Text style={styles.detailValue}>{CommonFunction?.captialize(
                             subscription?.plan_type?.toLowerCase()
                         )}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{status}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.status}</Text>
                         <View style={styles.statusBadge}>
-                            <View style={styles.statusDot} />
-                            <Text style={styles.statusText}>{subscription?.status}</Text>
+                            <View style={[styles.statusDot, subscription?.status !== 'Active' && { backgroundColor: '#f97316' }]} />
+                            <Text style={[styles.statusText, subscription?.status !== 'Active' && { color: '#f97316' }]}>{subscription?.status === 'Schedule' ? cancelsubscription?.scheduled : subscription?.status}</Text>
                         </View>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{nextPayment}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.nextpayment}</Text>
                         <Text style={styles.detailValue}>{formatDate(subscription?.next_payment)}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{subscribedOn}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.subscribedon}</Text>
                         <Text style={styles.detailValue}> {`${formatDate(subscription?.createdAt)} ${formatTime(subscription?.createdAt)}`}</Text>
                     </View>
                     <View style={styles.detailDivider} />
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{billingPeriod}</Text>
+                        <Text style={styles.detailLabel}>{subscription_details?.biilperiod}</Text>
                         <Text style={styles.detailValue}>{`${formatDate(subscription?.start)} To ${formatDate(subscription?.end)}`}</Text>
                     </View>
                 </View>
             </View>
 
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>{featuresHead}</Text>
+                <Text style={styles.sectionTitle}>{subscription_details?.include}</Text>
 
                 <View style={styles.featuresGrid}>
                     {subscription?.plan_featureLabel?.length > 0 &&
@@ -246,14 +240,14 @@ export default function Subscription() {
 
             {
                 (subscription?.unsubscribe === 0 && subscription?.status == 'Active') && (
-                    <View style={styles.manageCard}>
+                    <View style={[styles.manageCard]}>
                         <View style={styles.manageHeader}>
                             <View style={styles.manageIconContainer}>
                                 <Feather name="settings" size={20} color="#3F2B96" />
                             </View>
                             <View style={styles.manageTextContainer}>
-                                <Text style={styles.manageTitle}>{manageYourSubscription}</Text>
-                                <Text style={[styles.manageDescription, { textAlign: 'left' }]}>{inControlCancelAnytime}
+                                <Text style={styles.manageTitle}>{subscription_details?.managesubscribtion}</Text>
+                                <Text style={[styles.manageDescription, { textAlign: 'left' }]}>{cancelsubscription?.control_cancel_subscribtion}
                                 </Text>
                             </View>
                         </View>
@@ -275,7 +269,7 @@ export default function Subscription() {
                                 ) : (
                                     <>
                                         <Feather name="x-circle" size={18} color="#FFFFFF" />
-                                        <Text style={styles.unsubscribeText}>Cancel Subscription</Text>
+                                        <Text style={styles.unsubscribeText}>{cancelsubscription?.cancelbtn}</Text>
                                     </>
                                 )}
                             </LinearGradient>
@@ -289,29 +283,29 @@ export default function Subscription() {
 
 
     async function unsubscribePlan() {
-        if (!subscription?.id) {
-            setvisible(false)
-            return
-        }
-        setLoading(true)
-        try {
+        // if (!subscription?.id) {
+        //     setvisible(false)
+        //     return
+        // }
+        // setLoading(true)
+        // try {
 
-            const [os, deviceName, ip] = await Promise.all([
-                CommonFunction.getOS(),
-                CommonFunction.getdevicename(),
-                CommonFunction.getipaddress(),
-            ])
-            await api.get(
-                `subscribed_customers/unsubscribe/${subscription.id}?platform=${os}&device_name=${deviceName}&ipaddress=${ip}`
-            )
-            dispatch(fetchcurrentsubscription())
-        } catch (err) {
-            CommonFunction.message(err?.response?.data?.message)
-            console.log(err?.response)
-        } finally {
-            setLoading(false)
-            setvisible(false)
-        }
+        //     const [os, deviceName, ip] = await Promise.all([
+        //         CommonFunction.getOS(),
+        //         CommonFunction.getdevicename(),
+        //         CommonFunction.getipaddress(),
+        //     ])
+        //     await api.get(
+        //         `subscribed_customers/unsubscribe/${subscription.id}?platform=${os}&device_name=${deviceName}&ipaddress=${ip}`
+        //     )
+        //     dispatch(fetchcurrentsubscription())
+        // } catch (err) {
+        //     CommonFunction.message(err?.response?.data?.message)
+        //     console.log(err?.response)
+        // } finally {
+        //     setLoading(false)
+        //     setvisible(false)
+        // }
     }
 
 
@@ -362,7 +356,7 @@ export default function Subscription() {
                             {
                                 subscription?.unsubscribe === 0 && <View style={styles.footerNote}>
                                     <Feather name="shield" size={14} color="#94A3B8" />
-                                    <Text style={styles.footerNoteText}>{cancelAnytimeNoHiddenFees}</Text>
+                                    <Text style={styles.footerNoteText}>{cancelsubscription?.cancelany}</Text>
                                 </View>
                             }
 
@@ -372,7 +366,7 @@ export default function Subscription() {
                                         <View style={styles.historyIconContainer}>
                                             <Feather name="clock" size={16} color="#3F2B96" />
                                         </View>
-                                        <Text style={styles.historyTitle}>{subscriptionHistory}</Text>
+                                        <Text style={styles.historyTitle}>{subscription_details?.history}</Text>
                                     </View>
 
                                 </View>
@@ -395,7 +389,7 @@ export default function Subscription() {
                                         </View>
                                         <View style={styles.historyRight}>
                                             <Text style={styles.historyAmount}>{storedata?.currency}{CommonFunction.formatamount(item?.plan_amount ?? 0)}</Text>
-                                            <Text style={[styles.historyStatus, { color: item?.status === 'Active' ? '#10B981' : '#DC2626' }]}>{item?.status ?? 'NULL'}</Text>
+                                            <Text style={[styles.historyStatus, { color: item?.status === 'Active' ? '#10B981' : '#DC2626' }]}>{item?.status === 'Schedule' ? cancelsubscription.scheduled : item?.status ?? 'NULL'}</Text>
                                         </View>
                                     </TouchableOpacity>
                                 )) : renderEmptyHistory()}
@@ -422,46 +416,54 @@ export default function Subscription() {
                 />
 
                 <Modal
-                    visible={isvisible}
+                    visible={isAlert}
                     transparent={true}
                     animationType="fade"
-                    onRequestClose={() => setvisible(false)}
+                    onRequestClose={() => setIsAlert(false)}
                 >
-                    <View style={styles.confirmModalOverlay}>
-                        <View style={styles.confirmModalContent}>
-                            <View style={styles.confirmIconContainer}>
-                                <Feather name="alert-triangle" size={32} color="#DC2626" />
+                    <View style={[styles.confirmModalOverlay,]}>
+                        <View style={[styles.confirmModalContent]}>
+                            <View style={{ alignItems: 'center' }}>
+                                <View style={styles.confirmIconContainer}>
+                                    <Feather name="check-circle" size={24} color={'#f97316'} />
+                                </View>
+
+                                <Text style={styles.confirmTitle}>{cancelsubscription?.canceltitle}</Text>
+                                <Text style={styles.confirmDescription}>
+                                    {cancelsubscription?.imdeiatealerdes}
+                                </Text>
+
+
                             </View>
+                            <SubmitBtn text={'Done'} submit={() => {
+                                CommonFunction.logout(navigation)
+                            }} />
 
-                            <Text style={styles.confirmTitle}>{subScriptionCancelAlertTitle}</Text>
-                            <Text style={styles.confirmDescription}>
-                                {subScriptionCancelAlertDescription}
-                            </Text>
-
-                            <View style={styles.confirmActions}>
-                                <TouchableOpacity
-                                    style={[styles.confirmButton, styles.cancelButton]}
-                                    onPress={() => setvisible(false)}
-                                    disabled={postloading}
-                                >
-                                    <Text style={styles.cancelButtonText}>No, Keep it</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.confirmButton, styles.confirmBtn]}
-                                    onPress={unsubscribePlan}
-                                    disabled={postloading}
-                                >
-                                    {postloading ? (
-                                        <ActivityIndicator color="#FFFFFF" size="small" />
-                                    ) : (
-                                        <Text style={styles.confirmButtonText}>Yes, Cancel</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
                         </View>
+
                     </View>
                 </Modal>
+
+
+                <CancelSubscription
+                    visible={isvisible}
+                    onLoading={() => {
+                        setLoading(true)
+                    }}
+                    offLoading={() => {
+                        setLoading(false)
+                    }}
+                    onClose={() => {
+                        setvisible(false)
+                    }}
+                    onSubmit={(data) => {
+                        if (data === 'Immediately') {
+                            setIsAlert(true)
+                        }
+                        setvisible(false)
+
+
+                    }} />
 
 
             </SafeAreaView>
@@ -491,6 +493,23 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+    },
+    reasonLabel: {
+        fontSize: getFontSize(15),
+        fontWeight: '500',
+        fontFamily: fontsFamily.regularFont,
+        color: '#0F172A',
+    },
+    reasonCard: {
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        borderColor: '#E2E8F0',
+        marginTop: 5,
+        marginBottom: 20
     },
     scrollContent: {
         paddingHorizontal: 16,
@@ -1259,8 +1278,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         padding: 24,
         width: '100%',
-        maxWidth: 340,
-        alignItems: 'center',
+        // maxWidth: 340,
+        // alignItems: 'center',
     },
     confirmIconContainer: {
         width: 64,

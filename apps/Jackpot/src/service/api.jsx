@@ -51,7 +51,7 @@ api.interceptors.response.use(
             new Date().getTime() - response.config.metadata.startTime;
 
         if (__DEV__) {
-            appLog.info(`✅ ${response.config.url}`);
+            // appLog.info(`✅ ${response.config.url}`);
             // appLog.info(`Status : ${response.status}`);
             // appLog.info(`Time   : ${duration} ms`);
             // appLog.debug("Response:", response.data);
@@ -68,17 +68,17 @@ api.interceptors.response.use(
 
         if (__DEV__) {
             appLog.error("========================================");
-            // appLog.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
-            // appLog.error(`Status : ${error.response?.status || "No Response"}`);
-            // appLog.error(`Time   : ${duration} ms`);
+            appLog.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+            appLog.error(`Status : ${error.response?.status || "No Response"}`);
+            appLog.error(`Time   : ${duration} ms`);
 
-            // if (error.response?.data) {
-            //     appLog.error("Response:", error.response.data);
-            // } else {
-            //     appLog.error("Message:", error.message);
-            // }
+            if (error.response?.data) {
+                appLog.error("Response:", error.response.data);
+            } else {
+                appLog.error("Message:", error.message);
+            }
 
-            // appLog.error("========================================");
+            appLog.error("========================================");
         }
         if (error.response?.status === 401) {
             resetToLogin();

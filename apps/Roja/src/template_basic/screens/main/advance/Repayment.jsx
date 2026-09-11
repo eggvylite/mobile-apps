@@ -14,6 +14,7 @@ import {
     Alert,
     Platform,
     KeyboardAvoidingView,
+    Keyboard
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import Slider from '@react-native-community/slider';
@@ -22,6 +23,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import TopBar from '../../../component/TopBar';
 import useAdvanceHooks from '../../../../hook/useAdvaceHook';
+import { useDispatch, useSelector } from 'react-redux';
+import { useForm, Controller } from 'react-hook-form';
 import CommonFunction from '../../../../utill/CommonFunction';
 import appLog from '../../../../constants/logger';
 import { useDashboardUtils } from '../../../../hook/useDashboardUtils';
@@ -30,6 +33,8 @@ import CheckBox from '@react-native-community/checkbox';
 import ChoosePaymentProviderModal from './ChoosePaymentProviderModal';
 import { fontsFamily } from '../../../../constants/fontsFamily';
 import useGeneralLabelsHook from '../../../../hook/Labels/useGenerallablehoo';
+import { fetchOutstanding } from '../../../../redux/slices/advenceSlice';
+import useReyPaymentLabelsHook from '../../../../hook/Labels/useRepaymentLableHook';
 
 const { width } = Dimensions.get('window');
 
@@ -61,7 +66,7 @@ export default function Repayment({ route }) {
         maxAdvanceAmount, showAdvanceCard, customerCashAdvanceLimit, appCurrency, pendingPaymentList, successPaymentList, remainingDays, repaymentDate, payment_frequency, payRollDay, } = useAdvanceHooks()
     const { formatDate, formatTime } = useDashboardUtils()
     const { showPartialRepayment, showOprnManualRepaymentOption } = usegetAdvancepartialFlow();
-
+    const appLabels = useReyPaymentLabelsHook()
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef(null);
@@ -75,8 +80,14 @@ export default function Repayment({ route }) {
     const [repaymentAmount, setRepaymentAmount] = useState(0);
     const [repaymentContext, setRepaymentContext] = useState('single');
     const advanceAmountMinimumLimit = 0
-    const { OutstandingBalancelable, OutstandingBalanceButtonlable } = useGeneralLabelsHook()
-    // 'single', 'all'
+    const dispatch = useDispatch()
+
+    const { control, setValue, handleSubmit, formState: { errors, isValid } } = useForm({
+        mode: 'onChange',
+        defaultValues: {
+            customAmount: '0'
+        }
+    });
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
@@ -92,31 +103,25 @@ export default function Repayment({ route }) {
     }, []);
 
 
+    useEffect(() => {
+        dispatch(fetchOutstanding())
+    }, [dispatch])
+
+
+
     const handleBackPress = () => {
         navigation.goBack();
-    };
-
-    const handleRepayAdvance = (item) => {
-        setRepaymentContext('single');
-        setCurrentItem(item);
-        setSliderValue(item.advance_amount);
-        setCustomAmount(item.advance_amount.toString());
-        setRepaymentType('full');
-
-        if (showPartialRepayment) {
-            setShowRepayModal(true);
-        } else {
-            setRepaymentAmount(item.advance_amount);
-            setShowProviderModal(true);
-        }
     };
 
 
 
     const handleRepayAll = () => {
         setRepaymentContext('all');
-        setSliderValue(totalBill);
-        // setCustomAmount(totalBill.toString());
+        const amount = totalBill;
+        setSliderValue(amount);
+        const amountStr = amount.toFixed(2);
+        setCustomAmount(amountStr);
+        setValue('customAmount', amountStr, { shouldValidate: true });
 
 
         if (showPartialRepayment) {
@@ -152,15 +157,12 @@ export default function Repayment({ route }) {
         else max = totalBill;
 
         setSliderValue(max);
-        setCustomAmount(max.toString());
+        const amountStr = max.toFixed(2);
+        setCustomAmount(amountStr);
+        setValue('customAmount', amountStr, { shouldValidate: true });
     };
 
-    const handlePartialRepayment = () => {
-        setRepaymentType('partial');
-        const value = Math.round(sliderValue) || advanceAmountMinimumLimit;
-        setSliderValue(value);
-        setCustomAmount(value.toString());
-    };
+
 
 
 
@@ -175,29 +177,6 @@ export default function Repayment({ route }) {
             repaymentType: repaymentType,
             repaymentContext: repaymentContext
         });
-    };
-
-    const handleSliderChange = (value) => {
-        const roundedValue = Math.round(value);
-        setSliderValue(roundedValue);
-        setCustomAmount(roundedValue.toString());
-    };
-
-    const handleCustomAmountChange = (text) => {
-        const numericValue = parseFloat(text);
-        if (text === '') {
-            setCustomAmount('');
-            return;
-        }
-        if (!isNaN(numericValue)) {
-            let max = 0;
-            if (repaymentContext === 'single') max = currentItem?.advance_amount;
-            else max = totalBill;
-
-            const clampedValue = Math.min(Math.max(numericValue, advanceAmountMinimumLimit), max);
-            setCustomAmount(text);
-            setSliderValue(clampedValue);
-        }
     };
 
 
@@ -227,48 +206,6 @@ export default function Repayment({ route }) {
             });
         }
     };
-
-
-
-
-
-    // const pendingarreyData = useMemo(() => {
-
-    //     const numericAmount = parseFloat(customAmount) || 0;
-
-    //     if (customAmount <= 0) return [];
-
-    //     let remaining = numericAmount;
-    //     const filtered = [];
-
-
-    //     for (const advance of pendingPaymentList) {
-
-    //         const advanceAmount = parseFloat(advance.advance_amount);
-    //         if (remaining >= advanceAmount) {
-
-
-    //             filtered.push({
-    //                 ...advance,
-    //                 willBeRepaid: true
-    //             })
-    //             remaining -= advanceAmount;
-    //         } else if (remaining > 0 && remaining < advanceAmount) {
-
-
-    //             filtered.push({
-    //                 ...advance,
-    //                 willBeRepaid: true,
-    //                 partialAmount: remaining,
-    //                 isPartial: true
-    //             });
-    //             remaining = 0;
-    //             break;
-    //         }
-    //     }
-    //     return filtered
-
-    // }, [pendingPaymentList, customAmount]);
 
 
 
@@ -315,7 +252,7 @@ export default function Repayment({ route }) {
             <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
             <TopBar
-                title="Active Repayment"
+                title={appLabels.screenTitle}
                 showBack={true}
                 onBackPress={handleBackPress}
                 showAdvance={false}
@@ -334,7 +271,7 @@ export default function Repayment({ route }) {
                         <View style={styles.outstandingCard}>
                             <View style={styles.outstandingCardInner}>
                                 <View style={styles.outstandingHeader}>
-                                    <Text style={styles.outstandingTitle}>{OutstandingBalancelable}</Text>
+                                    <Text style={styles.outstandingTitle}>{appLabels.outstandingBalanceCardTitle}</Text>
                                 </View>
 
                                 <View style={styles.outstandingAmountContainer}>
@@ -358,10 +295,10 @@ export default function Repayment({ route }) {
                                     </View>
                                     <View style={styles.progressLabels}>
                                         <Text style={styles.progressLabel}>
-                                            Used: {appCurrency}{CommonFunction.formatamount(totalBill ?? 0)}
+                                            {appLabels.usedProgressLabel}: {appCurrency}{CommonFunction.formatamount(totalBill ?? 0)}
                                         </Text>
                                         <Text style={styles.progressLabel}>
-                                            Limit: {appCurrency}{CommonFunction.formatamount(customerCashAdvanceLimit ?? 0)}
+                                            {appLabels.limitProgressLabel}: {appCurrency}{CommonFunction.formatamount(customerCashAdvanceLimit ?? 0)}
                                         </Text>
                                     </View>
                                 </View>
@@ -373,7 +310,7 @@ export default function Repayment({ route }) {
                                             <Feather name="calendar" size={16} color={PRIMARY} />
                                         </View>
                                         <View style={styles.repaymentTextContainer}>
-                                            <Text style={styles.repaymentInfoLabel}>Repayment Date</Text>
+                                            <Text style={styles.repaymentInfoLabel}>{appLabels.repaymentDateLabel}</Text>
                                             <Text style={styles.repaymentInfoDate}>{formatDate(repaymentDate)}</Text>
                                         </View>
                                     </View>
@@ -383,8 +320,11 @@ export default function Repayment({ route }) {
                                             <Feather name="clock" size={16} color={PRIMARY} />
                                         </View>
                                         <View style={styles.repaymentTextContainer}>
-                                            <Text style={styles.repaymentInfoLabel}>Days Left</Text>
-                                            <Text style={styles.repaymentInfoDays}>{remainingDays} days</Text>
+                                            <Text style={styles.repaymentInfoLabel}>{appLabels?.daysLeftLabel}</Text>
+                                            <Text style={styles.repaymentInfoDays}>{remainingDays} <Text>
+                                                {1 < remainingDays ? "days" : 'day'}
+                                            </Text>
+                                            </Text>
                                         </View>
                                     </View>
                                 </View>
@@ -399,7 +339,7 @@ export default function Repayment({ route }) {
                                     <LinearGradient
                                         colors={[PRIMARY, PRIMARY_DARK]} style={styles.actionButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                                         <Feather name="arrow-down" size={18} color={WHITE} />
-                                        <Text style={styles.actionButtonText}>Pay Now</Text>
+                                        <Text style={styles.actionButtonText}>{appLabels?.payNowButtonLabel}</Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
 
@@ -415,7 +355,7 @@ export default function Repayment({ route }) {
                                         end={{ x: 1, y: 0 }}
                                     >
                                         <Feather name="plus" size={18} color={WHITE} />
-                                        <Text style={styles.actionButtonText}>Get Advance</Text>
+                                        <Text style={styles.actionButtonText}>{appLabels?.getAdvanceButtonLabel}</Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </View>
@@ -427,13 +367,13 @@ export default function Repayment({ route }) {
                         <View style={styles.statsContainer}>
                             <View style={styles.statItem}>
                                 <Feather name="credit-card" size={16} color={GREY_400} />
-                                <Text style={styles.statLabel}>Total Taken</Text>
+                                <Text style={styles.statLabel}>{appLabels?.totalTakenStatLabel}</Text>
                                 <Text style={styles.statValue}>{appCurrency}{CommonFunction.formatamount(totalBill)}</Text>
                             </View>
                             <View style={styles.statDivider} />
                             <View style={styles.statItem}>
                                 <Feather name="clock" size={16} color={GREY_400} />
-                                <Text style={styles.statLabel}>Pending</Text>
+                                <Text style={styles.statLabel}>{appLabels?.pendingStatLabel}</Text>
                                 <Text style={[styles.statValue, { color: pendingPaymentList?.length > 0 ? WARNING : SUCCESS }]}>
                                     {pendingPaymentList?.length}
                                 </Text>
@@ -441,7 +381,7 @@ export default function Repayment({ route }) {
                             <View style={styles.statDivider} />
                             <View style={styles.statItem}>
                                 <Feather name="pie-chart" size={16} color={GREY_400} />
-                                <Text style={styles.statLabel}>Limit Left</Text>
+                                <Text style={styles.statLabel}>{appLabels.limitLeftStatLabel}</Text>
                                 <Text style={[styles.statValue, { color: pendingPaymentList?.length > 0 ? SUCCESS : GREY_400 }]}>
                                     {appCurrency}{CommonFunction.formatamount(maxAdvanceAmount)}
                                 </Text>
@@ -456,7 +396,7 @@ export default function Repayment({ route }) {
                 <View style={styles.historySection}>
                     <View style={styles.historyHeader}>
                         <View style={styles.historyHeaderLeft}>
-                            <Text style={styles.historyTitle}>Active Repayment</Text>
+                            <Text style={styles.historyTitle}>{appLabels.activeRepaymentSectionHeader}</Text>
                         </View>
                         <View style={styles.historyCount}>
                             <Text style={styles.historyCountText}>{pendingPaymentList?.length}</Text>
@@ -468,8 +408,8 @@ export default function Repayment({ route }) {
                             <View style={styles.emptyIconContainer}>
                                 <Feather name="check-circle" size={48} color={SUCCESS} />
                             </View>
-                            <Text style={styles.emptyOutstandingText}>All Clear!</Text>
-                            <Text style={styles.emptyOutstandingSubtext}>You've repaid all your advances</Text>
+                            <Text style={styles.emptyOutstandingText}>{appLabels.clearOutstandingTitle}</Text>
+                            <Text style={styles.emptyOutstandingSubtext}>{appLabels.clearOutstandingDescription}</Text>
                         </View>
                     ) : (
                         0 < pendingPaymentList?.length && pendingPaymentList?.map((item, index) => (
@@ -511,7 +451,7 @@ export default function Repayment({ route }) {
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }} >
 
-                            <Text style={styles.repayAllText}>{OutstandingBalanceButtonlable}</Text>
+                            <Text style={styles.repayAllText}>{appLabels?.repayAllOutstandingCtaLabel}</Text>
                             <View style={styles.repayAllBadge}>
                                 <Text style={styles.repayAllBadgeText}>
                                     {appCurrency}{CommonFunction.formatamount(totalBill)}
@@ -528,12 +468,12 @@ export default function Repayment({ route }) {
                         <View style={styles.recentHeader}>
                             <View style={styles.recentHeaderLeft}>
 
-                                <Text style={styles.recentTitle}>Recent Repayments</Text>
+                                <Text style={styles.recentTitle}>{appLabels?.recentRepaymentsSectionHeader}</Text>
                             </View>
                             <TouchableOpacity
                                 onPress={() => navigation?.navigate('AdvanceHistory')}
                             >
-                                <Text style={styles.viewAllText}>View All</Text>
+                                <Text style={styles.viewAllText}>{appLabels.viewAllActionLabel}</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -598,7 +538,7 @@ export default function Repayment({ route }) {
                             <View style={styles.modalHandle} />
 
                             <View style={styles.modalHeaderRow}>
-                                <Text style={styles.modalTitle}>Repay Outstanding</Text>
+                                <Text style={styles.modalTitle}>{appLabels.repayOutstandingModalHeader}</Text>
                                 <TouchableOpacity
                                     onPress={() => setShowRepayModal(false)}
                                     style={styles.modalCloseButton}
@@ -611,36 +551,71 @@ export default function Repayment({ route }) {
                                 showsVerticalScrollIndicator={false}
                                 contentContainerStyle={styles.modalScrollContent}
                             >
-                                <Text style={styles.modalSubtitle}>{OutstandingBalancelable}: {appCurrency}{CommonFunction.formatamount(totalBill ?? 0)}</Text>
+                                <Text style={styles.modalSubtitle}>{appLabels?.outstandingBalanceModalLabel}: {appCurrency}{CommonFunction.formatamount(totalBill ?? 0)}</Text>
 
                                 <View style={styles.sliderContainer}>
                                     <View style={styles.customAmountContainer}>
-                                        <Text style={styles.customAmountLabel}>Enter amount to repay</Text>
+                                        <Text style={styles.customAmountLabel}>{appLabels.enterAmountFieldLabel}</Text>
                                         <View style={styles.customAmountInputWrapper}>
                                             <Text style={styles.customAmountPrefix}>{appCurrency}</Text>
-                                            <TextInput
-                                                style={styles.customAmountInput}
-                                                value={customAmount}
-                                                onChangeText={(text) => {
-                                                    const numericValue = parseFloat(text);
-
-                                                    if (text === '' || (!isNaN(numericValue) && numericValue <= totalBill)) {
-                                                        handleCustomAmountChange(text);
+                                            <Controller
+                                                control={control}
+                                                name="customAmount"
+                                                rules={{
+                                                    required: 'Amount is required',
+                                                    validate: {
+                                                        max: (value) => {
+                                                            let max = repaymentContext === 'single' ? currentItem?.advance_amount : totalBill;
+                                                            return parseFloat(value) <= max || `Max ${appCurrency}${max}`;
+                                                        },
+                                                        min: (value) => parseFloat(value) > 0 || 'Amount must be greater than 0',
+                                                        decimal: (value) => /^\d+(\.\d{1,2})?$/.test(value) || 'Max 2 decimal places'
                                                     }
-
                                                 }}
-                                                keyboardType="numeric"
-                                                placeholder="Enter amount"
-                                                placeholderTextColor={GREY_400}
-                                                maxLength={10}
+                                                render={({ field: { onChange, value } }) => (
+                                                    <TextInput
+                                                        style={styles.customAmountInput}
+                                                        value={value}
+                                                        onChangeText={(text) => {
+                                                            // Basic input sanitization: allow only numbers and one dot
+                                                            const sanitized = text.replace(/[^0-9.]/g, '');
+                                                            const parts = sanitized.split('.');
+                                                            if (parts.length > 2) return; // Prevent multiple dots
+                                                            if (parts[1] && parts[1].length > 2) return; // Limit decimals
+
+                                                            onChange(sanitized);
+                                                            setCustomAmount(sanitized);
+
+                                                            const numericValue = parseFloat(sanitized);
+                                                            if (!isNaN(numericValue)) {
+                                                                let max = repaymentContext === 'single' ? currentItem?.advance_amount : totalBill;
+                                                                const clamped = Math.min(Math.max(numericValue, 0), max);
+                                                                setSliderValue(clamped);
+                                                            } else {
+                                                                setSliderValue(0);
+                                                            }
+                                                        }}
+                                                        keyboardType="decimal-pad"
+                                                        placeholder="0.00"
+                                                        placeholderTextColor={GREY_400}
+                                                        maxLength={10}
+                                                        returnKeyType="done"
+                                                        onSubmitEditing={Keyboard.dismiss}
+                                                    />
+                                                )}
                                             />
                                         </View>
                                     </View>
+                                    {errors.customAmount && (
+                                        <Text style={styles.errorText}>{errors.customAmount.message}</Text>
+                                    )}
                                 </View>
 
                                 {pendingarreyData?.length > 0 && (
                                     <View style={styles.matchingAdvancesContainer}>
-                                        <Text style={styles.matchingAdvancesTitle}> Advances to be repaid ({pendingarreyData?.length}):</Text>
+                                        <Text style={styles.matchingAdvancesTitle}>
+                                            {appLabels.Advancestoberepaid} ({pendingarreyData?.length ?? 0}):
+                                        </Text>
                                         <View style={styles.matchingAdvancesScroll}>
                                             {pendingarreyData.map((item, index) => (
                                                 <View key={index} style={styles.compactOutstandingItem}>
@@ -678,41 +653,32 @@ export default function Repayment({ route }) {
                             <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                                 <TouchableOpacity
                                     style={[styles.cancelButton, { flex: 1 }]}
-                                    onPress={() => setShowRepayModal(false)}
+                                    onPress={() => {
+                                        setShowRepayModal(false);
+                                        handleFullRepayment();
+                                    }}
                                     activeOpacity={0.7}
                                 >
                                     <Text style={styles.cancelButtonText}>Cancel</Text>
                                 </TouchableOpacity>
-                                {
-                                    totalBill >= customAmount && 0 < customAmount ? <TouchableOpacity
-                                        style={[styles.confirmButton, { flex: 1 }]}
-                                        onPress={handleConfirmRepayment}
-                                        activeOpacity={0.8}
+                                <TouchableOpacity
+                                    style={[
+                                        styles.confirmButton,
+                                        { flex: 1, opacity: isValid ? 1 : 0.5 }
+                                    ]}
+                                    onPress={handleSubmit(handleConfirmRepayment)}
+                                    disabled={!isValid}
+                                    activeOpacity={0.8}
+                                >
+                                    <LinearGradient
+                                        colors={['#3F2B96', '#2633a7']}
+                                        style={styles.confirmGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
                                     >
-                                        <LinearGradient
-                                            colors={['#3F2B96', '#2633a7']}
-                                            style={styles.confirmGradient}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                        >
-                                            <Text style={styles.confirmButtonText}>Continue</Text>
-                                        </LinearGradient>
-                                    </TouchableOpacity> : <TouchableOpacity
-                                        style={[styles.confirmButton, { flex: 1 }]}
-                                        // onPress={handleConfirmRepayment}
-                                        activeOpacity={0.8}
-                                    >
-                                        <LinearGradient
-                                            colors={['#878496', '#797c99']}
-                                            style={styles.confirmGradient}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                        >
-                                            <Text style={styles.confirmButtonText}>Continue</Text>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-                                }
-
+                                        <Text style={styles.confirmButtonText}>Continue</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
                             </View>
                         </TouchableOpacity>
                     </KeyboardAvoidingView>
@@ -1588,5 +1554,12 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
+    },
+    errorText: {
+        color: DANGER,
+        fontSize: 12,
+        fontFamily: fontsFamily.mediumFont,
+        marginTop: 4,
+        marginLeft: 4,
     },
 });

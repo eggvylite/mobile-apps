@@ -57,7 +57,7 @@ const ViewGoal = ({ navigation, route }) => {
             stilltosave: '100',
             iconname: 'account-balance-wallet',
             iconfamily: 'MaterialIcons'
-    
+
         },
         {
             name: "Withdraw for Another Purpose",

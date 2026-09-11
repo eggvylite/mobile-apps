@@ -62,6 +62,7 @@ import { fetchScreenLabels } from '../../../redux/slices/applabelsSlice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchMarketplaceHandPickOffer } from '../../../redux/slices/merketplaceSlice';
 import appLog from '../../../constants/logger';
+import { fetchEwf } from '../../../redux/slices/socreMycashSlice';
 
 
 const Tab = createBottomTabNavigator();
@@ -121,6 +122,7 @@ export default function Main(props) {
     const { plandata, planeloading, planeerror } = useSelector((state) => state.chooseplan);
     const { goalhisdata } = useSelector((state) => state.goalhistrory);
     const { label } = useSelector((state) => state.labels);
+    const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
     // const [backPressCount, setBackPressCount] = useState(0);
     const insets = useSafeAreaInsets();
 
@@ -153,7 +155,7 @@ export default function Main(props) {
                 var firstdata = records[records.length - 1]
                 dispatch(updateFirstTransDate(firstdata?.transacted_at))
             }
-            enableMenu()
+            // enableMenu()
 
         };
 
@@ -313,6 +315,7 @@ export default function Main(props) {
         if (!cusDetails) {
             dispatch(fetchCustomer())
         }
+        dispatch(fetchEwf())
 
     }
 
@@ -439,7 +442,7 @@ export default function Main(props) {
         }
     };
 
-    if (0 < buttomnavigationbar?.length)
+    if (0 < buttomnavigationbar?.length && storedata)
         return (
             <View style={{ flex: 1 }}>
                 <Tab.Navigator
@@ -454,24 +457,23 @@ export default function Main(props) {
                         tabBarStyle: [
                             styles.bottomNav,
                             {
-                                display: 'flex',
+                                display: isMenu ? 'flex' : 'none',
                                 height: (isSmallDevice ? 60 : 70) + (Platform.OS === 'android' ? insets.bottom : 0),
                                 paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
                             },
                         ],
                         tabBarLabelStyle: styles.navText,
+
                     }}
                 >
                     {buttomnavigationbar?.map((item) => {
-                        if (
-                            item.id === '67f7a30fb2fd34460818bb9a' ||
-                            item.id === '68034215a37b714ea493f176'
-                        ) {
-                            return null;
-                        }
-
                         const route = routeMap[item.id];
                         if (!route) return null;
+
+                        // Instead of returning null, mark these as disabled
+                        const isDisabled =
+                            item.id === '67f7a30fb2fd34460818bb9a' ||
+                            item.id === '68034215a37b714ea493f176';
 
                         return (
                             <Tab.Screen
@@ -482,8 +484,33 @@ export default function Main(props) {
                                     popToTopOnBlur: true,
                                     tabBarLabel: item.name,
                                     tabBarIcon: ({ focused }) => (
-                                        <AnimatedTabIcon item={item} focused={focused} renderIcon={renderIcon} />
+                                        <AnimatedTabIcon
+                                            item={item}
+                                            focused={focused}
+                                            renderIcon={renderIcon}
+                                            disabled={isDisabled} // optional: for greyed-out styling
+                                        />
                                     ),
+                                    tabBarLabelStyle: [
+                                        styles.navText,
+                                        isDisabled && { color: '#aaa' }, // visually indicate disabled
+                                    ],
+                                    tabBarButton: isDisabled
+                                        ? (props) => (
+                                            <TouchableOpacity
+                                                {...props}
+                                                activeOpacity={1}
+                                                onPress={() => { }} // no-op, blocks tap
+                                            />
+                                        )
+                                        : undefined,
+                                }}
+                                listeners={{
+                                    tabPress: (e) => {
+                                        if (isDisabled) {
+                                            e.preventDefault(); // stop navigation
+                                        }
+                                    },
                                 }}
                             />
                         );

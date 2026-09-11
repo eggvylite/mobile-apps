@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
+  Platform,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
@@ -23,6 +24,7 @@ import ChoosePaymentProviderModal from './ChoosePaymentProviderModal';
 import GetAdvanceComponent from './components/GetAdvanceComponent';
 import PayBillComponent from './components/PayBillComponent';
 import { useDispatch, useSelector } from 'react-redux';
+import { useForm, Controller } from 'react-hook-form';
 import CommonFunction from '../../../../utill/CommonFunction';
 import { fetchadvanceActiveSubscription, fetchOutstanding } from '../../../../redux/slices/advenceSlice';
 import { useDashboardUtils } from '../../../../hook/useDashboardUtils';
@@ -41,6 +43,12 @@ import useAdvanceHooks from '../../../../hook/useAdvaceHook';
 import useGeneralLabelsHook from '../../../../hook/Labels/useGenerallablehoo';
 import { themeColors } from '../../../Common';
 
+
+export const toSafeNumber = (value, decimals = 2) => {
+  const num = Number(value);
+  if (isNaN(num)) return 0;
+  return Number(num.toFixed(decimals));
+};
 
 
 const YELLOW_DARK = themeColors?.primarColor;
@@ -96,6 +104,13 @@ export default function GetAdvance() {
   } = useGeneralLabelsHook()
 
 
+  const { control, setValue, handleSubmit, formState: { errors, isValid } } = useForm({
+    mode: 'onChange',
+    defaultValues: {
+      customAmount: '0'
+    }
+  });
+
   const { showPartialAmount, advanceAmountMinimumLimit, instantFundFee, showOprnManualRepaymentOption, advancePendingCount, getAdvanceLimitCount, pendingLast30DaysCount } =
     usegetAdvancepartialFlow(advanceAmount);
 
@@ -133,18 +148,19 @@ export default function GetAdvance() {
 
   };
 
+
+
   useEffect(() => {
     if (maxAdvanceAmount) {
-      setCustomAmount(maxAdvanceAmount)
+      setCustomAmount(maxAdvanceAmount.toString());
+      setValue('customAmount', maxAdvanceAmount.toString(), { shouldValidate: true });
     }
-  }, [maxAdvanceAmount])
-
-
+  }, [maxAdvanceAmount]);
 
   useEffect(() => {
-    setSliderValue(maxAdvanceAmount)
-    setAdvanceAmount(maxAdvanceAmount)
-  }, [maxAdvanceAmount])
+    setSliderValue(maxAdvanceAmount);
+    setAdvanceAmount(maxAdvanceAmount);
+  }, [maxAdvanceAmount]);
 
 
   const handleConfirmAdvance = () => {
@@ -172,19 +188,43 @@ export default function GetAdvance() {
   };
 
 
+  // const handleFullAmount = () => {
+  //   setSelectedAdvanceType('full');
+  //   setAdvanceAmount(maxAdvanceAmount);
+  //   setSliderValue(maxAdvanceAmount);
+  //   const amountStr = maxAdvanceAmount.toString();
+  //   setCustomAmount(amountStr);
+  //   setValue('customAmount', amountStr, { shouldValidate: true });
+  // };
+
+  // const handlePartialAmount = () => {
+  //   setSelectedAdvanceType('partial');
+  //   const value = sliderValue || advanceAmountMinimumLimit;
+  //   setAdvanceAmount(value);
+  //   setSliderValue(value);
+  //   const amountStr = value.toString();
+  //   setCustomAmount(amountStr);
+  //   setValue('customAmount', amountStr, { shouldValidate: true });
+  // };
+
   const handleFullAmount = () => {
     setSelectedAdvanceType('full');
-    setAdvanceAmount(maxAdvanceAmount);
-    setSliderValue(maxAdvanceAmount);
-    setCustomAmount(maxAdvanceAmount.toString());
+    const numericMax = toSafeNumber(maxAdvanceAmount); // e.g. 10.8888 -> 10.89
+    setAdvanceAmount(numericMax);
+    setSliderValue(numericMax);
+    const amountStr = numericMax.toString();
+    setCustomAmount(amountStr);
+    setValue('customAmount', amountStr, { shouldValidate: true });
   };
 
   const handlePartialAmount = () => {
     setSelectedAdvanceType('partial');
-    const value = Math.round(sliderValue) || advanceAmountMinimumLimit;
+    const value = toSafeNumber(sliderValue) || toSafeNumber(advanceAmountMinimumLimit);
     setAdvanceAmount(value);
     setSliderValue(value);
-    setCustomAmount(value.toString());
+    const amountStr = value.toString();
+    setCustomAmount(amountStr);
+    setValue('customAmount', amountStr, { shouldValidate: true });
   };
 
 
@@ -199,16 +239,18 @@ export default function GetAdvance() {
     if (!isNaN(numericValue) && numericValue >= 0) {
       const clampedValue = Math.min(Math.max(numericValue, advanceAmountMinimumLimit), maxAdvanceAmount);
       setCustomAmount(text);
-      setAdvanceAmount(clampedValue);
-      setSliderValue(clampedValue);
+      setAdvanceAmount(text);
+      setSliderValue(text);
     }
   };
 
   const handleSliderChange = (value) => {
-    const roundedValue = Math.round(value);
+    const roundedValue = value;
     setSliderValue(roundedValue);
     setAdvanceAmount(roundedValue);
-    setCustomAmount(roundedValue.toString());
+    const amountStr = roundedValue.toString();
+    setCustomAmount(amountStr);
+    setValue('customAmount', amountStr, { shouldValidate: true });
   };
 
   useEffect(() => {
@@ -305,6 +347,8 @@ export default function GetAdvance() {
     );
   };
 
+
+
   return (
     <WorkflowScreen
       settingKey={WORKFLOW_CONSTANT.ADVANCE}
@@ -336,7 +380,7 @@ export default function GetAdvance() {
               {
 
                 totalBill > 0 ? (
-                  <View>
+                  <View style={{ flex: 1 }} >
                     {renderOutstandingCard()}
                   </View>
                 ) : (
@@ -475,7 +519,7 @@ export default function GetAdvance() {
           onRequestClose={() => {
             Keyboard.dismiss();
             setShowAdvanceModal(false);
-            appLog.error('ente service')
+            handleFullAmount();
           }}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -585,7 +629,7 @@ export default function GetAdvance() {
                             {CommonFunction.formatamount(maxAdvanceAmount)}
                           </Text>
                         </View>
-
+                        {/*
                         <Slider
                           style={styles.slider}
                           minimumValue={advanceAmountMinimumLimit}
@@ -595,8 +639,18 @@ export default function GetAdvance() {
                           minimumTrackTintColor="#3F2B96"
                           maximumTrackTintColor="#D1D5DB"
                           thumbTintColor="#3F2B96"
-                        />
+                        /> */}
 
+                        <Slider
+                          style={styles.slider}
+                          minimumValue={toSafeNumber(advanceAmountMinimumLimit)}
+                          maximumValue={toSafeNumber(maxAdvanceAmount)}
+                          value={toSafeNumber(sliderValue)}
+                          onValueChange={(val) => handleSliderChange(toSafeNumber(val))}
+                          minimumTrackTintColor="#3F2B96"
+                          maximumTrackTintColor="#D1D5DB"
+                          thumbTintColor="#3F2B96"
+                        />
                         <View style={styles.sliderValueContainer}>
                           <Text style={styles.sliderValueText}>
                             {storedata?.currency}
@@ -615,35 +669,54 @@ export default function GetAdvance() {
                               {storedata?.currency}
                             </Text>
 
-
-                            <TextInput
-                              style={styles.customAmountInput}
-                              value={customAmount}
-                              // onChangeText={handleCustomAmountChange}
-                              onChangeText={(text) => {
-                                if (text === '') {
-                                  handleCustomAmountChange(text);
-                                  return;
-                                }
-
-                                const numericValue = parseFloat(text);
-
-                                if (
-                                  !isNaN(numericValue) &&
-                                  numericValue <= maxAdvanceAmount
-
-                                ) {
-                                  handleCustomAmountChange(text);
+                            <Controller
+                              control={control}
+                              name="customAmount"
+                              rules={{
+                                required: 'Amount is required',
+                                validate: {
+                                  max: (value) => parseFloat(value) <= maxAdvanceAmount || `Max Advance Amount ${storedata?.currency}${maxAdvanceAmount}`,
+                                  min: (value) => parseFloat(value) >= advanceAmountMinimumLimit || `Min Advance Amount ${storedata?.currency}${advanceAmountMinimumLimit}`,
+                                  decimal: (value) => /^\d+(\.\d{1,2})?$/.test(value) || 'Max 2 decimal places'
                                 }
                               }}
-                              keyboardType="numeric"
-                              placeholder="Enter amount"
-                              placeholderTextColor="#94A3B8"
-                              maxLength={6}
-                              returnKeyType="done"
-                              onSubmitEditing={Keyboard.dismiss}
+                              render={({ field: { onChange, value } }) => (
+                                <TextInput
+                                  style={styles.customAmountInput}
+                                  value={value}
+                                  onChangeText={(text) => {
+                                    // Basic input sanitization: allow only numbers and one dot
+                                    const sanitized = text.replace(/[^0-9.]/g, '');
+                                    const parts = sanitized.split('.');
+                                    if (parts.length > 2) return; // Prevent multiple dots
+                                    if (parts[1] && parts[1].length > 2) return; // Limit decimals
+
+                                    onChange(sanitized);
+                                    setCustomAmount(sanitized);
+
+                                    const numericValue = parseFloat(sanitized);
+                                    if (!isNaN(numericValue)) {
+                                      const clamped = Math.min(Math.max(numericValue, 0), maxAdvanceAmount);
+                                      setAdvanceAmount(clamped);
+                                      setSliderValue(clamped);
+                                    } else {
+                                      setAdvanceAmount(0);
+                                      setSliderValue(0);
+                                    }
+                                  }}
+                                  keyboardType="decimal-pad"
+                                  placeholder="0.00"
+                                  placeholderTextColor="#94A3B8"
+                                  maxLength={10}
+                                  returnKeyType="done"
+                                  onSubmitEditing={Keyboard.dismiss}
+                                />
+                              )}
                             />
                           </View>
+                          {errors.customAmount && (
+                            <Text style={styles.errorText}>{errors.customAmount.message}</Text>
+                          )}
                         </View>
 
                         {selectedOption === 'Instant_funding' && (
@@ -685,64 +758,35 @@ export default function GetAdvance() {
                     )}
 
 
-                    {
-                      advanceAmountMinimumLimit > customAmount ? <TouchableOpacity
-                        style={[
-                          styles.confirmButton,
-                          {
-                            opacity: 0.5,
-                          },
-                        ]}
-
-                        disabled={maxAdvanceAmount < customAmount || customAmount < advanceAmountMinimumLimit}
-                        activeOpacity={0.8}
+                    <TouchableOpacity
+                      style={[
+                        styles.confirmButton,
+                        {
+                          opacity: isValid ? 1 : 0.5,
+                        },
+                      ]}
+                      onPress={handleSubmit(handleConfirmAdvance)}
+                      disabled={!isValid}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={['#3F2B96', '#2633a7']}
+                        style={styles.confirmGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
                       >
-                        <LinearGradient
-                          colors={['#3F2B96', '#2633a7']}
-                          style={styles.confirmGradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                        >
-                          <Text style={styles.confirmButtonText}>
-                            Continue
-                          </Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                        : <TouchableOpacity
-                          style={[
-                            styles.confirmButton,
-                            {
-                              opacity:
-                                (maxAdvanceAmount >= customAmount) ? 1 : 0.5,
-                            },
-                          ]}
-                          onPress={() => {
-                            Keyboard.dismiss();
-                            handleConfirmAdvance();
-                          }}
-                          disabled={maxAdvanceAmount < customAmount}
-                          activeOpacity={0.8}
-                        >
-                          <LinearGradient
-                            colors={['#3F2B96', '#2633a7']}
-                            style={styles.confirmGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                          >
-                            <Text style={styles.confirmButtonText}>
-                              Continue
-                            </Text>
-                          </LinearGradient>
-                        </TouchableOpacity>
-
-                    }
+                        <Text style={styles.confirmButtonText}>
+                          Continue
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.cancelButton}
                       onPress={() => {
                         Keyboard.dismiss();
                         setShowAdvanceModal(false);
-                        setSelectedAdvanceType('full')
+                        handleFullAmount();
                       }}
                       activeOpacity={0.7}
                     >
@@ -1245,7 +1289,13 @@ const styles = StyleSheet.create({
   },
   fundingList: {
     flex: 1,
-
     borderRadius: 8,
+  },
+  errorText: {
+    color: '#e65555',
+    fontSize: 12,
+    fontFamily: fontsFamily.mediumFont,
+    marginTop: 4,
+    marginLeft: 4,
   },
 });

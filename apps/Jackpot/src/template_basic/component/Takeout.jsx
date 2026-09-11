@@ -14,11 +14,14 @@ import CommonFunction from '../../utill/CommonFunction';
 import { contriputeGoal, withDrawgoal } from '../../constants/Goalapi';
 import styles from '../styles/goalStyles';
 import Fontisto from 'react-native-vector-icons/Fontisto'
+import appLog from '../../constants/logger';
+import useGoalLabelsHook from '../../hook/useGoalLabelsHook';
 
 const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
     const [record, setRecord] = useState('')
     const [loading, setLoading] = useState(false)
     const { storedata } = useSelector((state) => state.auth);
+    const appLabels = useGoalLabelsHook();
     const [bankaccount, setBankaccount] = useState([])
     const { width, height } = Dimensions.get('window')
     const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
@@ -27,13 +30,13 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
 
     const withdrawType = [
         {
-            name: 'Spend a Custom Amount',
-            des: 'Spend from your available balance. The total amount saved will not be affected.',
+            name: appLabels.SpendCustomAmountTitle ?? 'Spend a Custom Amount',
+            des: appLabels.SpendCustomAmountDescription ?? 'Spend from your available balance. The total amount saved will not be affected.',
             type: 'spend',
         },
         {
-            name: 'Withdraw for Another Purpose',
-            des: 'Your overall goal progress and amount saved will be reduced.',
+            name: appLabels.withdrawCustomAmountTitle ?? 'Withdraw for Another Purpose',
+            des: appLabels.withdrawCustomAmountDescription ?? 'Your overall goal progress and amount saved will be reduced.',
             type: 'withdraw',
         },
     ];
@@ -106,10 +109,6 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
 
     }
 
-    const formatCurrency = (amount) => {
-        return `${storedata?.currency}${CommonFunction.formatamount(amount)}`
-
-    }
 
     const handleClose = () => {
         onClose();
@@ -128,7 +127,7 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
                         <TouchableOpacity onPress={handleClose}>
                             <Icon name="x" size={24} color="#333" />
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Withdraw from goal</Text>
+                        <Text style={styles.modalTitle}>{appLabels.withdrawModalHeader}</Text>
                         <View style={{ width: 24 }} />
                     </View>
 
@@ -136,7 +135,7 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
                         <View style={styles.modalBody}>
                             <Text style={styles.modalGoalName}>{selectedGoal?.name}</Text>
 
-
+                            <View style={{marginStart:10,marginEnd:10}}>
                             <View style={styles.modalAmountContainer}>
                                 <Text style={styles.modalCurrencySymbol}>{storedata?.currency}</Text>
                                 <TextInput
@@ -177,7 +176,7 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
 
                                             maxVal: (v) => {
                                                 const input = Number(v);
-                                                const remaining = selectedGoal?.remaining;
+                                                const remaining = selectedGoal?.savedamount;
 
                                                 return (
                                                     input <= remaining ||
@@ -192,16 +191,18 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
 
                             </View>
                             {errors.wdamount && <Text style={styles.errortext}>{errors.wdamount.message}</Text>}
-
-
+                            </View>
 
 
 
 
                             <View
-                                style={[styles.accountSelectorButton,{marginTop:20,marginBottom:20}]}
+                                style={[styles.accountSelectorButton, { marginTop: 20, marginBottom: 20 }]}
                                 activeOpacity={0.8}
                             >
+                                <Text style={[styles.modalGoalName, { marginBottom: 10, marginStart:15, textAlign:'left',top:10 }]}>{appLabels.withdrawFromAccountLabel}</Text>
+
+
                                 <LinearGradient
                                     colors={['#F8FAFC', '#F1F5F9']}
                                     style={styles.accountSelectorGradient}
@@ -217,8 +218,10 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
                                                 color={'#64748B'}
                                             />
                                         </View>
+
+
                                         <View style={styles.accountTextWrap}>
-                                            <Text style={styles.accountSelectorLabel}>From Account</Text>
+                                            {/* <Text style={styles.accountSelectorLabel}>{appLabels.withdrawFromAccountLabel}</Text> */}
 
                                             <Dropdown
                                                 mode='default'
@@ -232,22 +235,33 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
                                                 labelField="label"
                                                 valueField="value"
                                                 placeholder="Select an account"
-                                                {...register("bankaccount", {
-                                                    required: 'Account is required.',
-                                                    validate: (val) => {
-                                                        const account = bankaccount?.find(
-                                                            (item) => item?.value === val
-                                                        );
+                                                {...register('bankaccount', {
+                                                        required: 'Account is required.',
+                                                        validate: (val) => {
+                                                            const account = bankaccount?.find(
+                                                                (item) => item?.value === val
+                                                            );
 
-                                                        if (!account) return "Invalid bank account";
+                                                            if (!account) {
+                                                                return 'Invalid bank account';
+                                                            }
 
-                                                        if (account.balance <= 0)
-                                                            return "Your account balance is low";
+                                                            const numericBalance = Number(
+                                                                String(account.balance ?? 0).replace(/[$,]/g, '')
+                                                            );
 
-                                                        if (Number(record?.amount) > Number(account.balance))
-                                                            return "Insufficient balance";
-                                                        return true;
-                                                    }
+                                                            const amount = Number(record?.amount ?? 0);
+
+                                                            if (numericBalance <= 0) {
+                                                                return 'Your account balance is low';
+                                                            }
+
+                                                            if (amount > numericBalance) {
+                                                                return 'Insufficient balance';
+                                                            }
+
+                                                            return true;
+                                                        },
                                                 })}
                                                 value={record?.bankaccount}
                                                 onChange={item => {
@@ -271,13 +285,13 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
 
 
                             <View style={{ marginStart: 10, marginBottom: 24, bottom: 30 }}>
-                                <Text style={[styles.modalGoalName, { marginBottom: 10, textAlign: 'left' }]}>How do you want to use this money?</Text>
+                                <Text style={[styles.modalGoalName, { marginBottom: 10, textAlign: 'left' }]}>{appLabels.withdrawUsageSectionLabel}</Text>
                                 {
                                     withdrawType.map((rec, key) => {
                                         return (
                                             <Pressable style={{ flexDirection: 'row', marginTop: 20 }} key={key} onPress={() => {
                                                 if (rec.type === 'spend') {
-                                                    setRecord({...record,type:rec.type, spent:selectedGoal?.spent})
+                                                    setRecord({ ...record, type: rec.type, spent: selectedGoal?.spent })
                                                 } else {
                                                     handleInputChange('type', rec.type)
                                                 }
@@ -290,7 +304,7 @@ const Takeout = ({ visible, onClose, selectedGoal, onSave }) => {
                                                     <Text style={[styles.modalGoalName, { fontSize: getFontSize(16), marginBottom: 0, textAlign: 'left' }]}>
                                                         {rec?.name}
                                                     </Text>
-                                                    <Text style={[styles.modalGoalName, { fontSize: getFontSize(14), marginBottom: 0, fontWeight: 'normal', marginTop: 5, lineHeight: 22, textAlign: 'left' }]}>
+                                                    <Text style={[styles.modalGoalName, { fontSize: getFontSize(13), marginBottom: 0, fontFamily: fontsFamily.regularFont, fontWeight: 'normal', marginTop: 5, lineHeight: 22, textAlign: 'left' }]}>
                                                         {rec?.des}
                                                     </Text>
                                                 </View>

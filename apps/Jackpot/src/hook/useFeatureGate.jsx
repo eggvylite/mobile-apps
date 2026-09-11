@@ -28,6 +28,8 @@ export default function useFeatureFlow(settingKey) {
 
     const hasWorkflowId = Boolean(settingKey?.ID);
     const workflow = hasWorkflowId ? workflowCms?.[settingKey.ID] : undefined;
+
+
     const activeFeature = !settingKey?.SUBID
         ? true
         : Boolean(subscription?.plan_features?.includes(settingKey.SUBID));

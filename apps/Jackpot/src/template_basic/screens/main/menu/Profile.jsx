@@ -22,6 +22,7 @@ import { Dropdown } from "react-native-element-dropdown";
 import CloudImage from '../../../../utill/CloudImage';
 import ImagePicker from "react-native-image-crop-picker";
 import { useDispatch } from 'react-redux';
+import useSubscriptionLabelsHook from '../../../../hook/Labels/useSubscriptionlabelhook';
 
 
 const { width } = Dimensions.get('window');
@@ -40,6 +41,8 @@ export default function Profile() {
   const slideAnim = useRef(new Animated.Value(100)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { control, handleSubmit, reset, register, formState: { errors } } = useForm({ mode: 'onBlur', });
+   const { subscription, allsubscription, subloading, suberror } = useSelector((state) => state.subscription);
+    const { subscription_details, cancelsubscription } = useSubscriptionLabelsHook()
   const [state, setState] = useState([])
   const [city, setCity] = useState([])
   const [zip, setzip] = useState([])
@@ -746,6 +749,7 @@ export default function Profile() {
   console.log(cusDetails)
 }
 
+
             <View style={styles.statsContainer}>
               <View style={styles.statCard}>
                 <View style={[styles.statIconContainer, { backgroundColor: '#FEF3F2' }]}>
@@ -760,7 +764,7 @@ export default function Profile() {
                   <Feather name="shield" size={20} color="#10B981" />
                 </View>
                 <Text style={styles.statValue}>Account</Text>
-                <Text style={styles.statLabel}>Verified</Text>
+                <Text style={styles.statLabel}>{cusDetails?.defualt_bank_name ? CommonFunction.captialize(cusDetails?.defualt_bank_name?.toLowerCase()) : 'N/A' }</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCard}>
@@ -768,7 +772,7 @@ export default function Profile() {
                   <Feather name="star" size={20} color="#F59E0B" />
                 </View>
                 <Text style={styles.statValue}>Status</Text>
-                <Text style={styles.statLabel}>{cusDetails?.subscription === 'Yes' ? 'Subscribed': 'Unsubscribed'}</Text>
+                <Text style={[styles.statLabel,{textAlign:'center'}]} numberOfLines={1}>{cusDetails?.subscription === 'Yes' ? subscription?.status : '-'}</Text>
               </View>
             </View>
 

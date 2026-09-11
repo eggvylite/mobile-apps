@@ -29,6 +29,7 @@ import ConnectBank from './ConnectBank';
 import ConnectBankWidgetScreen from '../../../widgets/ConnectBankWidgetScreen';
 import ConnectBankCard from '../../../widgets/ConnectBankCard';
 import AppLoader from '../../../widgets/AppLoader';
+import appLog from '../../../../constants/logger';
 
 const { height, width } = Dimensions.get('window')
 const Transactionform = ({ navigation, route }) => {
@@ -65,22 +66,21 @@ const Transactionform = ({ navigation, route }) => {
 
   const getDetails = () => {
     var data = {}
-    if (route?.params?.data?.description) {
-      console.log('test 1')
+    if (route?.params?.data) {
+      console.log('test 1', route.params.data)
       const dataparams = route?.params?.data
-      var category_id = dataparams?.category_id ? dataparams?.category_id : dataparams?.category_guid ? dataparams?.category_guid : ''
       data = {
         ...dataparams,
-        date: dataparams?.transacted_at || new Date(),
+        date: dataparams?.transacted_at || dataparams?.date || new Date(),
         amount: String(dataparams?.amount || ''),
-        institution_code: dataparams?.accountname,
+        institution_code: dataparams?.accountname || '',
         customer_id: storedata.id,
-        transaction_source: 'manual'
+        transaction_source: 'manual',
+        affectspending: dataparams?.affectspending || 'Yes',
+        affectreports: dataparams?.affectreports || 'Yes',
+        type: dataparams?.type || 'DEBIT',
       }
-
-
     } else {
-
       data = {
         affectspending: 'Yes',
         affectreports: 'Yes',
@@ -90,14 +90,8 @@ const Transactionform = ({ navigation, route }) => {
         customer_id: storedata.id,
         transaction_source: 'manual'
       }
-
     }
-
-    console.log(route?.params?.data)
-
     setTransactionForm(data)
-
-
   }
 
 
@@ -147,13 +141,8 @@ const Transactionform = ({ navigation, route }) => {
 
   const submit = async () => {
     setIsSubmitting(true)
-
-
-
     try {
-      setIsSubmitting(true);
-
-      const account = await createTransaction(transactionForm, route?.params?.screen, dispatch);
+      const response = await createTransaction(transactionForm, route?.params?.screen, dispatch);
 
       if (route?.params?.screen !== 'budget') {
         const data = {
@@ -165,6 +154,7 @@ const Transactionform = ({ navigation, route }) => {
           transaction_source: transactionForm?.transaction_source
         }
 
+        appLog.error(data)
 
         navigation.replace('Statement', data)
       } else if (route?.params?.screen === 'budget') {
@@ -172,48 +162,16 @@ const Transactionform = ({ navigation, route }) => {
       } else {
         navigation.goBack()
       }
-
-
-
-      // Alert.alert(
-      //   'Success',
-      //   account.data.message,
-      //   [
-      //     {
-      //       text: 'OK',
-      //       onPress: () => {
-      //         if (route?.params?.screen !== 'budget') {
-      //            const data = {
-      //           bankaccount: transactionForm?.bankaccount,
-      //           account_guid: transactionForm.account_guid,
-      //           account_id: transactionForm.account_id,
-      //           type: transactionForm.type,
-      //           accountname: transactionForm?.institution_code,
-      //           transaction_source: transactionForm?.transaction_source
-      //       }
-
-      //           navigation.replace('Statement', data)
-      //         } else if (route?.params?.screen === 'budget') {
-      //           navigation.replace('Budget')
-      //         } else {
-      //           navigation.goBack()
-      //         }
-
-      //       },
-      //     },
-      //   ]
-      // );
     } catch (error) {
       console.log(error);
 
       Alert.alert(
         'Error',
-        error?.response?.data?.message
+        error?.response?.data?.message || 'Something went wrong'
       );
     } finally {
       setIsSubmitting(false);
     }
-
   }
 
   const displayDate = (date) => {
@@ -381,6 +339,7 @@ const Transactionform = ({ navigation, route }) => {
                       style={styles.selectField}
                       placeholderStyle={{ color: 'gray' }}
                       placeholderTextColor={"#000"}
+                      disable={route?.params?.data}
                       selectedTextStyle={styles.selectFieldText}
                       search={true}
                       itemTextStyle={styles.selectFieldText}
@@ -398,7 +357,7 @@ const Transactionform = ({ navigation, route }) => {
                       {...register("bankaccount", { required: content.fieldrequire })}
                       value={transactionForm?.bankaccount}
                       onChange={item => {
-                        setTransactionForm({ ...transactionForm, bankaccount: item.bankaccount, account_guid: item.account_guid, account_id: item.account_id })
+                        setTransactionForm({ ...transactionForm, bankaccount: item.bankaccount, account_guid: item.account_guid, account_id: item.account_id, institution_code: item.institution_code })
                       }}
                     />
                     {errors.bankaccount && (

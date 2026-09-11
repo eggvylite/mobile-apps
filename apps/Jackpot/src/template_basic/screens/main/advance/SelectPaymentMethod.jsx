@@ -30,6 +30,7 @@ import { resetTransaction } from '../../../../redux/slices/transactionSlice';
 import { resetAdvTransaction } from '../../../../redux/slices/advanceTransSlice';
 import { fetchadvanceActiveSubscription, fetchOutstanding } from '../../../../redux/slices/advenceSlice';
 import appLog from '../../../../constants/logger';
+import useReyPaymentLabelsHook from '../../../../hook/Labels/useRepaymentLableHook';
 
 const { width, height } = Dimensions.get('window');
 
@@ -55,6 +56,7 @@ export default function SelectPaymentMethod({ route }) {
   const [selectedMethod, setSelectedMethod] = useState('');
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const appLabels = useReyPaymentLabelsHook()
 
 
 
@@ -311,7 +313,7 @@ export default function SelectPaymentMethod({ route }) {
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
-        title="Select Payment"
+        title={appLabels.selectPaymentScreenTitle}
         showBack={true}
         onBackPress={() => navigation.goBack()}
         showAdvance={false}
@@ -329,14 +331,14 @@ export default function SelectPaymentMethod({ route }) {
               <Feather name="check-circle" size={16} color="#10B981" />
             </View>
             <Text style={styles.providerInfoText}>
-              Paying through: <Text style={styles.providerInfoHighlight}>{providerDisplayName}</Text>
+              {appLabels.payingThroughBannerLabel} <Text style={styles.providerInfoHighlight}>{providerDisplayName}</Text>
             </Text>
           </View>
         )}
 
 
         <View style={styles.cardContainer}>
-          <Text style={styles.sectionLabel}>Selected Payment Method</Text>
+          <Text style={styles.sectionLabel}>{appLabels.selectedPaymentMethodSectionLabel}</Text>
           <View style={{ height: 150 }}>
             <LinearGradient
               colors={cardColors}
@@ -362,11 +364,11 @@ export default function SelectPaymentMethod({ route }) {
 
               <View style={styles.cardFooter}>
                 <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.cardLabel}>Card Holder</Text>
+                  <Text style={styles.cardLabel}>{appLabels.cardHolderPreviewLabel}</Text>
                   <Text style={styles.cardValue}>{selectedCard?.name || ''}</Text>
                 </View>
                 <View style={{ marginRight: 10 }}>
-                  <Text style={styles.cardLabel}>Expires</Text>
+                  <Text style={styles.cardLabel}>{appLabels.cardExpiresPreviewLabel}</Text>
                   <Text style={styles.cardValue}>
                     {selectedCard?.ExpMonth && selectedCard?.ExpYear ? `${selectedCard.ExpMonth}/${selectedCard.ExpYear}` : 'MM/YY'}
                   </Text>
@@ -375,7 +377,7 @@ export default function SelectPaymentMethod({ route }) {
 
               {selectedCard?.default?.toLowerCase() === 'yes' && (
                 <View style={styles.cardBadge}>
-                  <Text style={styles.cardBadgeText}>Default</Text>
+                  <Text style={styles.cardBadgeText}>{appLabels.cardDefaultBadgeLabel}</Text>
                 </View>
               )}
             </LinearGradient>
@@ -385,11 +387,11 @@ export default function SelectPaymentMethod({ route }) {
 
         <View style={styles.paymentSummary}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Provider</Text>
+            <Text style={styles.summaryLabel}>{appLabels.providerInfoRowLabel}</Text>
             <Text style={styles.summaryValue}>{providerDisplayName || 'Not selected'}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Amount</Text>
+            <Text style={styles.summaryLabel}>{appLabels.amountInfoRowLabel}</Text>
             <Text style={styles.summaryValue}>
               {storedata?.currency}{CommonFunction.formatamount(route.params?.advance_amount || route.params?.totalBill || activeSub?.plan_cash_upto)}
             </Text>
@@ -449,7 +451,7 @@ export default function SelectPaymentMethod({ route }) {
 
 
 
-        <Text style={styles.sectionTitle}>Other Payment Methods</Text>
+        <Text style={styles.sectionTitle}>{appLabels.otherPaymentMethodsSectionHeader}</Text>
 
         {paymentMethods && paymentMethods.map((method) => {
           const isSelected = selectedMethod === method.pm_id;
@@ -483,7 +485,7 @@ export default function SelectPaymentMethod({ route }) {
                 {method.default?.toLowerCase() === 'yes' && (
                   <View style={styles.defaultBadge}>
                     <Feather name="check" size={10} color="#10B981" />
-                    <Text style={styles.defaultText}>Default</Text>
+                    <Text style={styles.defaultText}>{appLabels?.paymentListItemDefaultBadgeLabel}</Text>
                   </View>
                 )}
                 <View style={[styles.methodRadio, isSelected && styles.methodRadioActive]}>
@@ -501,7 +503,7 @@ export default function SelectPaymentMethod({ route }) {
           activeOpacity={0.7}
         >
           <Feather name="plus-circle" size={20} color="#3c3cd6" />
-          <Text style={styles.addCardText}>Add New Card</Text>
+          <Text style={styles.addCardText}>{appLabels.addNewCardCtaLabel}</Text>
         </TouchableOpacity>
 
         {/* Confirm Button */}
@@ -518,7 +520,7 @@ export default function SelectPaymentMethod({ route }) {
             end={{ x: 1, y: 0 }}
           >
             <Text style={styles.confirmText}>
-              {isSubmitting ? 'Processing...' : (route.params?.fromAdvance ? 'Get Now' : 'Pay Now')}
+              {isSubmitting ? 'Processing...' : (route.params?.fromAdvance ? 'Get Now' : appLabels.payNowCtaLabel)}
             </Text>
             {!isSubmitting && <Feather name="arrow-right" size={20} color="#FFFFFF" />}
           </LinearGradient>
@@ -557,7 +559,7 @@ export default function SelectPaymentMethod({ route }) {
             ]}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add New Card</Text>
+              <Text style={styles.modalTitle}>{appLabels.addNewCardModalHeader}</Text>
               <TouchableOpacity onPress={closeAddCardModal} style={styles.modalClose}>
                 <Feather name="x" size={24} color="#64748B" />
               </TouchableOpacity>
@@ -591,13 +593,13 @@ export default function SelectPaymentMethod({ route }) {
 
                     <View style={styles.previewCardFooter}>
                       <View>
-                        <Text style={styles.previewCardLabel}>Card Holder</Text>
+                        <Text style={styles.previewCardLabel}>{appLabels.addCardPreviewHolderLabel}</Text>
                         <Text style={styles.previewCardValue}>
                           {watchAllFields.cardHolder?.toUpperCase() || 'CARDHOLDER NAME'}
                         </Text>
                       </View>
                       <View>
-                        <Text style={styles.previewCardLabel}>Expires</Text>
+                        <Text style={styles.previewCardLabel}>{appLabels.addCardPreviewExpiresLabel}</Text>
                         <Text style={styles.previewCardValue}>
                           {watchAllFields.expiryDate || 'MM/YY'}
                         </Text>
@@ -612,7 +614,7 @@ export default function SelectPaymentMethod({ route }) {
               {/* Form Fields */}
               <View style={styles.formContainer}>
                 <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Card Number</Text>
+                  <Text style={styles.formLabel}>{appLabels.cardNumberFieldLabel}</Text>
                   <Controller
                     control={control}
                     name="cardNumber"
@@ -643,7 +645,7 @@ export default function SelectPaymentMethod({ route }) {
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Cardholder Name</Text>
+                  <Text style={styles.formLabel}>{appLabels.cardholderNameFieldLabel}</Text>
                   <Controller
                     control={control}
                     name="cardHolder"
@@ -668,7 +670,7 @@ export default function SelectPaymentMethod({ route }) {
 
                 <View style={styles.formRow}>
                   <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-                    <Text style={styles.formLabel}>Expiry Date</Text>
+                    <Text style={styles.formLabel}>{appLabels.expiryDateFieldLabel}</Text>
                     <Controller
                       control={control}
                       name="expiryDate"
@@ -696,7 +698,7 @@ export default function SelectPaymentMethod({ route }) {
                   </View>
 
                   <View style={[styles.formGroup, { flex: 1 }]}>
-                    <Text style={styles.formLabel}>CVV</Text>
+                    <Text style={styles.formLabel}>{appLabels.cvvFieldLabel}</Text>
                     <Controller
                       control={control}
                       name="cvv"
@@ -740,7 +742,7 @@ export default function SelectPaymentMethod({ route }) {
                     end={{ x: 1, y: 0 }}
                   >
                     <Text style={styles.addCardSubmitText}>
-                      {isSubmitting ? 'Adding...' : 'Add Card'}
+                      {isSubmitting ? 'Adding...' : appLabels.addCardCtaLabel}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>

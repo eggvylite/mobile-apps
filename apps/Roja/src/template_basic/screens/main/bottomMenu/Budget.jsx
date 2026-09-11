@@ -24,6 +24,7 @@ import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
 import BudgetSkeleton from '../../../component/BudgetSkeleton.jsx';
 import WorkflowScreen from '../../../widgets/WorkflowScreen.jsx';
 import { useIsFocused } from '@react-navigation/native';
+import useBudgetLablehook from '../../../../hook/Labels/useBudgetLablehook.jsx';
 
 
 const Budget = ({ navigation, route }) => {
@@ -56,6 +57,7 @@ const Budget = ({ navigation, route }) => {
   const [isLoading, setIsloading] = useState(false)
   const [chgRec, setChgrec] = useState('')
   const isFocused = useIsFocused()
+   const { budget } = useBudgetLablehook()
 
   const colors = ['#0A84FF', '#FF2D55', '#34C759', '#FF9F0A', '#F97316']
 
@@ -222,7 +224,7 @@ const Budget = ({ navigation, route }) => {
         type: "group"
       }
 
-      
+
       try {
         const res = await createbudgetgroup(payload)
         const mergedata = {
@@ -516,7 +518,7 @@ const Budget = ({ navigation, route }) => {
                   style={styles.topAddButton}
                   onPress={handleAddTransaction}>
                   <Icon name="plus-circle" size={16} color={themeColors?.primarColor} />
-                  <Text style={styles.topAddButtonText}>Add Transaction</Text>
+                  <Text style={styles.topAddButtonText}>{budget?.addtransaction}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -528,6 +530,7 @@ const Budget = ({ navigation, route }) => {
                 <Pressable onPress={() => {
                   setShowAddDropdown(false)
                   setShowAddGroupModal(false)
+                  setShowGroupMenu(false)
                 }}>
 
                   <LinearGradient
@@ -536,18 +539,18 @@ const Budget = ({ navigation, route }) => {
                     end={{ x: 1, y: 0 }}
                     style={styles.summaryCard}>
                     <View style={styles.summaryHeader}>
-                      <Text style={styles.summaryTitle}>Monthly Summary</Text>
+                      <Text style={styles.summaryTitle}>{budget.monthlysummary}</Text>
                       <TouchableOpacity
                         onPress={handleGlobalSetBudget}
                         style={styles.addBudgetButton}>
                         <Icon name="plus" size={16} color="#FFFFFF" />
-                        <Text style={styles.addBudgetButtonText}>Set Budget</Text>
+                        <Text style={styles.addBudgetButtonText}>{budget.setbudget}</Text>
                       </TouchableOpacity>
                     </View>
 
                     <View style={styles.summaryStats}>
                       <View style={styles.summaryStat}>
-                        <Text style={styles.summaryStatLabel}>Planned Budget</Text>
+                        <Text style={styles.summaryStatLabel}>{budget?.overallplannedbudget}</Text>
                         <Text style={styles.summaryStatValue}>
                           {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthbudget || 0)}
                         </Text>
@@ -556,7 +559,7 @@ const Budget = ({ navigation, route }) => {
                       <View style={styles.summaryStatDivider} />
 
                       <View style={styles.summaryStat}>
-                        <Text style={styles.summaryStatLabel}>Actual Spending</Text>
+                        <Text style={styles.summaryStatLabel}>{budget?.overallactualspend}</Text>
                         <Text style={[styles.summaryStatValue, styles.spentValue]}>
                           {storedata?.currency}{CommonFunction.formatamount(groupDateils?.monthspend || 0)}
                         </Text>
@@ -565,7 +568,7 @@ const Budget = ({ navigation, route }) => {
                       <View style={styles.summaryStatDivider} />
 
                       <View style={styles.summaryStat}>
-                        <Text style={styles.summaryStatLabel}>Left to Spend</Text>
+                        <Text style={styles.summaryStatLabel}>{budget?.overallleftospend}</Text>
                         <View>
                           {
                             groupDateils?.monthbalance >= 0 ?
@@ -600,7 +603,7 @@ const Budget = ({ navigation, route }) => {
                       {groupDateils?.monthbudget > 0 && (
                         <View style={styles.overallProgressContainer}>
                           <View style={styles.progressHeader}>
-                            <Text style={styles.summaryProgressLabel}>Overall Progress</Text>
+                            <Text style={styles.summaryProgressLabel}>{budget?.overallprogress}</Text>
                             <Text style={styles.summaryProgressPercentage}>
                               {Math.min(Math.round((groupDateils?.monthspend / groupDateils?.monthbudget) * 100), 100)}%
                             </Text>
@@ -628,7 +631,7 @@ const Budget = ({ navigation, route }) => {
                               <View style={styles.overBudgetBadge}>
                                 <Icon name="alert-triangle" size={10} color="#DC2626" />
                                 <Text style={styles.overBudgetText}>
-                                  Over by {storedata?.currency} {CommonFunction.formatamount(groupDateils?.monthbudget - groupDateils?.monthspend)}
+                                  Over by {0 < (groupDateils?.monthbudget - groupDateils?.monthspend) ? '':'-'} {storedata?.currency}{CommonFunction.formatamount(Math.abs(groupDateils?.monthbudget - groupDateils?.monthspend))}
                                 </Text>
                               </View>
                             )}
@@ -651,14 +654,14 @@ const Budget = ({ navigation, route }) => {
                     }>
 
                     <View style={styles.categoriesHeader}>
-                      <Text style={styles.categoriesTitle}>Categories</Text>
+                      <Text style={styles.categoriesTitle}>{budget?.categories}</Text>
                       <View style={styles.addButtonContainer}>
                         <TouchableOpacity
                           onPress={() => setShowAddDropdown(!showAddDropdown)}>
                           <LinearGradient
                             colors={themeColors?.gradientColor} style={{ flexDirection: 'row', width: 100, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 }}>
                             <Icon name="plus" size={18} color="#FFFFFF" />
-                            <Text style={styles.addMainButtonText}>Add</Text>
+                            <Text style={styles.addMainButtonText}>{budget?.add}</Text>
                           </LinearGradient>
 
                         </TouchableOpacity>
@@ -674,14 +677,14 @@ const Budget = ({ navigation, route }) => {
                                 setShowAddGroupModal(true);
                               }}>
                               <Icon name="grid" size={18} color="#3F2B96" />
-                              <Text style={styles.dropdownItemText}>Add Group</Text>
+                              <Text style={styles.dropdownItemText}>{budget?.addgrp}</Text>
                             </TouchableOpacity>
                             <View style={styles.dropdownDivider} />
                             <TouchableOpacity
                               style={styles.dropdownItem}
                               onPress={handleAddCategory}>
                               <Icon name="plus-circle" size={18} color="#3F2B96" />
-                              <Text style={styles.dropdownItemText}>Add Category</Text>
+                              <Text style={styles.dropdownItemText}>{budget?.addcat}</Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -749,9 +752,9 @@ const Budget = ({ navigation, route }) => {
                             />
                           </View>
                           <View>
-                            <Text style={styles.groupName}>{groupDateils.category} Overview</Text>
+                            <Text style={styles.groupName}>{groupDateils.category} {budget?.grpoverview}</Text>
                             <Text style={styles.groupSubtitle}>
-                              {groupDateils.categories?.length || 0} categories
+                              {groupDateils.categories?.length || 0} {budget?.categories}
                             </Text>
                           </View>
                         </View>
@@ -778,14 +781,14 @@ const Budget = ({ navigation, route }) => {
                                     setShowAddGroupModal(true);
                                   }}>
                                   <Icon name="edit-2" size={18} color={themeColors?.primarColor} />
-                                  <Text style={styles.groupDropdownItemText}>Edit Group</Text>
+                                  <Text style={styles.groupDropdownItemText}>{budget?.editgrp}</Text>
                                 </TouchableOpacity>
                                 <View style={styles.groupDropdownDivider} />
                                 <TouchableOpacity
                                   style={[styles.groupDropdownItem, styles.deleteItem]}
                                   onPress={() => handleDeleteGroup()}>
                                   <Icon name="trash-2" size={18} color="#DC2626" />
-                                  <Text style={[styles.groupDropdownItemText, styles.deleteText]}>Delete Group</Text>
+                                  <Text style={[styles.groupDropdownItemText, styles.deleteText]}>{budget?.delgrp}</Text>
                                 </TouchableOpacity>
                               </View>
                             )}
@@ -795,21 +798,21 @@ const Budget = ({ navigation, route }) => {
 
                       <View style={styles.groupStatsRow}>
                         <View style={styles.groupStat}>
-                          <Text style={styles.groupStatLabel}>Planned Budget</Text>
+                          <Text style={styles.groupStatLabel}>{budget?.grpplannedbudget}</Text>
                           <Text style={styles.groupStatValue}>
                             {storedata?.currency}{CommonFunction.formatamount(groupDateils?.budget || 0)}
                           </Text>
                         </View>
                         <View style={styles.groupStatDivider} />
                         <View style={styles.groupStat}>
-                          <Text style={styles.groupStatLabel}>Actual Spending</Text>
+                          <Text style={styles.groupStatLabel}>{budget?.grpactualspend}</Text>
                           <Text style={styles.groupStatValue}>
                             {storedata?.currency}{CommonFunction.formatamount(groupDateils?.spend || 0)}
                           </Text>
                         </View>
                         <View style={styles.groupStatDivider} />
                         <View style={styles.groupStat}>
-                          <Text style={styles.groupStatLabel}>Left to Spend</Text>
+                          <Text style={styles.groupStatLabel}>{budget?.grplefttospend}</Text>
                           {
                             groupDateils?.balanceamt >= 0 ? <Text
                               style={[
@@ -896,7 +899,7 @@ const Budget = ({ navigation, route }) => {
                                               }}>
                                               <Icon name="plus-circle" size={14} color="#3F2B96" />
                                               <Text style={styles.headerSetBudgetText}>
-                                                Set Budget
+                                                {budget?.setbudget}
                                               </Text>
                                             </TouchableOpacity>
                                           )}
@@ -908,7 +911,7 @@ const Budget = ({ navigation, route }) => {
                                       {budgetamt > 0 && (
                                         <View style={styles.categoryProgressSection}>
                                           <View style={styles.categoryProgressHeader}>
-                                            <Text style={styles.categoryProgressLabel}>Spent</Text>
+                                            <Text style={styles.categoryProgressLabel}>{budget?.spend}</Text>
                                             <Text
                                               style={[
                                                 styles.categoryProgressPercentage,
@@ -932,7 +935,7 @@ const Budget = ({ navigation, route }) => {
                                           </View>
                                           <View style={styles.categoryProgressFooter}>
                                             <Text style={styles.categoryProgressFooterText}>
-                                              Spent {storedata?.currency}{CommonFunction.formatamount(spentamt)} of {storedata?.currency}{CommonFunction.formatamount(budgetamt)}
+                                              {budget?.spend} {storedata?.currency}{CommonFunction.formatamount(spentamt)} of {storedata?.currency}{CommonFunction.formatamount(budgetamt)}
                                             </Text>
                                             {isOverBudget && (
                                               <View style={styles.overBudgetBadge}>
@@ -942,7 +945,7 @@ const Budget = ({ navigation, route }) => {
                                                   color="#DC2626"
                                                 />
                                                 <Text style={styles.overBudgetText}>
-                                                  Over by {storedata?.currency}{CommonFunction.formatamount(remainingamt)}
+                                                  Over by {0 < remainingamt ? '': '-'} {storedata?.currency}{CommonFunction.formatamount(Math.abs(remainingamt))}
                                                 </Text>
                                               </View>
                                             )}
@@ -953,11 +956,11 @@ const Budget = ({ navigation, route }) => {
                                       {budgetamt == 0 && (
                                         <View style={styles.categoryProgressSection}>
                                           <View style={styles.categoryProgressHeader}>
-                                            <Text style={styles.categoryProgressLabel}>No Budget Set</Text>
+                                            <Text style={styles.categoryProgressLabel}>{budget?.nobudgetset}</Text>
                                           </View>
                                           <View style={styles.categoryProgressFooter}>
                                             <Text style={styles.categoryProgressFooterText}>
-                                              Spent {storedata?.currency}{CommonFunction.formatamount(spentamt || 0)}
+                                              {budget?.spend} {storedata?.currency}{CommonFunction.formatamount(spentamt || 0)}
                                             </Text>
                                           </View>
                                         </View>
@@ -974,9 +977,9 @@ const Budget = ({ navigation, route }) => {
                       ) : (
                         <View style={styles.emptyCategories}>
                           <Icon name="folder" size={40} color="#94A3B8" />
-                          <Text style={styles.emptyTitle}>No categories yet</Text>
+                          <Text style={styles.emptyTitle}>{budget?.nocategoryyset}</Text>
                           <Text style={styles.emptyDescription}>
-                            Tap the + button above to add your first category
+                            {budget?.tabplusaddcat}
                           </Text>
                         </View>
                       )}
@@ -1063,8 +1066,8 @@ const Budget = ({ navigation, route }) => {
                   visible={isCustomModel}
                   onClose={() => { setIsCustomModel(false), setType('') }}
                   alertTitle="Alert !"
-                  actionText={searchroupTransaction ? "Move" : "Yes"}
-                  cancelText={searchroupTransaction ? "Delete" : "No"}
+                  actionText={searchroupTransaction ? budget?.move :  budget?.yes}
+                  cancelText={searchroupTransaction ? budget?.delete: budget?.no}
                   onCancel={
                     searchroupTransaction
                       ? () => moveUncategoryservice('group', 'Delete')
@@ -1082,11 +1085,11 @@ const Budget = ({ navigation, route }) => {
                   {
                     searchroupTransaction ?
                       <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15), fontFamily: fontsFamily.regularFont }}>
-                        This group in the category is used in existing transactions. Would you like to move it to ‘Uncategorized’ or delete it?
+                        {budget?.translinkgroupdel}
                       </Text> :
 
                       <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15), fontFamily: fontsFamily.regularFont }}>
-                        Are you sure you want to delete this group?
+                        {budget?.grpdle}
                       </Text>
                   }
 

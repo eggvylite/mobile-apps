@@ -225,7 +225,7 @@ export default function AddReminderForm() {
       mode: 'date',
       is24Hour: true,
       maximumDate: currenDate,
-      minimumDate: stardate,
+      minimumDate: starDate,
       onChange: (event, selectedDate) => {
         if (event.type === 'dismissed' || !selectedDate) return;
         const combined = new Date(selectedDate);
@@ -676,6 +676,7 @@ export default function AddReminderForm() {
           <Text style={styles.formLabel}>End Date</Text>
           <TouchableOpacity style={styles.dateInput} onPress={() => {
             openEndDatePicker()
+
           }}>
             <Feather name="calendar" size={18} color="#94A3B8" />
             <Text style={[styles.dateInputText, { color: !formData?.enddate && '#94A3B8' }]}>{formData?.enddate ? formatDate(formData?.enddate) : ' -'}</Text>
@@ -841,11 +842,11 @@ export default function AddReminderForm() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <TopBar
-        title={screen === 'edit' ? "Edit Reminder" :"Add Reminder"}
+        title={screen === 'edit' ? "Edit Reminder" : "Add Reminder"}
         showBack={true}
         onBackPress={() => {
           enableMenu()

@@ -5,6 +5,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { fontsFamily } from '../../constants/fontsFamily';
 import { getFontSize } from '../../constants/Font';
 import SubmitBtn from './SubmitBtn';
+import appLog from '../../constants/logger';
 
 const SetBudgetModal = ({ visible, onClose, category, onSave, loading }) => {
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -18,12 +19,14 @@ const SetBudgetModal = ({ visible, onClose, category, onSave, loading }) => {
   }, [category]);
 
   const handleSave = () => {
-    if (!budgetAmount || parseFloat(budgetAmount) < 0) {
+    const amount = String(budgetAmount).trim();
+
+    if (!budgetAmount || !/^[0-9]+$/.test(budgetAmount)) {
       Alert.alert('Alert', 'Please enter a valid budget amount');
       return;
     }
 
-    onSave(budgetAmount);
+    onSave(amount);
     setBudgetAmount('');
     setError('');
   };
@@ -74,6 +77,7 @@ const SetBudgetModal = ({ visible, onClose, category, onSave, loading }) => {
                   setBudgetAmount(text);
                   setError('');
                 }}
+                maxLength={8}
                 autoFocus
               />
             </View>

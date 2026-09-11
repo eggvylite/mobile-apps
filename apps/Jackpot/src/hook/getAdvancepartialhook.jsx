@@ -43,12 +43,10 @@ export const usegetAdvancepartialFlow = (amount) => {
 
         return advhistory?.filter(
             (item) =>
-                item?.payment_status === "Success" || item?.payment_status === 'Partial' &&
-                moment().startOf("day").isSameOrAfter(cutoff)
+                (item?.payment_status === "Success" || item?.payment_status === 'Partial') &&
+                moment(item?.advance_date).isSameOrAfter(cutoff)
         ).length ?? 0;
     }, [advhistory]);
-
-
 
     useEffect(() => {
         if (workflowManulFeature === 'Turn On Default') {
@@ -106,10 +104,9 @@ export const usegetAdvancepartialFlow = (amount) => {
         return feeValue;
     }, [amount, subscription?.instant_fund_fee]);
 
-    const isAdvanceLimitExceeded = useMemo(
-        () => (workflowAdvanceLimit) > pendingLast30DaysCount,
-        [advancePendingCount, workflowAdvanceLimit?.amount]
-    );
+    const isAdvanceLimitExceeded = useMemo(() => {
+        return (Number(workflowAdvanceLimit) || 0) > pendingLast30DaysCount
+    }, [pendingLast30DaysCount, workflowAdvanceLimit])
 
 
 

@@ -45,6 +45,7 @@ import { BottomContext } from '../../../../../context/BottomContext';
 import { useBackHandler } from '@react-native-community/hooks';
 import { getLoginInfo } from '../../../../../service/storage';
 import api from '../../../../../service/api';
+import appLog from '../../../../../constants/logger';
 
 
 const { width, height } = Dimensions.get('window');

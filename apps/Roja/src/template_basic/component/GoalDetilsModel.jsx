@@ -19,112 +19,18 @@ import { commondateformat } from '../../utill/Utills';
 import timezone from 'moment-timezone'
 import CustomModal from './CustomModal';
 
-// const CircularProgress = ({
-//     percentage,
-//     color,
-//     size = 140,
-//     strokeWidth = 10,
-// }) => {
-//     const animatedValue = useRef(new Animated.Value(0)).current;
-//     const [progress, setProgress] = useState(0);
-//     const [goalHis, setgoalHis] = useState([])
-
-//     useEffect(() => {
-//         const listener = animatedValue.addListener(({ value }) => {
-//             setProgress(value);
-//         });
-
-//         Animated.timing(animatedValue, {
-//             toValue: percentage,
-//             duration: 1500,
-//             easing: Easing.out(Easing.bezier(0.25, 0.1, 0.25, 1)),
-//             useNativeDriver: false,
-//         }).start();
-
-//         return () => {
-//             animatedValue.removeListener(listener);
-//         };
-//     }, [percentage]);
-
-//     const getProgressColor = () => {
-//         if (percentage >= 100) return '#34C759';
-//         if (percentage >= 75) return '#3F2B96';
-//         if (percentage >= 50) return '#FFB347';
-//         if (percentage >= 25) return '#FF8C00';
-//         return '#FF6B6B';
-//     };
-
-//     const progressColor = color || getProgressColor();
-
-//     // Calculate the rotation based on progress
-//     const rotation = (progress / 100) * 360;
-
-//     return (
-//         <View style={[styles.circularProgressContainer, { width: size, height: size }]}>
-//             {/* Background Circle */}
-//             <View
-//                 style={[
-//                     styles.circleBackground,
-//                     {
-//                         width: size,
-//                         height: size,
-//                         borderRadius: size / 2,
-//                         borderWidth: strokeWidth,
-//                         borderColor: '#F1F5F9',
-//                     },
-//                 ]}
-//             />
-
-//             {/* Progress Indicator */}
-//             <View
-//                 style={[
-//                     styles.progressIndicator,
-//                     {
-//                         width: size,
-//                         height: size,
-//                         borderRadius: size / 2,
-//                         borderWidth: strokeWidth,
-//                         borderColor: progressColor,
-//                         borderLeftColor: 'transparent',
-//                         borderBottomColor: 'transparent',
-//                         transform: [{ rotate: `${rotation}deg` }],
-//                     },
-//                 ]}
-//             />
-
-//             {/* Inner Circle */}
-//             <View
-//                 style={[
-//                     styles.circleInner,
-//                     {
-//                         width: size - strokeWidth * 2,
-//                         height: size - strokeWidth * 2,
-//                         borderRadius: (size - strokeWidth * 2) / 2,
-//                         backgroundColor: '#FFFFFF',
-//                     },
-//                 ]}
-//             />
-
-//             {/* Percentage Text */}
-//             <View style={styles.percentageContainer}>
-//                 <Text style={[styles.percentageText, { color: progressColor }]}>
-//                     {progress.toFixed(1)}%
-//                 </Text>
-//                 <Text style={styles.percentageLabel}>Complete</Text>
-//             </View>
-//         </View>
-//     );
-// };
-
-
 import Svg, { Circle } from 'react-native-svg';
 import appLog from '../../constants/logger';
+import useGoalLabelsHook from '../../hook/useGoalLabelsHook';
+import { useDashboardUtils } from '../../hook/useDashboardUtils';
+import CommonIcon from '../../common_component/Commonicons';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const CircularProgress = ({ percentage, color, size = 140, strokeWidth = 10 }) => {
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [progress, setProgress] = useState(0);
+    const appLabels = useGoalLabelsHook();
 
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
@@ -186,7 +92,7 @@ const CircularProgress = ({ percentage, color, size = 140, strokeWidth = 10 }) =
                 <Text style={[styles.percentageText, { color: progressColor }]}>
                     {progress.toFixed(1)}%
                 </Text>
-                <Text style={styles.percentageLabel}>Complete</Text>
+                <Text style={styles.percentageLabel}>{appLabels.progressRingLabel}</Text>
             </View>
         </View>
     );
@@ -197,45 +103,15 @@ const CircularProgress = ({ percentage, color, size = 140, strokeWidth = 10 }) =
 
 const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, withDraw, editGoal }) => {
     const { storedata } = useSelector((state) => state.auth);
+    const appLabels = useGoalLabelsHook();
     const saveamt = selectedGoal?.savedamount || 0
     const spentamt = selectedGoal?.spent || 0
     const totalsaveamt = saveamt + spentamt
     const [isCustomModel, setIsCustomModel] = useState(false)
-
-    function formatDateTime(date) {
-        if (storedata) {
-            var zone = storedata.zone
-            const df = timezone(date).tz(zone).format(storedata?.format);
-            return df
-        } else {
-            return ''
-        }
+    const { formatDate, formatTime } = useDashboardUtils()
 
 
-    }
 
-    function formatDateTime(date) {
-        if (storedata) {
-            var zone = storedata.zone
-            const df = timezone(date).tz(zone).format(storedata?.format);
-            return df
-        } else {
-            return ''
-        }
-
-
-    }
-
-    function formatTime(date) {
-        if (storedata) {
-            var zone = storedata?.zone
-            const df = timezone(date).tz(zone).format("hh:mm a");
-            return df
-        } else {
-            return ''
-        }
-
-    }
 
     const handleClose = () => {
         onClose();
@@ -272,7 +148,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                             onPress={handleClose}>
                             <Icon name="x" size={24} color="#333" />
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Goal Details</Text>
+                        <Text style={styles.modalTitle}>{appLabels.goalDetailsModalHeader}</Text>
                         <TouchableOpacity
                             style={styles.modalHeaderButton}
                             onPress={() => setIsCustomModel(true)}>
@@ -295,7 +171,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                         }}
                     >
                         <Text style={{ color: themeColors?.secondarytextColor, textAlign: 'center', fontSize: getFontSize(15) }}>
-                            Are you sure you want to delete this Gaol?
+                            {appLabels.deletegoalContent}
                         </Text>
 
                     </CustomModal>
@@ -360,7 +236,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                             <View style={styles.modernMetricsGrid}>
                                 <View
                                     style={styles.modernMetricCard}>
-                                    <Text style={styles.modernMetricLabel}>Current</Text>
+                                    <Text style={styles.modernMetricLabel}>{appLabels.statCurrentLabel}</Text>
                                     <Text style={styles.modernMetricValue}>
                                         {storedata?.currency}{CommonFunction.formatamount(totalsaveamt || 0)}
                                     </Text>
@@ -368,14 +244,14 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
 
                                 <View
                                     style={[styles.modernMetricCard, { marginStart: 10, marginEnd: 10 }]}>
-                                    <Text style={styles.modernMetricLabel}>Target</Text>
+                                    <Text style={styles.modernMetricLabel}>{appLabels.statTargetLabel}</Text>
                                     <Text style={styles.modernMetricValue}>
                                         {storedata?.currency}{CommonFunction.formatamount(selectedGoal?.amount || 0)}
                                     </Text>
                                 </View>
                                 <View
                                     style={styles.modernMetricCard}>
-                                    <Text style={styles.modernMetricLabel}>Remaining</Text>
+                                    <Text style={styles.modernMetricLabel}>{appLabels.statRemainingLabel}</Text>
                                     <Text
                                         style={[styles.modernMetricValue, { color: '#E56772' }]}>
                                         {storedata?.currency}{CommonFunction.formatamount(selectedGoal?.remaining || 0)}
@@ -392,7 +268,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                         <Icon name="calendar" size={16} color="#3F2B96" />
                                     </View>
                                     <View style={styles.modernDetailContent}>
-                                        <Text style={styles.modernDetailLabel}>Target Date</Text>
+                                        <Text style={styles.modernDetailLabel}>{appLabels.infoTargetDateLabel}</Text>
                                         <Text style={styles.modernDetailValue}>
                                             {commondateformat(selectedGoal?.targetdate)}
                                         </Text>
@@ -405,7 +281,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     </View>
                                     <View style={styles.modernDetailContent}>
                                         <Text style={styles.modernDetailLabel}>
-                                            Monthly Savings
+                                            {appLabels.infoMonthlySavingsLabel}
                                         </Text>
                                         <Text style={styles.modernDetailValue}>
                                             {storedata?.currency}{CommonFunction.formatamount(selectedGoal.contribution)}
@@ -413,13 +289,13 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     </View>
                                 </View>
 
-                                  <View style={styles.modernDetailRow}>
+                                <View style={styles.modernDetailRow}>
                                     <View style={styles.modernDetailIcon}>
                                         <FontAwesome name="money" size={16} color="#3F2B96" />
                                     </View>
                                     <View style={styles.modernDetailContent}>
                                         <Text style={styles.modernDetailLabel}>
-                                            Spent Amount
+                                            {appLabels.infoSpentAmountLabel}
                                         </Text>
                                         <Text style={styles.modernDetailValue}>
                                             {storedata?.currency}{CommonFunction.formatamount(selectedGoal.spent)}
@@ -427,26 +303,26 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     </View>
                                 </View>
 
-                                <View style={styles.modernDetailRow}>
+                                {/* <View style={styles.modernDetailRow}>
                                     <View style={styles.modernDetailIcon}>
                                         <Icon name="credit-card" size={16} color="#3F2B96" />
                                     </View>
                                     <View style={styles.modernDetailContent}>
                                         <Text style={styles.modernDetailLabel}>
-                                            Linked Account
+                                            {appLabels.linkAccountSectionLabel}
                                         </Text>
                                         <Text style={styles.modernDetailValue}>
                                             {selectedGoal?.bank_contributions[0]?.bank_name || 'None'}
                                         </Text>
                                     </View>
-                                </View>
+                                </View> */}
 
                                 <View style={styles.modernDetailRow}>
                                     <View style={styles.modernDetailIcon}>
                                         <Icon name="activity" size={16} color="#3F2B96" />
                                     </View>
                                     <View style={styles.modernDetailContent}>
-                                        <Text style={styles.modernDetailLabel}>Status</Text>
+                                        <Text style={styles.modernDetailLabel}>{appLabels.goalStatusLabel}</Text>
                                         <View
                                             style={[
                                                 styles.modernStatusBadge,
@@ -473,12 +349,12 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                             </View>
 
                             <Text style={styles.modernDetailValue}>
-                                Recent Activity
+                                {appLabels.recentActivityLabel ?? "Recent Activity"}
                             </Text>
 
 
                             {
-                                goalHis.length > 0 && (
+                                0 < goalHis.length ? (
                                     <View style={{ marginTop: 20, backgroundColor: '#F8FAFC', borderRadius: 10 }}>
 
                                         {goalHis
@@ -486,7 +362,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                             .map((t, key) => {
                                                 var name = ''
                                                 if (t?.type === 'spend') {
-                                                    name = 'Withdraw Spent'
+                                                    name = 'Withdraw Spend'
                                                 } else {
                                                     name = CommonFunction.captialize(t?.type?.toLowerCase())
                                                 }
@@ -547,7 +423,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                                                     </View>
                                                                     <View style={{ marginTop: 5 }}>
                                                                         <Text style={styles.transactionTime}>
-                                                                            {formatDateTime(t?.createdAt) + ' ' + formatTime(t?.createdAt)}
+                                                                            {formatDate(t?.createdAt) + ' ' + formatTime(t?.createdAt)}
                                                                         </Text>
                                                                     </View>
 
@@ -558,7 +434,19 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                                 )
                                             })}
                                     </View>
-                                )}
+                                ) : <View style={[styles.norecord, { marginTop: 30 }]}>
+                                    <CommonIcon
+                                        family={'MaterialCommunityIcons'}
+                                        name="inbox-outline"
+                                        size={28}
+                                        color="#bdc3c7"
+                                    />
+
+                                    <Text style={{ marginTop: 10, color: 'grey', fontFamily: fontsFamily.boldFont }}>
+                                        No Record Found
+                                    </Text>
+                                </View>
+                            }
 
                             <View style={{ height: 100 }} />
                         </ScrollView>
@@ -580,7 +468,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     activeOpacity={0.9}>
                                     <View style={{ flexDirection: 'row' }}>
                                         <Icon name="edit" size={18} color="#BB750D" />
-                                        <Text style={[styles.fixedButtonText, { color: '#BB750D' }]}>Edit</Text>
+                                        <Text style={[styles.fixedButtonText, { color: '#BB750D' }]}>{appLabels.editButtonLabel ?? "Edit"}</Text>
                                     </View>
 
                                 </TouchableOpacity>
@@ -600,7 +488,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     activeOpacity={0.9}>
                                     <View style={{ flexDirection: 'row' }}>
                                         <Icon name="minus-circle" size={18} color='#E56772' />
-                                        <Text style={[styles.fixedButtonText, { color: '#E56772' }]}>Withdraw</Text>
+                                        <Text style={[styles.fixedButtonText, { color: '#E56772' }]}>{appLabels.withdrawModalHeader ?? "Withdraw"}</Text>
                                     </View>
 
                                 </TouchableOpacity>
@@ -618,7 +506,7 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
                                     activeOpacity={0.9}>
                                     <View style={{ flexDirection: 'row' }}>
                                         <Icon name="edit" size={18} color="#FF6B6B" />
-                                        <Text style={[styles.fixedButtonText, { color: "#FF6B6B" }]}>Delete</Text>
+                                        <Text style={[styles.fixedButtonText, { color: "#FF6B6B" }]}>{"Delete"}</Text>
                                     </View>
 
                                 </TouchableOpacity>
@@ -626,13 +514,16 @@ const GoalDetilsModel = ({ visible, onClose, selectedGoal, goalHis, addFund, wit
 
 
 
+                            {
+                                selectedGoal?.status !== 'Completed' && <SubmitBtn
+                                    style={{ height: 50, borderRadius: 5, width: 180 }}
+                                    iconName={'plus'}
+                                    text={appLabels.addButtonLabel}
+                                    submit={addFund}
+                                />
+                            }
 
-                            <SubmitBtn
-                                style={{ height: 50, borderRadius: 5, width: 180 }}
-                                iconName={'plus'}
-                                text={'Add'}
-                                submit={addFund}
-                            />
+                          
 
 
                         </View>

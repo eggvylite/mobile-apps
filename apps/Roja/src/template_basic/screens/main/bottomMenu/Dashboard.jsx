@@ -81,15 +81,6 @@ const Dashboard = (props) => {
 
 
 
-    useEffect(() => {
-        if (defbank && marketplaceFlag !== 'Everyone') {
-            dispatch(fetchHandpickCheck({ code: defbank?.chirp_request }))
-        }
-    }, [marketplaceFlag, defbank])
-
-
-
-
     useFocusEffect(
         React.useCallback(() => {
             const onBackPress = () => {
@@ -127,7 +118,7 @@ const Dashboard = (props) => {
         dispatch(fetchgetllAccount());
         dispatch(fetchMarketplace());
         dispatch(fetchDashboardmenu());
-        // dispatch(fetchStatement({ page: 0, size: 1000 }));
+        dispatch(fetchStatement({ page: 0, size: 1000 }));
     }, [dispatch]);
 
     useEffect(() => {

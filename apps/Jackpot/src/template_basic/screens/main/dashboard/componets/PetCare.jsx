@@ -13,10 +13,6 @@ const CARD_WIDTH = screenWidth * 0.9;
 const CARD_GAP = 8;
 const CARD_MARGIN = 10;
 
-
-
-
-
 const PetCare = (props) => {
     const scrollViewRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -24,7 +20,6 @@ const PetCare = (props) => {
     const { marketPlaceHandpickOffer, marketPlaceCategory, marketplacedata, marketplaceFeature, loading, error, handpickError, categoryError, featuresError, marketPlaceError } = useSelector((state) => state.marketplace);
     const { marketlabels } = useDashboardLablehook()
 
-    
     const scrollToIndex = (index) => {
         if (scrollViewRef.current) {
             scrollViewRef.current.scrollTo({
@@ -41,34 +36,36 @@ const PetCare = (props) => {
         </View>
     );
 
-
-
-
     const petCareData = useMemo(() => {
-        const openOffer = filterOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
-        const handpick = filterHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
+        const safeFilterOffers = Array.isArray(filterOffers) ? filterOffers : [];
+        const safeHandpickOffers = Array.isArray(filterHandpickOffers) ? filterHandpickOffers : [];
+
+        const openOffer = safeFilterOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
+        const handpick = safeHandpickOffers.find((obj) => obj?.id === dashboardOfferId?.petCare)
 
         if (handpick) {
-            const finalOffer = mergeOffer(handpick, [])
-            return finalOffer
+            return mergeOffer(handpick, [])
         }
 
-        const finalOffer = mergeOffer(openOffer, [])
-        return finalOffer
-    }, [filterOffers])
-
+        return mergeOffer(openOffer || null, [])
+    }, [filterOffers, filterHandpickOffers, dashboardOfferId])
 
     const renderItem = ({ item }) => {
-        const categoryDetails = marketplaceFeature.find((obj) => obj?._id === item?.feature.value)
-        const offer = filterOffers.find((obj) => obj?.id === item?.id)
-        const accent = categoryDetails.icon_color
+
+        const featureValue = item?.feature?.value;
+        const safeMarketplaceFeature = Array.isArray(marketplaceFeature) ? marketplaceFeature : [];
+        const categoryDetails = safeMarketplaceFeature.find((obj) => obj?._id === featureValue)
+
+        const safeFilterOffers = Array.isArray(filterOffers) ? filterOffers : [];
+        const offer = safeFilterOffers.find((obj) => obj?.id === item?.id)
+        const accent = categoryDetails?.icon_color
         return (
             <TouchableOpacity style={[styles.card, { backgroundColor: categoryDetails?.card_bg }]} onPress={() => {
                 props?.navigation?.navigate('OfferDetailScreen', { product: offer })
             }}>
                 <View style={styles.contentContainer}>
                     <Text style={styles.cardTitle}>
-                        {categoryDetails.title}
+                        {categoryDetails?.title}
                     </Text>
 
                     <Text style={styles.description} numberOfLines={3}>
@@ -99,9 +96,8 @@ const PetCare = (props) => {
         setActiveIndex(index);
     };
 
-
-
-
+    const petCareFeatures = petCareData?.features;
+    const hasFeatures = Array.isArray(petCareFeatures) && petCareFeatures.length > 0;
 
     return (
         <View style={styles.container}>
@@ -110,11 +106,12 @@ const PetCare = (props) => {
             </Text>
 
             {
-                petCareData && 0 < petCareData?.features?.length &&
+                hasFeatures &&
                 <FlatList
-                    data={petCareData?.features}
+                    data={petCareFeatures}
                     renderItem={renderItem}
-                    keyExtractor={item => item.value}
+
+                    keyExtractor={(item, index) => item?.id ?? item?.feature?.value ?? String(index)}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     onScroll={handleScroll}
@@ -122,9 +119,8 @@ const PetCare = (props) => {
                 />
             }
 
-
             <View style={styles.indicatorContainer}>
-                {petCareData && 0 < petCareData?.features?.length && petCareData?.features.map((_, index) => (
+                {hasFeatures && petCareFeatures.map((_, index) => (
                     <TouchableOpacity
                         key={index}
                         onPress={() => scrollToIndex(index)}
@@ -138,7 +134,6 @@ const PetCare = (props) => {
                     </TouchableOpacity>
                 ))}
             </View>
-
 
         </View>
     );

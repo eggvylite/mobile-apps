@@ -12,7 +12,7 @@ import { getFontSize } from '../../constants/Font';
 import CommonIcon from '../../common_component/Commonicons';
 
 const { width, height } = Dimensions.get('window');
-const CashCard = ({ type, onClick, amount = 0, title, total = 0 }) => {
+const CashCard = ({ type, subscription,onClick, amount = 0, title, total = 0 }) => {
     const { cusDetails, cusloading } = useSelector((state) => state.customer);
     const { dashboardLabel } = useSelector((state) => state.labels || {});
     const { themeColors, storedata, formatAmount } = useDashboardUtils();
@@ -53,6 +53,9 @@ const CashCard = ({ type, onClick, amount = 0, title, total = 0 }) => {
                     }
 
                     {
+
+
+
                         !isAdvanceLimitExceeded ? <View style={[styles.button, { backgroundColor: '#f1f1f1', paddingStart: 8, paddingEnd: 8 }]}
 
                         >
@@ -71,7 +74,8 @@ const CashCard = ({ type, onClick, amount = 0, title, total = 0 }) => {
 
                                 type === 'nosuscribtion' || type === 'advance' || type === 'bill' ?
                                     <TouchableOpacity
-                                        style={styles.button}
+                                        disabled={subscription?.status === 'Active' ? false : true}
+                                        style={[styles.button,{opacity:subscription?.status === 'Active' ? 1: 0.5}]}
                                         activeOpacity={0.8}
                                         onPress={() => {
                                             onClick()
@@ -86,13 +90,13 @@ const CashCard = ({ type, onClick, amount = 0, title, total = 0 }) => {
 
                 <View style={{ justifyContent: 'center', marginEnd: Platform.OS === 'ios' ? 40 : 0 }}>
                     <View style={[styles.whiteCircle,]}>
-                        <Text style={styles.label}>{total === amount ? 'Used' : 0 < remaining ? 'Reamaing' : type === 'bill' ? dashboardLabel?.labels?.[9]?.message : dashboardLabel?.labels?.[5]?.message ?? 'Get Advance'}</Text>
+                        <Text style={styles.label}>{total === amount ? dashboardLabel?.labels?.[65]?.message || 'Limit' : 0 < remaining ? dashboardLabel?.labels?.[64]?.message || "Remaining" : type === 'bill' ? dashboardLabel?.labels?.[9]?.message : dashboardLabel?.labels?.[5]?.message ?? 'Get Advance'}</Text>
                         <Text style={styles.amount}>{storedata?.currency}
                             {CommonFunction.formatamount(amount - total)}
                         </Text>
                         {
                             type !== 'bill' &&
-                            <Text style={styles.label}>{'Limit'} </Text>
+                            <Text style={styles.label}>{dashboardLabel?.labels?.[66]?.message || 'Limit'} </Text>
                         }
 
                     </View>

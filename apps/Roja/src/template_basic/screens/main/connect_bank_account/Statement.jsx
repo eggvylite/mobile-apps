@@ -32,6 +32,8 @@ import { deleteAccount, deleteTransaction } from '../../../../constants/Accounta
 import ErrorView from '../../../component/ErrorView';
 import Icon from 'react-native-vector-icons/Feather';
 import SkeletonPlaceholder from "react-native-skeleton-placeholder";
+import appLog from '../../../../constants/logger';
+import { appuseBackHandler } from '../../../../utill/appuseBackHandler';
 
 
 const tabs = ['All', 'Credit', 'Debit'];
@@ -85,6 +87,16 @@ export default function Statement(props) {
     }, [isFocused]);
 
 
+    appuseBackHandler(() => {
+       onBackscreen()
+        return true;
+    });
+
+
+    const onBackscreen = () => {
+        navigation.navigate('Dashboard'),
+            enableMenu()
+    }
 
 
     const getDetails = () => {
@@ -103,15 +115,7 @@ export default function Statement(props) {
             setData(params)
 
         }
-
-
-
-
-
     }
-
-
-
     useEffect(() => {
         if (descripiondata) {
             setTagList(descripiondata?.records)
@@ -229,42 +233,6 @@ export default function Statement(props) {
 
 
 
-    const getTypeColor = (type) => {
-        if (type.includes('Credit')) return '#10B981';
-        if (type.includes('Debit')) return '#3B82F6';
-        return '#64748B';
-    };
-
-    const getTypeIcon = (type) => {
-        if (type.includes('Credit')) return 'arrow-down-right';
-        if (type.includes('Debit')) return 'arrow-up-right';
-        return 'circle';
-    };
-
-    const getTypeBgColor = (type) => {
-        if (type.includes('Credit')) return 'rgba(16, 185, 129, 0.12)';
-        if (type.includes('Debit')) return 'rgba(59, 130, 246, 0.12)';
-        return '#F1F5F9';
-    };
-
-    const getStatusColor = (item) => {
-        if (item?.status === 'Success') {
-            if (item?.payment === 'Credit') {
-                return '#10B981'
-            } else {
-                return '#F59E0B'
-            }
-        } else {
-            return themeColors?.negativeColor
-        }
-
-    };
-
-    const changeDate = (date) => {
-        const df = moment(new Date(date)).format(storedata?.format)
-        return df
-
-    }
 
     const checkColor = (type) => {
         if (type?.toLowerCase() === 'credit') {
@@ -352,7 +320,7 @@ export default function Statement(props) {
         let send = {};
         let url = "";
 
-        console.log(trans)
+
 
         if (!trans?.customer_id && !exists) {
             send = {
@@ -610,13 +578,7 @@ export default function Statement(props) {
         )
     }
 
-    const filteredTagsCount = useMemo(
-        () =>
-            tag?.filter(
-                (obj) => obj.tag_type?.toLowerCase() === selectedTransaction?.type?.toLowerCase()
-            )?.length ?? 0,
-        [tag, selectedTransaction]
-    );
+
 
     const clearModelDetails = () => {
         setIsDetails(false)
@@ -726,7 +688,7 @@ export default function Statement(props) {
                                             <View style={{ flexDirection: 'row', }}>
                                                 <Pressable style={{ marginStart: 10, borderWidth: 1, padding: 8, borderRadius: 30, borderColor: themeColors?.primarColor }}
                                                     onPress={() => {
-                                                        props.navigation.navigate('Transactionform', { data: {...selectedTransaction,...data}, screen: 'edit', type: dataparams?.type })
+                                                        props.navigation.navigate('Transactionform', { data: { ...selectedTransaction, ...data }, screen: 'edit', type: dataparams?.type })
                                                         clearModelDetails()
                                                     }}>
                                                     <Feather name="edit" color={themeColors.primarColor} size={16} />
@@ -1099,7 +1061,7 @@ export default function Statement(props) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={!props.screen && styles.listContent}
                 ListEmptyComponent={
-                      !stloading &&
+                    !stloading &&
                     <View style={styles.emptyContainer}>
                         <Feather name="inbox" size={48} color="#94A3B8" />
                         <Text style={styles.emptyTitle}>No Transactions Found</Text>
@@ -1131,7 +1093,7 @@ export default function Statement(props) {
 
     const CardSkeleton = () => {
         return (
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
                 <TopBar
                     title="Bank Statement"
                     showBack={true}
@@ -1240,7 +1202,7 @@ export default function Statement(props) {
         }
 
         return (
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={styles.safeArea} >
 
                 {
                     !props?.screen &&
@@ -1252,8 +1214,7 @@ export default function Statement(props) {
                             exportTransactionsToExcel(filteredTransactions)
                         }}
                         onBackPress={() => {
-                            navigation.navigate('Dashboard'),
-                                enableMenu()
+                           onBackscreen()
                         }}
                     />
                 }
@@ -1358,7 +1319,7 @@ export default function Statement(props) {
 
                 {
                     dataparams?.transaction_source === 'manual' &&
-                    <View style={{ marginStart: 20, marginEnd: 20, marginTop: 20, flexDirection: 'row' }}>
+                    <View style={{ margin: 20, flexDirection: 'row', marginBottom: 20 }}>
 
                         <TouchableOpacity
                             style={[{

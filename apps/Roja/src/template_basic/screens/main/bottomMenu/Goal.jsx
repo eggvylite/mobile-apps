@@ -27,6 +27,7 @@ import { BottomContext } from '../../../../context/BottomContext';
 import { WORKFLOW_CONSTANT } from '../../../../constants/workflowConstents';
 import WorkflowScreen from '../../../widgets/WorkflowScreen';
 import appLog from '../../../../constants/logger';
+import useGoalLabelsHook from '../../../../hook/useGoalLabelsHook';
 
 
 export default function Goal() {
@@ -56,6 +57,8 @@ export default function Goal() {
         mode: 'onBlur',
     });
     const { enableMenu, disableMenu } = useContext(BottomContext);
+    const appLabels = useGoalLabelsHook()
+
 
     const [record, setRecord] = useState('')
 
@@ -198,17 +201,8 @@ export default function Goal() {
 
 
 
-    const getAccountIcon = (type) => {
-        switch (type) {
-            case 'checking': return 'credit-card';
-            case 'savings': return 'trending-up';
-            case 'credit': return 'pie-chart';
-            default: return 'circle';
-        }
-    };
-
-    const totalTarget = goalList.reduce((sum, g) => sum + (g.amount || 0), 0);
-    const totalCurrent = goalList.reduce( (sum, g) => sum + (Number(g?.savedamount || 0) + Number(g?.spent || 0)),0);
+    const totalTarget = goals?.reduce((sum, g) => sum + (g.amount || 0), 0);
+    const totalCurrent = goals?.reduce((sum, g) => sum + (Number(g?.savedamount || 0) + Number(g?.spent || 0)), 0);
     const totalProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
     const formatCurrency = (amount) => {
@@ -225,9 +219,9 @@ export default function Goal() {
             {goals.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Icon name="target" size={48} color="#CBD5E1" />
-                    <Text style={styles.emptyStateTitle}>No Goals Yet</Text>
+                    <Text style={styles.emptyStateTitle}>{appLabels.emptyStateTitle}</Text>
                     <Text style={styles.emptyStateText}>
-                        Create your first financial goal to start tracking your progress
+                        {appLabels.emptyStateDescription}
                     </Text>
                     <TouchableOpacity
                         style={styles.emptyStateButton}
@@ -236,7 +230,7 @@ export default function Goal() {
                             colors={['#3F2B96', '#2A1B6D']}
                             style={styles.emptyStateButtonGradient}>
                             <Icon name="plus" size={18} color="#FFF" />
-                            <Text style={styles.emptyStateButtonText}>Create Goal</Text>
+                            <Text style={styles.emptyStateButtonText}>{appLabels.emptyStateCtaLabel}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>
@@ -245,7 +239,7 @@ export default function Goal() {
                     const goalamt = goal?.amount || 0
                     const spent = goal?.spent || 0
                     const savedamount = goal?.savedamount || 0
-                      const saveamt =   savedamount + spent
+                    const saveamt = savedamount + spent
                     const remaining = goalamt - saveamt
                     const progressPercentage = saveamt > 0 ? Math.min((saveamt / goalamt) * 100, 100) : 0;
                     const data = {
@@ -282,7 +276,7 @@ export default function Goal() {
                                     <View style={styles.goalHeaderInfo}>
                                         <Text style={styles.goalTitle}>{goal.name}</Text>
                                         <Text style={styles.goalSubtitle}>
-                                            {goal?.bank_contributions[0]?.bank_name || 'No account linked'}
+                                            {goal?.cate ??''}
                                         </Text>
                                     </View>
                                     <View
@@ -309,19 +303,19 @@ export default function Goal() {
 
                                 <View style={styles.goalAmounts}>
                                     <View style={styles.goalAmountItem}>
-                                        <Text style={styles.goalAmountLabel}>Current</Text>
+                                        <Text style={styles.goalAmountLabel}>{appLabels.goalCurrentLabel}</Text>
                                         <Text style={styles.goalAmountValue}>
                                             {storedata?.currency}{CommonFunction.formatamount(saveamt)}
                                         </Text>
                                     </View>
                                     <View style={styles.goalAmountItem}>
-                                        <Text style={styles.goalAmountLabel}>Target</Text>
+                                        <Text style={styles.goalAmountLabel}>{appLabels.goalTargetLabel}</Text>
                                         <Text style={styles.goalAmountValue}>
                                             {storedata?.currency}{CommonFunction.formatamount(goalamt)}
                                         </Text>
                                     </View>
                                     <View style={styles.goalAmountItem}>
-                                        <Text style={styles.goalAmountLabel}>Remaining</Text>
+                                        <Text style={styles.goalAmountLabel}>{appLabels.goalRemainingLabel}</Text>
                                         <Text
                                             style={[styles.goalAmountValue, { color: '#E56772' }]}>
                                             {storedata?.currency}{CommonFunction.formatamount(remaining)}
@@ -348,7 +342,7 @@ export default function Goal() {
                                             {Math.round(progressPercentage)}%
                                         </Text>
                                         <Text style={styles.targetDate}>
-                                            Target {commondateformat(goal?.targetdate)}
+                                            {appLabels.goalTargetLabel} {commondateformat(goal?.targetdate)}
                                         </Text>
                                     </View>
                                 </View>
@@ -365,9 +359,9 @@ export default function Goal() {
             {groupedByAccount.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Icon name="target" size={48} color="#CBD5E1" />
-                    <Text style={styles.emptyStateTitle}>No Goals Yet</Text>
+                    <Text style={styles.emptyStateTitle}>{appLabels.byaccountEmptyHead}</Text>
                     <Text style={styles.emptyStateText}>
-                        Create your first financial goal to start tracking your progress
+                        {appLabels?.byaccountEmptyDescription}
                     </Text>
                 </View>
             )
@@ -389,7 +383,7 @@ export default function Goal() {
                                         <Text style={styles.accountGroupName}>{group.bank_name}</Text>
                                     </View>
                                     <Text style={styles.accountGroupBalance}>
-                                        Balance: {formatCurrency(group.balance)}
+                                        {appLabels.byaccountBalance}: {formatCurrency(group.balance)}
                                     </Text>
                                 </View>
 
@@ -457,11 +451,11 @@ export default function Goal() {
         <WorkflowScreen
             settingKey={WORKFLOW_CONSTANT.GOALS}
             navigation={navigation}
-            title="Goals"
+            title={appLabels.title}
             screenName="Goal"
         >
             <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-                <TopBar title="Goals" showBack={true} onBackPress={handleBackPress} type={'main'} />
+                <TopBar title={appLabels.title} showBack={true} onBackPress={handleBackPress} type={'main'} />
 
                 <ScrollView
                     style={styles.scrollContainer}
@@ -485,7 +479,7 @@ export default function Goal() {
                                     <View style={styles.totalProgressIcon}>
                                         <Icon name="trending-up" size={20} color="#3F2B96" />
                                     </View>
-                                    <Text style={styles.totalProgressTitle}>Total Progress</Text>
+                                    <Text style={styles.totalProgressTitle}>{appLabels.totalProgressLabel}</Text>
                                 </View>
                                 <TouchableOpacity
                                     style={styles.addGoalButton}
@@ -517,27 +511,37 @@ export default function Goal() {
                                     />
                                 </View>
                                 <Text style={styles.totalProgressPercent}>
-                                    {totalProgress.toFixed(1)}% Complete
+                                    {totalProgress.toFixed(1)}% {appLabels.completeLabel}
                                 </Text>
                             </View>
 
                             <View style={styles.totalStats}>
-                                <View style={styles.totalStat}>
-                                    <Text style={styles.totalStatLabel}>Active Goals</Text>
-                                    <Text style={styles.totalStatValue}>
-                                        {goalList.filter(g => g.status === 'Active').length}
-                                    </Text>
-                                </View>
+                                {
+                                    (goalStatus === 'All' || goalStatus === 'Active') && <View style={styles.totalStat}>
+                                        <Text style={styles.totalStatLabel}>{appLabels.activeGoalsLabel}</Text>
+                                        <Text style={styles.totalStatValue}>
+                                            {goalList.filter(g => g.status === 'Active').length}
+                                        </Text>
+                                    </View>
+                                }
+                                {
+                                    goalStatus === 'All' && <View style={styles.totalStatDivider} />
+                                }
+                                {
+                                    (goalStatus === 'All' || goalStatus === 'Completed') && <>
+
+                                        <View style={styles.totalStat}>
+                                            <Text style={styles.totalStatLabel}>{appLabels.completedLabel}</Text>
+                                            <Text style={styles.totalStatValue}>
+                                                {goalList.filter(g => g.status === 'Completed').length}
+                                            </Text>
+                                        </View>
+                                    </>
+                                }
+
                                 <View style={styles.totalStatDivider} />
                                 <View style={styles.totalStat}>
-                                    <Text style={styles.totalStatLabel}>Completed</Text>
-                                    <Text style={styles.totalStatValue}>
-                                        {goalList.filter(g => g.status === 'Completed').length}
-                                    </Text>
-                                </View>
-                                <View style={styles.totalStatDivider} />
-                                <View style={styles.totalStat}>
-                                    <Text style={styles.totalStatLabel}>Total Saved</Text>
+                                    <Text style={styles.totalStatLabel}>{appLabels.totalSavedLabel}</Text>
                                     <Text style={styles.totalStatValue}>
                                         {formatCurrency(totalCurrent)}
                                     </Text>
@@ -569,7 +573,7 @@ export default function Goal() {
                                     styles.tabText,
                                     activeTab === 'byGoal' && styles.activeTabText,
                                 ]}>
-                                By Goal
+                                {appLabels.byGoalTabLabel}
                             </Text>
                             {activeTab === 'byGoal' && (
                                 <View
@@ -600,7 +604,7 @@ export default function Goal() {
                                     styles.tabText,
                                     activeTab === 'byAccount' && styles.activeTabText,
                                 ]}>
-                                By Account
+                                {appLabels.byAccountTabLabel}
                             </Text>
                             {activeTab === 'byAccount' && (
                                 <View
@@ -619,7 +623,7 @@ export default function Goal() {
                 </ScrollView>
 
 
-                {goals.length > 0 && (
+                {(goals.length > 0 && activeTab === 'byGoal') && (
                     <TouchableOpacity style={styles.fab} onPress={handleCreateGoal}>
                         <LinearGradient
                             colors={themeColors?.gradientColor}
@@ -688,7 +692,7 @@ export default function Goal() {
                         <View style={[styles.modalContent, { height: 280 }]}>
                             <View style={[styles.modalHeader, { alignItems: 'flex-start' }]}>
                                 <View style={{ flex: 1, alignItems: 'flex-start', marginStart: 5 }}>
-                                    <Text style={styles.modalTitle}>Goal Status</Text>
+                                    <Text style={styles.modalTitle}>{appLabels.goalStatusLabel}</Text>
                                 </View>
                                 <TouchableOpacity onPress={() => {
                                     setIsfilter(false)
@@ -698,6 +702,11 @@ export default function Goal() {
                             </View>
                             {
                                 goalStatusrec.map((value, key) => {
+
+                                    let labelToShow = value + " " + appLabels.title;
+                                    // if (value === 'Active') labelToShow = appLabels.activeGoalsLabel;
+                                    // if (value === 'Completed') labelToShow = appLabels.completedLabel;
+
                                     return (
                                         <TouchableOpacity style={{ marginTop: key === 0 ? 10 : 20, flexDirection: 'row' }} key={key} onPress={() => {
                                             setGoalstatus(value)
@@ -705,7 +714,7 @@ export default function Goal() {
                                         }}>
                                             <Ionicons name={value === goalStatus ? 'radio-button-on' : 'radio-button-off'} size={20} color={'#3F2B96'} />
                                             <View style={{ marginStart: 10, justifyContent: 'center' }}>
-                                                <Text style={styles.modalInfoValue}>{value} Goals</Text>
+                                                <Text style={styles.modalInfoValue}>{labelToShow}</Text>
                                             </View>
 
                                         </TouchableOpacity>

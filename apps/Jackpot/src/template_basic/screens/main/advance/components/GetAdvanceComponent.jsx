@@ -13,6 +13,9 @@ import { fontsFamily } from '../../../../../constants/fontsFamily';
 import appLog from '../../../../../constants/logger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CashCard from '../../../../component/CashCard';
+import useAdvanceHooks from '../../../../../hook/useAdvaceHook';
+import { useDashboardUtils } from '../../../../../hook/useDashboardUtils';
+import { getFontSize } from '../../../../../constants/Font';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,6 +32,12 @@ const GetAdvanceComponent = ({
   const { isAdvanceLimitExceeded, instantFundFee, getAdvanceLimitCount, advanceAmountMinimumLimit } = usegetAdvancepartialFlow()
   const { advanceLimitSHowMessage, showLimtlables, advanceLimitButton, advanceMinimumAmountPromtLable, advanceMinimumAmountPromtLable2, advanceTypically,
     advanceTypcallyavalibleminit, ACHHEAD, InstatFoundingHead, NoFeeLable } = useGeneralLabelsHook()
+  const {
+    subscription,
+  } = useAdvanceHooks()
+  const { formatDate, formatTime } = useDashboardUtils();
+  const { workflow: cancelmessage } = useFeatureFlow(WORKFLOW_CONSTANT?.CANCELMESSAGE);
+
 
 
 
@@ -38,83 +47,8 @@ const GetAdvanceComponent = ({
   return (
     <>
       <View style={styles.advanceCardContainer}>
-        {/* <LinearGradient
-          colors={['#E3ECFF', '#E4D9FF', '#E1F3FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.card}
-        >
-          <View style={styles.leftContent}>
-            <Text style={styles.title}>{`${dashboardLabel?.labels?.[3]?.message} \n ${dashboardLabel?.labels?.[4]?.message}`}</Text>
-            {
-              isAdvanceLimitExceeded ? <TouchableOpacity
-                style={[styles.button, { backgroundColor: (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 ? '#DFDFDF' : '#F3F6FD' }]}
-                activeOpacity={0.8}
-                disabled={activeSub?.plan_cash_upto - activeSub?.used_advance === 0 || !isAdvanceLimitExceeded}
-                onPress={handleGetAdvance}
-              >
-                {
-                  (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 ? <Text style={[styles.buttonText, { color: (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 ? '#7B7B7B' : '#000000' }]}>{advanceLimitButton}</Text> :
-                    <Text style={[styles.buttonText]}>{dashboardLabel?.labels?.[5]?.message ?? 'Get Advance'}</Text>
-                }
 
-              </TouchableOpacity> : <TouchableOpacity
-                style={[styles.button, { backgroundColor: (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 ? '#DFDFDF' : '#F3F6FD' }]}
-                activeOpacity={0.8}
-                disabled={(activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0}
-
-              >
-                {
-                  ((activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 || !isAdvanceLimitExceeded) ? <>
-
-                    {
-                      !isAdvanceLimitExceeded ? <Text style={[styles.buttonText, { color: (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 ? '#7B7B7B' : '#000000' }]}>{showLimtlables}</Text> :
-                        <Text style={[styles.buttonText, { color: (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) === 0 ? '#7B7B7B' : '#000000' }]}>{advanceLimitButton}</Text>
-                    }
-
-                  </> :
-                    <Text style={styles.buttonText} >{dashboardLabel?.labels?.[5]?.message ?? 'Get Advance'}</Text>
-                }
-
-              </TouchableOpacity>
-            }
-
-          </View>
-
-
-          <View style={styles.rightContent}>
-            <View style={styles.whiteCircle}>
-              <Text style={styles.label}>Advance</Text>
-
-              <Text style={styles.amount}>
-                {storedata?.currency}
-                {CommonFunction.formatamount(
-                  (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0)
-                )}
-              </Text>
-
-
-              <Text style={styles.label}>Limit</Text>
-            </View>
-            <Image
-              source={require('../../../../../../assets/images/money-1.png')}
-              style={[styles.cashIcon, styles.cashTopRight]}
-              resizeMode="contain"
-            />
-            <Image
-              source={require('../../../../../../assets/images/money-2.png')}
-              style={[styles.cashIcon, styles.cashBottomLeft]}
-              resizeMode="contain"
-            />
-            <Image
-              source={require('../../../../../../assets/images/money-3.png')}
-              style={[styles.cashIcon, styles.cashBottomRight]}
-              resizeMode="contain"
-            />
-          </View>
-        </LinearGradient> */}
-
-        <CashCard type={'advance'} amount={activeSub?.plan_cash_upto} total={activeSub?.used_advance} onClick={() => {
+        <CashCard type={'advance'} subscription={subscription}  amount={activeSub?.plan_cash_upto} total={activeSub?.used_advance} onClick={() => {
           handleGetAdvance()
         }} />
       </View>
@@ -230,98 +164,115 @@ const GetAdvanceComponent = ({
         )}
 
       {
-        isAdvanceLimitExceeded ? <>
-          {
-            (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) !== 0 && (
-              <>
-                {
-
-                  (advanceAmountMinimumLimit <= (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0)) ?
-                    < TouchableOpacity
-                      style={styles.getAdvanceButton}
-                      onPress={handleGetAdvance}
-                      disabled={isLoading}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={['#3F2B96', '#2633a7']}
-                        style={styles.getAdvanceGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      >
-                        {isLoading ? (
-                          <View style={styles.loadingContainer}>
-                            <View style={styles.loadingSpinner} />
-                            <Text style={styles.getAdvanceText}>Processing...</Text>
-                          </View>
-                        ) : (
-                          <>
-                            <Text style={styles.getAdvanceText}>Get Advance</Text>
-                            <Feather name="arrow-right" size={20} color="#FFFFFF" />
-                          </>
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity> : < TouchableOpacity
-                      style={styles.getAdvanceButton}
-                      // onPress={handleGetAdvance}
-                      disabled={isLoading}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={['#DFDFDF', '#DFDFDF']}
-                        style={styles.getAdvanceGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      >
-                        {isLoading ? (
-                          <View style={styles.loadingContainer}>
-                            <View style={styles.loadingSpinner} />
-                            <Text style={[styles.getAdvanceText, { color: '#7B7B7B' }]}>Processing...</Text>
-                          </View>
-                        ) : (
-                          <>
-                            <Text style={[styles.getAdvanceText, { color: '#7B7B7B' }]}>Get Advance</Text>
-                            <Feather name="arrow-right" size={20} color="#7B7B7B" />
-                          </>
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                }
-              </>
-            )
-          }
-
-
-        </> :
-
-          <LinearGradient
-            colors={['#FFF8EF', '#FFEBCF']}
-            style={styles.gradientOption}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <View style={styles.infoContent}>
-              {/* Info Icon */}
-              <View style={styles.infoIconContainer}>
-                <Ionicons
-                  name="information"
-                  size={18}
-                  color="#C2410C"
-                />
-              </View>
-
-              {/* Content */}
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoTitle}>
-                  {showLimtlables}
-                </Text>
-
-                <Text style={styles.infoMessage}>
-                  {advanceLimitSHowMessage}
-                </Text>
+        subscription?.status === 'Schedule' ?
+          <View style={[styles.reasonCard, { borderColor: '#e69d69' }]}>
+            <View style={{ justifyContent: 'center' }}>
+              <Feather name="check-circle" size={24} color={'#f97316'} />
+            </View>
+            <View style={{ flex: 1, marginStart: 15 }}>
+              {/* <Text style={[styles.modalTitle, { fontSize: getFontSize(15), color: '#f97316' }]}>{cancelsubscription?.warningtitle}</Text> */}
+              <View>
+                <Text style={[styles.modalTitle, { fontSize: getFontSize(13), color: '#f97316', lineHeight: 20, letterSpacing: 0.3 }]}>{cancelmessage} {formatDate(subscription?.end)}</Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
+
+
+          :
+          isAdvanceLimitExceeded ? <>
+            {
+              (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0) !== 0 && (
+                <>
+                  {
+
+                    (advanceAmountMinimumLimit <= (activeSub?.plan_cash_upto ?? 0) - (activeSub?.used_advance ?? 0)) ?
+                      < TouchableOpacity
+                        style={styles.getAdvanceButton}
+                        onPress={handleGetAdvance}
+                        disabled={isLoading}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient
+                          colors={['#3F2B96', '#2633a7']}
+                          style={styles.getAdvanceGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                        >
+                          {isLoading ? (
+                            <View style={styles.loadingContainer}>
+                              <View style={styles.loadingSpinner} />
+                              <Text style={styles.getAdvanceText}>Processing...</Text>
+                            </View>
+                          ) : (
+                            <>
+                              <Text style={styles.getAdvanceText}>Get Advance</Text>
+                              <Feather name="arrow-right" size={20} color="#FFFFFF" />
+                            </>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity> : < TouchableOpacity
+                        style={styles.getAdvanceButton}
+                        // onPress={handleGetAdvance}
+                        disabled={isLoading}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient
+                          colors={['#DFDFDF', '#DFDFDF']}
+                          style={styles.getAdvanceGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                        >
+                          {isLoading ? (
+                            <View style={styles.loadingContainer}>
+                              <View style={styles.loadingSpinner} />
+                              <Text style={[styles.getAdvanceText, { color: '#7B7B7B' }]}>Processing...</Text>
+                            </View>
+                          ) : (
+                            <>
+                              <Text style={[styles.getAdvanceText, { color: '#7B7B7B' }]}>Get Advance</Text>
+                              <Feather name="arrow-right" size={20} color="#7B7B7B" />
+                            </>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                  }
+                </>
+              )
+            }
+
+
+          </>
+
+            :
+
+            <LinearGradient
+              colors={['#FFF8EF', '#FFEBCF']}
+              style={styles.gradientOption}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={styles.infoContent}>
+                {/* Info Icon */}
+                <View style={styles.infoIconContainer}>
+                  <Ionicons
+                    name="information"
+                    size={18}
+                    color="#C2410C"
+                  />
+                </View>
+
+                {/* Content */}
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoTitle}>
+                    {showLimtlables}
+                  </Text>
+
+                  <Text style={styles.infoMessage}>
+                    {advanceLimitSHowMessage}
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
 
 
       }
@@ -396,6 +347,22 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderWidth: 1,
     borderColor: '#FED7AA',
+  },
+  reasonCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginTop: 5,
+    marginBottom: 20
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: fontsFamily.boldFont,
+    color: '#0F172A',
   },
 
   infoContent: {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Alert, Animated, LayoutAnimation, Platform, UIManager, TextInput, StatusBar, } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity,Easing, Dimensions, Image, Alert, Animated, LayoutAnimation, Platform, UIManager, TextInput, StatusBar, } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import TopBar from '../../../component/TopBar';
 import Icon from 'react-native-vector-icons/Feather';
@@ -20,6 +20,8 @@ import { CommandIcon } from 'lucide-react-native';
 import CommonIcon from '../../../../common_component/Commonicons';
 import usInsightsLabels from '../../../../hook/Labels/usInsightsLabels';
 const { width } = Dimensions.get('window');
+import Svg, { Circle } from 'react-native-svg';
+import { themeColors } from '../../../Common';
 
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -227,6 +229,7 @@ export default function Insights() {
     const { icons } = useSelector((state) => state.menuicons);
     const { insightFilter,overView,insightCat,cashFlow,incomeFlow,spending,pattern,debtloan,transaction } = usInsightsLabels()
     const [menuVisible, setMenuVisible] = useState(false);
+    
 
     const autoCloseTimerRef = useRef(null);
     // const [data,setData] = useState('')
@@ -498,8 +501,9 @@ export default function Insights() {
 
     // ─── OVERVIEW TAB ────────────────────────────────────
 
+    const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-    const CircularProgress = ({
+    const CircularProgress1 = ({
         value = 0,
         color = '#4CAF50',
         size = 80,
@@ -620,6 +624,81 @@ export default function Insights() {
         );
     };
 
+    const CircularProgress = ({ percentage, color, size = 140, strokeWidth = 10 }) => {
+    const animatedValue = useRef(new Animated.Value(0)).current;
+    const [progress, setProgress] = useState(0);
+
+
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+
+    useEffect(() => {
+        const listener = animatedValue.addListener(({ value }) => setProgress(value));
+
+        Animated.timing(animatedValue, {
+            toValue: percentage,
+            duration: 1500,
+            easing: Easing.out(Easing.bezier(0.25, 0.1, 0.25, 1)),
+            useNativeDriver: false, // strokeDashoffset can't use native driver
+        }).start();
+
+        return () => animatedValue.removeListener(listener);
+    }, [percentage]);
+
+    const getProgressColor = () => {
+        if (percentage >= 100) return '#34C759';
+        if (percentage >= 75) return '#3F2B96';
+        if (percentage >= 50) return '#FFB347';
+        if (percentage >= 25) return '#FF8C00';
+        return '#FF6B6B';
+    };
+
+    const progressColor = color || getProgressColor();
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+    return (
+        <View style={[styles.container, { width: size, height: size, backgroundColor: 'transparent' }]}>
+            <Svg width={size} height={size}>
+                {/* Background ring */}
+                <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke="#F1F5F9"
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                />
+                {/* Progress ring */}
+                <AnimatedCircle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke={progressColor}
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    // rotate so it starts at 12 o'clock instead of 3 o'clock
+                    rotation="-90"
+                    origin={`${size / 2}, ${size / 2}`}
+                />
+            </Svg>
+
+            <View style={styles.percentageContainer}>
+                <Text style={[styles.percentageText, { color: progressColor }]}>
+                    {progress.toFixed(0)}
+                </Text>
+                    <Text style={[styles.percentageText, { color:  '#64748B', fontSize:12 }]}>
+                     / 100
+                </Text>
+                {/* <Text style={styles.percentageLabel}>{appLabels.progressRingLabel}</Text> */}
+            </View>
+        </View>
+    );
+};
+
+
 
 
 
@@ -641,10 +720,19 @@ export default function Insights() {
                         <View style={styles.heroContent}>
                             <View style={styles.heroScoreSection}>
 
-                                <CircularProgress
+                                {/* <CircularProgress
                                     value={s.overall}
                                     color={col}
                                     size={80}
+                                /> */}
+
+                                   <CircularProgress
+                                    percentage={s.overall}
+                                    color={
+                                         themeColors.primarColor
+                                    }
+                                    size={90}
+                                    strokeWidth={6}
                                 />
 
                                 <View style={styles.heroInfo}>
@@ -1656,9 +1744,24 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F8FAFC',
     },
+  percentageContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  percentageText: { fontSize: 25, fontWeight: '700' },
+  percentageLabel: { fontSize: 12, color: '#94A3B8' },
     scrollView: {
         flex: 1,
     },
+      container: {
+
+    backgroundColor: '#F8FAFC',
+  },
     scrollContent: {
         paddingHorizontal: 16,
         paddingTop: 8,

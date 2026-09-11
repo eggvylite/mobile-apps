@@ -33,6 +33,11 @@ import Plan from "../screens/main/subscription/Plan";
 import Subscription from "../screens/main/subscription/Subscription";
 import EWADetailScreen from "../widgets/EWADetailScreen";
 import NotificationDestailsScreen from "../widgets/NotificationDestailsScreen";
+import BudgetRoute from "./BudgetRoute";
+import DashboardRoute from "./DashboardRoute";
+import GoalRoute from "./GoalRoute";
+import InsightsRoute from "./InsightsRoute";
+import OffersRoute from "./OffersRoute";
 
 export const CommonScreens = [
   { name: 'Profile', component: Profile },
@@ -69,4 +74,9 @@ export const CommonScreens = [
   { name: 'SubscriptionDetailsScreen', component: SubscriptionDetailsScreen },
   { name: 'Repayment', component: Repayment },
   { name: 'GetPayment', component: GetPayment },
+  { name: 'DashboardRoute', component: DashboardRoute },
+  { name: 'InsightRoute', component: InsightsRoute },
+  { name: 'BudgetRoute', component: BudgetRoute },
+  { name: 'OffersRoute', component: OffersRoute },
+  { name: 'GoalRoute', component: GoalRoute },
 ];

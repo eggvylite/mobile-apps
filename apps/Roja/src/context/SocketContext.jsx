@@ -178,8 +178,7 @@ export const SocketProvider = ({ children }) => {
                 }
                 else {
 
-                    console.log(msg)
-                    appLog.info('--last')
+
                     setMessage(msg);
                 }
 
@@ -193,18 +192,18 @@ export const SocketProvider = ({ children }) => {
         return () => {
             if (socket || message) {
                 socket.disconnect();
-                console.log("Socket disconnected");
+                appLog.info("Socket disconnected");
             }
         };
     }, []);
 
     const changeSetmsg = (msg) => {
-        console.log(msg)
+        appLog.info(msg)
         setMessage(msg);
     };
 
     const changeMsg = () => {
-        console.log('i am clear message')
+        appLog.info('i am clear message')
         setMessage(null)
     }
 

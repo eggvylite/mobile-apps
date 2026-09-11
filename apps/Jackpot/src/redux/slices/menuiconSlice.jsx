@@ -35,6 +35,7 @@ const initialState = {
   icons: [],
   dashboard: [],
   insights: [],
+  subscriptionreason: []
 
 };
 
@@ -68,6 +69,7 @@ const menuiconSlice = createSlice({
         state.dashboard = action?.payload?.records.filter((obj) => obj.type === 'dashboards');
         state.insights = action?.payload?.records.filter((obj) => obj.type === 'insightss');
         state.report = action?.payload?.records.filter((obj) => obj.type === 'reports');
+        state.subscriptionreason = action?.payload?.records.filter((obj) => obj.type === 'cancelreason');
 
 
 

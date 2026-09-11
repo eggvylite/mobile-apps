@@ -387,7 +387,7 @@ const Register = ({ navigation, route }) => {
                       handleInputChange('check', '')
                     }
                   }}>
-                    <Text style={[{ fontSize: getFontSize(14), fontFamily:fontsFamily.regularFont }]}>{registerContent.marketingmesg}</Text>
+                    <Text style={[{ fontSize: getFontSize(14), fontFamily: fontsFamily.regularFont }]}>{registerContent.marketingmesg}</Text>
                   </Pressable>
                 </View>
 
@@ -446,6 +446,8 @@ const Register = ({ navigation, route }) => {
                       placeholder="State"
                       labelField="label"
                       valueField="value"
+                      search
+                      searchPlaceholder='Search ...'
                       placeholderStyle={{ color: "#999" }}
                       onChange={(e) => {
                         if (e.value != 1) {
@@ -473,6 +475,8 @@ const Register = ({ navigation, route }) => {
                       placeholderStyle={{ color: "#999" }}
                       placeholder="City"
                       labelField="label"
+                      search
+                      searchPlaceholder='Search ...'
                       valueField="value"
                       onChange={(e) => {
                         if (e.value != 1) {
@@ -501,6 +505,8 @@ const Register = ({ navigation, route }) => {
                   placeholderStyle={{ color: "#999" }}
                   labelField="label"
                   valueField="value"
+                  search
+                  searchPlaceholder='Search ...'
                   onChange={(e) => {
                     if (e.value != 1) {
                       setFormData({ ...formData, zip_id: e.value, });

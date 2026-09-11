@@ -34,7 +34,7 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
   const navigation = useNavigation();
   const { formatDate, formatTime } = useDashboardUtils();
   const { workflow } = useFeatureFlow(WORKFLOW_CONSTANT.GETSTATEMENT)
-   const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
   const {
     slideAnim,
     fadeAnim,
@@ -177,7 +177,6 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
 
                     const disabled = isItemDisabled(subvalue?.id);
 
-                    // Show this item only when workflow is enabled
                     if (
                       subvalue?.id === '674823ebb2253a1fd8a5b71f' &&
                       !workflow?.enabled
@@ -386,10 +385,11 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
 
   return (
     <Modal animationType="none" transparent={true} visible={visible} onRequestClose={onClose} statusBarTranslucent={true}>
-      <Animated.View style={[styles.modalOverlay, ]}>
+      <Animated.View style={[styles.modalOverlay,]}>
         <Pressable style={styles.overlayTouchable} onPress={onClose} />
         <Animated.View style={[styles.menuContainer, { width: menuWidth, transform: [{ translateX: slideAnim }] }]}>
-          <Pressable style={styles.menuTouchable} onPress={(e) => e.stopPropagation()}>
+
+          <View style={styles.menuTouchable}>
             <LinearGradient colors={themeColors?.gradientColor} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
               <View style={{ top: '40%' }}>
                 <View style={styles.headerContent}>
@@ -415,12 +415,18 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
               </View>
             </LinearGradient>
 
-            <ScrollView style={styles.menuList} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent]}>
+            <ScrollView
+              style={styles.menuList}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollContent]}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
+            >
               <View style={{ marginTop: 10, marginBottom: 10 }}>
                 {renderMenuItems()}
               </View>
 
-              <TouchableOpacity onPress={handleLogout} activeOpacity={0.7 } style={{paddingBottom:insets.bottom}}>
+              <TouchableOpacity onPress={handleLogout} activeOpacity={0.7} style={{ paddingBottom: insets.bottom }}>
                 <LinearGradient colors={['#FEF2F2', '#FEE2E2']} style={styles.logoutGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                   <View style={styles.logoutContent}>
                     <View style={styles.logoutIconContainer}>
@@ -435,7 +441,7 @@ export default function MenuScreen({ visible, onClose, onGetStatement }) {
                 </LinearGradient>
               </TouchableOpacity>
             </ScrollView>
-          </Pressable>
+          </View>
         </Animated.View>
       </Animated.View>
     </Modal>

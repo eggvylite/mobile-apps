@@ -15,6 +15,7 @@ import { themeColors } from '../../../../Common';
 import useGeneralLabelsHook from '../../../../../hook/Labels/useGenerallablehoo';
 import useDashboardLablehook from '../../../../../hook/Labels/useDashboardLablehook';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
+import appLog from '../../../../../constants/logger';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.72;
@@ -35,14 +36,19 @@ export default function OutstandingCard({
     const scrollViewRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
-    const { showOprnManualRepaymentOption } = usegetAdvancepartialFlow()
-    const { isAdvanceLimitExceeded, instantFundFee, getAdvanceLimitCount, pendingLast30DaysCount } = usegetAdvancepartialFlow()
+    const {
+        isAdvanceLimitExceeded,
+        instantFundFee,
+        getAdvanceLimitCount,
+        pendingLast30DaysCount,
+        showOprnManualRepaymentOption
+    } = usegetAdvancepartialFlow();
     const { advanceLimitSHowMessage, showLimtlables, advanceLimitButton, advanceCardUsed } = useGeneralLabelsHook()
     const { cusDetails, loading, error } = useSelector((state) => state.customer);
     const { storedata, storeloading, storeerror } = useSelector((state) => state.auth);
     const { themedata } = useSelector((state) => state.appcolor);
     const { sub_advance_labels } = useDashboardLablehook()
-
+    const { totalBill, activeSub } = useSelector((state) => state.advance);
 
 
 
@@ -105,17 +111,6 @@ export default function OutstandingCard({
         return dt
     }
 
-
-
-    const getLatestAdvanceDate = () => {
-        // if (advanceHistory && advanceHistory.length > 0 && 0 < outstandingBalance ) {
-        //     const latest = advanceHistory[0];
-        //     return latest.next_payment_date || 'N/A';
-        // }
-        return formatDate(cusDetails?.upcomingpayrolldate) || 'N/A';
-    };
-
-    // Generate customer ID
     const customerId = `#PAI${Math.floor(100000 + Math.random() * 900000)}`;
 
     const renderCard = () => {
@@ -199,14 +194,13 @@ export default function OutstandingCard({
                                     styles.advanceProgressFill,
                                     {
                                         width: `${Math.min((pendingLast30DaysCount / getAdvanceLimitCount) * 100, 100)}%`,
-                                        backgroundColor:'#E56772'
+                                        backgroundColor: '#E56772'
                                     }
                                 ]}
                             />
                         </View>
 
                     </View>
-
 
 
 

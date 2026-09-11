@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, StatusBar, TextInput, Animated, Dimensions, FlatList, Modal, } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -14,6 +14,10 @@ import { linkTransaction } from '../../../../../constants/Reminderapi';
 import { WORKFLOW_CONSTANT } from '../../../../../constants/workflowConstents';
 import WorkflowScreen from '../../../../widgets/WorkflowScreen';
 import { fontsFamily } from '../../../../../constants/fontsFamily';
+import { SubscriptionDetailsSkeleton } from '../../subscription/component/SubscriptionLoader';
+import { RimanderDetailsSkeleton } from './RimanderDetailsSkeleton';
+import { appuseBackHandler } from '../../../../../utill/appuseBackHandler';
+import { BottomContext } from '../../../../../context/BottomContext';
 
 
 const { width } = Dimensions.get('window');
@@ -29,13 +33,14 @@ const Reminders = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredReminders, setFilteredReminders] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState(route?.params?.items ? 'Active' : 'All')
-  const { billdata } = useSelector((state) => state.bill);
+  const { billdata, billloading } = useSelector((state) => state.bill);
   const { reminderdata } = useSelector((state) => state.reminder);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const { storedata } = useSelector((state) => state.auth);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const selectItems = route?.params?.items
   const dispatch = useDispatch()
+  const { enableMenu, disableMenu } = useContext(BottomContext);
 
   const ITEM_HEIGHT = 44; // must match your styles.datePickerItem height
 
@@ -123,6 +128,21 @@ const Reminders = () => {
     }
   }
 
+
+  appuseBackHandler(() => {
+    onBackscreen()
+    return true;
+  });
+
+
+  const onBackscreen = () => {
+    navigation.goBack()
+    if (!selectItems) {
+      enableMenu()
+    }
+
+  }
+
   const renderReminderItem = ({ item, index }) => {
     var number = ''
     if (item?.account_id?.account_number) {
@@ -130,6 +150,8 @@ const Reminders = () => {
     } else {
       number = ' - ' + content.manual
     }
+
+
 
     return (
       <TouchableOpacity
@@ -255,6 +277,8 @@ const Reminders = () => {
     </Modal>
   );
 
+
+
   return (
     <WorkflowScreen
       settingKey={WORKFLOW_CONSTANT.REMINDER}
@@ -267,95 +291,99 @@ const Reminders = () => {
         <TopBar
           title="Reminders"
           showBack={true}
-          onBackPress={() => navigation.goBack()}
+          onBackPress={() => onBackscreen()}
         />
 
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Feather name="search" size={20} color="#94A3B8" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search by name and category"
-                placeholderTextColor="#94A3B8"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Feather name="x" size={20} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.filterSection}>
-            <ScrollView ref={filterStausref}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterChipsContainer}
-            >
-              {filterOptions.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={[
-                    styles.filterChip,
-                    selectedFilter === option && styles.filterChipActive
-                  ]}
-                  onPress={() => setSelectedFilter(option)}
-                >
-                  <Text style={[
-                    styles.filterChipText,
-                    selectedFilter === option && styles.filterChipTextActive
-                  ]}>
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setShowFilterModal(true)}
-            >
-              <Feather name="sliders" size={18} color="#2A1B6D" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsText}>
-              {filteredReminders.length} {filteredReminders.length === 1 ? 'reminder' : 'reminders'}
-            </Text>
-          </View>
-          <FlatList
-            data={filteredReminders}
-            renderItem={renderReminderItem}
-            keyExtractor={(item) => item?._id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Feather name="bell-off" size={48} color="#94A3B8" />
-                <Text style={styles.emptyTitle}>No Reminders Found</Text>
-                <Text style={styles.emptySubtitle}>Try adjusting your search or filter</Text>
+        {
+          billloading ? <RimanderDetailsSkeleton /> : <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+            <View style={styles.searchContainer}>
+              <View style={styles.searchBar}>
+                <Feather name="search" size={20} color="#94A3B8" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search by name and category"
+                  placeholderTextColor="#94A3B8"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Feather name="x" size={20} color="#94A3B8" />
+                  </TouchableOpacity>
+                )}
               </View>
-            }
-          />
+            </View>
 
-          <TouchableOpacity
-            style={styles.fabButton}
-            activeOpacity={0.8}
-            onPress={handleAddReminder}
-          >
-            <LinearGradient
-              colors={['#2A1B6D', '#2633a7']}
-              style={styles.fabGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View style={styles.filterSection}>
+              <ScrollView ref={filterStausref}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterChipsContainer}
+              >
+                {filterOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.filterChip,
+                      selectedFilter === option && styles.filterChipActive
+                    ]}
+                    onPress={() => setSelectedFilter(option)}
+                  >
+                    <Text style={[
+                      styles.filterChipText,
+                      selectedFilter === option && styles.filterChipTextActive
+                    ]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={styles.filterButton}
+                onPress={() => setShowFilterModal(true)}
+              >
+                <Feather name="sliders" size={18} color="#2A1B6D" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.resultsContainer}>
+              <Text style={styles.resultsText}>
+                {filteredReminders.length} {filteredReminders.length === 1 ? 'reminder' : 'reminders'}
+              </Text>
+            </View>
+            <FlatList
+              data={filteredReminders}
+              renderItem={renderReminderItem}
+              keyExtractor={(item) => item?._id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Feather name="bell-off" size={48} color="#94A3B8" />
+                  <Text style={styles.emptyTitle}>No Reminders Found</Text>
+                  <Text style={styles.emptySubtitle}>Try adjusting your search or filter</Text>
+                </View>
+              }
+            />
+
+            <TouchableOpacity
+              style={styles.fabButton}
+              activeOpacity={0.8}
+              onPress={handleAddReminder}
             >
-              <Feather name="plus" size={24} color="#FFFFFF" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+              <LinearGradient
+                colors={['#2A1B6D', '#2633a7']}
+                style={styles.fabGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Feather name="plus" size={24} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        }
+
+
         {renderFilterModal()}
       </SafeAreaView>
     </WorkflowScreen>

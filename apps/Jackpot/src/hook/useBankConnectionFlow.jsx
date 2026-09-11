@@ -20,6 +20,8 @@ import { fetchElgibleoffers } from '../redux/slices/elgibleofferSlice';
 import { fetchOffers } from '../redux/slices/offerSlice';
 import appLog from '../constants/logger';
 import { resetgetaccount } from '../redux/slices/getnameAccountSlice';
+import { fetchCustomer } from '../redux/slices/customerSlice';
+import { fetchEwf } from '../redux/slices/socreMycashSlice';
 
 export default function useBankConnectionFlow() {
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,6 @@ export default function useBankConnectionFlow() {
   const [reqcode, setReqcode] = useState('');
   const [pollingActive, setPollingActive] = useState(false);
   const [successCallback, setSuccessCallback] = useState(null);
-
   const { storedata } = useSelector((state) => state.auth);
   const { themedata } = useSelector((state) => state.appcolor);
   const { notifidata } = useSelector((state) => state.notificonect);
@@ -77,11 +78,14 @@ export default function useBankConnectionFlow() {
         const obj = { ...store, request_status: 'Yes', chirp: 'Yes' };
         await CommonFunction.storeData('@cusLoginInfo', obj);
         dispatch(updateAuthdata(obj));
+        dispatch(fetchCustomer())
         dispatch(fetchgetllAccount());
         dispatch(fetchAuth());
         dispatch(fetchgetAccount());
         dispatch(fetchAccount());
         dispatch(fetchHanpickoffers());
+        dispatch(fetchEwf())
+
 
         setLoading(false);
         setLoadStage(0);
@@ -101,71 +105,148 @@ export default function useBankConnectionFlow() {
     [dispatch, getOffers, enableMenu]
   );
 
-  const openBankLink = useCallback(
-    async (code, onSuccess, onCancel) => {
-      const url = `${BASE_URL}dashboard/chirpWidget/${code}`;
+  // const openBankLink = useCallback(
+  //   async (code, onSuccess, onCancel) => {
 
-      try {
-        const available = await InAppBrowser.isAvailable();
-        if (!available) {
-          Linking.openURL(url);
-          return;
-        }
+  //     const url = `${storedata?.widgeturl}bankwidget/${code}`;
+  //     const redirectUrl = "roja://chirp-close";
 
-        const result = await InAppBrowser.open(url, {
-          dismissButtonStyle: 'cancel',
-          preferredBarTintColor: themeColors.bgbtn,
-          preferredControlTintColor: 'white',
-          modalPresentationStyle: 'fullScreen',
-          animations: {
-            startEnter: 'slide_in_right',
-            startExit: 'slide_out_left',
-            endEnter: 'slide_in_left',
-            endExit: 'slide_out_right',
-          },
-        });
+  //     try {
+  //       const available = await InAppBrowser.isAvailable();
+  //       if (!available) {
+  //         Linking.openURL(url);
+  //         return;
+  //       }
 
-        if (result.type === 'cancel') {
-          setLoadStage(1);
-          setLoading(true);
-          setPollingActive(false); // Browser closed, stop background timer
-          appLog.info('InAppBrowser closed (cancel), stopping polling timer');
+  //       const result = await InAppBrowser.open(url, redirectUrl, {
+  //         dismissButtonStyle: 'cancel',
+  //         preferredBarTintColor: themeColors.bgbtn,
+  //         preferredControlTintColor: 'white',
+  //         modalPresentationStyle: 'fullScreen',
+  //         ephemeralWebSession: false,
 
-          const decrpt = CommonFunction.reqdecdecrpt(code);
-          const statusreqcode = reqcode || decrpt;
+  //         // Android
+  //         showTitle: true,
+  //         enableUrlBarHiding: true,
+  //         enableDefaultShare: false,
+  //         animations: {
+  //           startEnter: 'slide_in_right',
+  //           startExit: 'slide_out_left',
+  //           endEnter: 'slide_in_left',
+  //           endExit: 'slide_out_right',
+  //         },
+  //       });
 
-          try {
-            const res = await statuschcek(statusreqcode);
-            if (res.data.status === 'Yes') {
-              await aggregateData(statusreqcode, onSuccess);
-            } else {
-              setLoading(false);
-              setLoadStage(0);
-              setPollingActive(false);
-              enableMenu();
-              if (onCancel) onCancel();
-            }
-          } catch (err) {
+  //       if (result.type === 'cancel') {
+  //         setLoadStage(1);
+  //         setLoading(true);
+  //         setPollingActive(false); // Browser closed, stop background timer
+  //         appLog.info('InAppBrowser closed (cancel), stopping polling timer');
+
+  //         const decrpt = CommonFunction.reqdecdecrpt(code);
+  //         const statusreqcode = reqcode || decrpt;
+
+  //         try {
+  //           const res = await statuschcek(statusreqcode);
+  //           if (res.data.status === 'Yes') {
+  //             await aggregateData(statusreqcode, onSuccess);
+  //           } else {
+  //             setLoading(false);
+  //             setLoadStage(0);
+  //             setPollingActive(false);
+  //             enableMenu();
+  //             if (onCancel) onCancel();
+  //           }
+  //         } catch (err) {
+  //           setLoading(false);
+  //           setLoadStage(0);
+  //           setPollingActive(false);
+  //           enableMenu();
+  //           if (err?.response?.status < 500) {
+  //             CommonFunction.message(err.response.data.message, 'danger');
+  //           }
+  //           if (onCancel) onCancel();
+  //         }
+  //       }
+  //     } catch (error) {
+  //       setLoading(false);
+  //       setLoadStage(0);
+  //       setPollingActive(false);
+  //       Alert.alert('Browser Error', error.message);
+  //       if (onCancel) onCancel();
+  //     }
+  //   },
+  //   [themeColors, reqcode, statuschcek, aggregateData, enableMenu]
+  // );
+
+  const openBankLink = useCallback(async (code, onSuccess, onCancel) => {
+    const url = `${storedata?.widgeturl}bankwidget/${code}`;;
+    const redirectUrl = "roja://chirp-close";
+
+    try {
+      const available = await InAppBrowser.isAvailable();
+
+      if (!available) {
+        Linking.openURL(url);
+        return;
+      }
+
+      const result = await InAppBrowser.openAuth(url, redirectUrl, {
+        showTitle: true,
+        toolbarColor: themeColors.bgbtn,
+        enableUrlBarHiding: true,
+        enableDefaultShare: false,
+        forceCloseOnRedirection: true,
+        showInRecents: false,
+        closeButtonText: "Close"
+      });
+
+      console.log("InAppBrowser result:", result);
+
+      if (result.type === "success") {
+        setLoadStage(1);
+        setLoading(true);
+        setPollingActive(false);
+
+        const decrpt = CommonFunction.reqdecdecrpt(code);
+        const statusreqcode = reqcode || decrpt;
+
+        try {
+          const res = await statuschcek(statusreqcode);
+
+          if (res.data.status === "Yes") {
+            await aggregateData(statusreqcode, onSuccess);
+          } else {
             setLoading(false);
             setLoadStage(0);
             setPollingActive(false);
             enableMenu();
-            if (err?.response?.status < 500) {
-              CommonFunction.message(err.response.data.message, 'danger');
-            }
             if (onCancel) onCancel();
           }
+        } catch (err) {
+          setLoading(false);
+          setLoadStage(0);
+          setPollingActive(false);
+          enableMenu();
+          if (err?.response?.status < 500) CommonFunction.message(err.response.data.message, "danger");
+          if (onCancel) onCancel();
         }
-      } catch (error) {
+      } else if (result.type === "cancel") {
+        // Handle user cancellation
         setLoading(false);
         setLoadStage(0);
         setPollingActive(false);
-        Alert.alert('Browser Error', error.message);
+        enableMenu();
         if (onCancel) onCancel();
       }
-    },
-    [themeColors, reqcode, statuschcek, aggregateData, enableMenu]
-  );
+    } catch (error) {
+      setLoading(false);
+      setLoadStage(0);
+      setPollingActive(false);
+      Alert.alert("Browser Error", error.message);
+      if (onCancel) onCancel();
+    }
+  }, [themeColors, reqcode, statuschcek, aggregateData, enableMenu]);
 
   const startConnection = useCallback(async (onSuccess, onCancel) => {
     setLoading(true);

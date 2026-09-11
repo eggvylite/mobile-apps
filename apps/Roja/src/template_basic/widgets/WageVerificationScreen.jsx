@@ -35,6 +35,9 @@ import useFeatureWorkInfoLabel from '../../hook/useFeatureInfoWorkLablehook';
 import useGeneralLabelsHook from '../../hook/Labels/useGenerallablehoo';
 import useBankConnectionLabelFlow from '../../hook/Labels/useBankConnectionMagemntLableHook';
 import CommonIcon from '../../common_component/Commonicons';
+import CloudImage from '../../utill/CloudImage';
+import { useDashboardUtils } from '../../hook/useDashboardUtils';
+import { fetchEwf } from '../../redux/slices/socreMycashSlice';
 
 
 
@@ -54,6 +57,19 @@ export const replaceDynamicValues = (label, value) => {
     return label.replace(/\{details\}/g, String(value ?? ''));
 };
 
+
+export const replacemyDynamicValues = (label, values) => {
+    if (typeof label !== 'string') {
+        return '';
+    }
+
+    return label
+        .replace(/\{details\}/g, String(values ?? ''))
+        .replace(/\{info\}/g, String(values ?? ''));
+};
+
+
+
 const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, description, mode = 'card', connectBankOnPress, wageVerificationLabeleData, deletedOnPress }) => {
     const [isFlowModalVisible, setIsFlowModalVisible] = useState(mode === 'inline');
     const [currentStep, setCurrentStep] = useState(FLOW_STEPS.INCOME);
@@ -71,6 +87,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
     const [deteteModelOpen, setDeleteModel] = useState(false)
     const { storedata } = useSelector((state) => state.auth);
     const [openNewBankConnect, setNewBankConnect] = useState(false)
+    const { ewfInfo } = useSelector((state) => state.ewf)
     const dispatch = useDispatch()
     const { featureLabel } = useFeatureWorkInfoLabel()
     const { connectNewBankAlertPromt,
@@ -78,9 +95,15 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
         deleteBankPromtAlertPromt,
         deleteConnectBankPromtTitle, wageProgress, manageBankConnection, manageBankConnectionDescription } = useGeneralLabelsHook()
 
-    const { bankAccountDataLabel, wageConnectionLabelData } = useBankConnectionLabelFlow()
+    const { bankAccountDataLabel, wageConnectionLabelData, wageProcessingLabels } = useBankConnectionLabelFlow()
 
 
+    useEffect(() => {
+        if (!ewfInfo) {
+            dispatch(fetchEwf())
+        }
+
+    }, [dispatch])
 
 
 
@@ -94,15 +117,20 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
         STATUS_COLORS,
         incomeTransactions,
         submitWageVerification,
-        isSubmitting
+        isSubmitting,
+        connectedRecord
     } = useWageVerificationData();
     const { showBank, setShowBank } = useConnectBankWorkFlow();
     const { formatDate: formatDateCommon, formatTime } = useUserSettings()
+
 
     // Get all income transactions
     const get2026Transactions = () => {
         return incomeTransactions || [];
     };
+
+
+
 
     // Get selected transactions
     const getSelectedTransactions = () => {
@@ -436,10 +464,10 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
         }
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Select a date';
-        return formatDateCommon(dateString);
-    };
+    // const formatDate = (dateString) => {
+    //     if (!dateString) return 'Select a date';
+    //     return formatDateCommon(dateString);
+    // };
 
     const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -529,7 +557,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                     <View style={styles.selectedDateDisplay}>
                         <Icon name="calendar-check" size={16} color="#2FA948" />
                         <Text style={styles.selectedDateDisplayText}>
-                            Selected: {formatDate(tempSelectedDate)}
+                            Selected: {formatDateCommon(tempSelectedDate)}
                         </Text>
                     </View>
                 )}
@@ -593,7 +621,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                                 {item.description}
                             </Text>
                             <View style={styles.transactionMeta}>
-                                <Text style={styles.transactionDate}>{formatDate(item?.date)}</Text>
+                                <Text style={styles.transactionDate}>{formatDateCommon(item?.date)}</Text>
                                 <Text style={styles.transactionTime}>{formatTime(item.date)}</Text>
                                 <View style={styles.transactionTypeBadge}>
                                     {/* <Text style={styles.transactionTypeText}>{item.type}</Text> */}
@@ -840,7 +868,7 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                 <View style={styles.selectedDateContainer}>
                     <Icon name="check-circle" size={16} color="#2FA948" />
                     <Text style={styles.selectedDateText}>
-                        Selected: {formatDate(selectedUpcomingPayDay)}
+                        Selected: {formatDateCommon(selectedUpcomingPayDay)}
                     </Text>
                 </View>
             )}
@@ -939,12 +967,12 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
 
                                 {
                                     0 < wageConnectionLabelData?.notes?.length ? <TouchableOpacity
-                                        style={styles.primaryButton}
+                                        style={[styles.primaryButton]}
                                         onPress={handleCheckWages}
                                         activeOpacity={0.8}
                                     >
 
-                                        <Text style={styles.primaryButtonText}>{wageConnectionLabelData?.notes[1]?.label ?? ''}</Text>
+                                        <Text style={[styles.primaryButtonText]}>{wageConnectionLabelData?.notes[1]?.label ?? ''}</Text>
                                     </TouchableOpacity> :
                                         <TouchableOpacity
                                             style={styles.primaryButton}
@@ -981,6 +1009,8 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
                         }
 
                     </ScrollView>
+
+
                     <AppCommonModal
                         visible={deteteModelOpen}
                         icon="trash-2"
@@ -1020,130 +1050,245 @@ const WageVerificationScreen = ({ onBackPress, dashbordscreen = false, title, de
 
             );
         case WageStatus.PROCESSING:
-                return (
-                    <View style={{ flex: 1, marginVertical: 20 }}>
+            return (
+                <View style={{ flex: 1, marginVertical: 20 }}>
 
 
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                    <ScrollView showsVerticalScrollIndicator={false}>
 
 
-                            <View style={{
-                                backgroundColor: '#FFFFFF',
-                                borderRadius: 20,
-                                marginHorizontal: 16,
-                                marginVertical: 12,
-                                padding: 20,
-                                borderWidth: 1,
-                                borderColor: '#E5E7EB',
-                            }}>
-                                <Text style={[styles.modalTitle, { marginBottom: 20 }]}>Wage Verification Status</Text>
+                        <TouchableOpacity style ={{margin:Platform.OS === 'android'? 15:0}} activeOpacity={0.9}>
+                            <LinearGradient
+                                colors={['#FFF8E1', '#FFECB3']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.progressCard}
+                            >
+                                <View style={styles.progressLeftContent}>
+                                    <Text style={[styles.inProgressTitle, { fontSize: 17 }]}>{wageProcessingLabels?.title || ""}</Text>
+                                    <Text style={[styles.inProgressSubtitle, { fontSize: 14, lineHeight: 17 }]}>{wageProcessingLabels?.description || ""}</Text>
 
-                                <View style={styles.statusBankSection}>
-                                    <View style={styles.statusBankIcon}>
-                                        <Icon name="university" size={20} color="#5A21F1" />
-                                    </View>
-                                    <View style={styles.statusBankInfo}>
-                                        <Text style={styles.statusBankName}>{defaultBankName}</Text>
-                                        <Text style={styles.statusBankAccount}>{defaultBankAccountType}</Text>
-                                    </View>
                                 </View>
 
+                                <View style={styles.progressImageWrap}>
+                                    {
+                                        wageProcessingLabels?.fimage ? <CloudImage
+                                            resizeMode="contain"
+                                            style={styles.clockImage}
 
-                                <View style={styles.statusStepsContainer}>
-                                    {DEFAULT_STEPS.map((step, index) => (
-                                        <View key={step.id}>
-                                            <View style={styles.statusStepRow}>
-                                                <View style={styles.statusStepIcon}>
-                                                    <Icon
-                                                        name={step.icon}
-                                                        size={20}
-                                                        color={
-                                                            step.status === 'completed' ? '#2FA948' :
-                                                                step.status === 'in-progress' ? '#F57C00' : '#BDBDBD'
-                                                        }
-                                                    />
-                                                </View>
-                                                <View style={styles.statusStepContent}>
-                                                    <Text style={[
-                                                        styles.statusStepTitle,
-                                                        step.status === 'pending' && styles.statusStepTitlePending
-                                                    ]}>
-                                                        {step.title}
-                                                    </Text>
-                                                    <Text style={styles.statusStepSubtitle}>{step.subtitle}</Text>
-                                                </View>
-                                                <View style={styles.statusStepDate}>
-                                                    <Text style={styles.statusStepDateText}>{step.date}</Text>
-                                                    {step.status === 'in-progress' && (
-                                                        <View style={styles.statusStepBadge}>
-                                                            <Text style={styles.statusStepBadgeText}>In Progress</Text>
-                                                        </View>
-                                                    )}
-                                                    {step.status === 'completed' && (
-                                                        <Icon name="check-circle" size={16} color="#2FA948" />
-                                                    )}
-                                                </View>
-                                            </View>
-                                            {index < DEFAULT_STEPS.length - 1 && (
-                                                <View style={[
-                                                    styles.statusStepLine,
-                                                    step.status === 'completed' && styles.statusStepLineCompleted
-                                                ]} />
-                                            )}
-                                        </View>
-                                    ))}
+                                            cloudSource={wageProcessingLabels?.fimage} /> : <Image
+                                            source={require('../../../assets/images/verification-progress.png')}
+                                            style={styles.clockImage}
+                                            resizeMode="contain"
+                                        />
+                                    }
+
+
                                 </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
 
-                                <View style={styles.statusMessageContainer}>
-                                    <Icon name="info-circle" size={16} color="#5A21F1" />
-                                    <Text style={styles.statusMessageText}>
-                                        {wageProgress}
-                                    </Text>
+
+
+                        <View style={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: 20,
+                            marginHorizontal: 16,
+                            marginVertical: 12,
+                            padding: 20,
+                            borderWidth: 1,
+                            borderColor: '#E5E7EB',
+                        }}>
+                            <Text style={[styles.modalTitle, { marginBottom: 20 }]}>{wageProcessingLabels?.head ?? ''}</Text>
+
+                            <View style={styles.statusBankSection}>
+                                <View style={styles.statusBankIcon}>
+                                    <Icon name="university" size={20} color="#5A21F1" />
+                                </View>
+                                <View style={styles.statusBankInfo}>
+                                    <Text style={styles.statusBankName}>{defaultBankName}</Text>
+                                    <Text style={styles.statusBankAccount}>{defaultBankAccountType}</Text>
                                 </View>
                             </View>
-                            <AccountManagementCard showBank={showBank} onConnectAnother={connectBankOpenhandler} onDeleteAccount={handleDeleteFunction} head={manageBankConnection} description={manageBankConnectionDescription} bankAccountDataLabel={bankAccountDataLabel} />
-                            {
-                                wageVerificationLabeleData && <BenefitSectionCard data={wageVerificationLabeleData} />
-                            }
 
 
-                        </ScrollView>
-                        <AppCommonModal
-                            visible={deteteModelOpen}
-                            icon="trash-2"
-                            title={deleteConnectBankPromtTitle}
-                            message={deleteBankPromtAlertPromt}
-                            confirmText="Disconnect"
-                            cancelText="Cancel"
-                            loading={deleteAccountLoading}
-                            bankIcon={true}
-                            iconFamilty={'MaterialCommunityIcons'}
-                            iconName={'bank-off'}
-                            onConfirm={() => {
-                                deleteAccountService()
-                            }}
-                            onCancel={() => setDeleteModel(false)}
-                        />
+                            <View style={styles.statusStepsContainer}>
+                                {wageProcessingLabels?.features?.length > 0 && (
+                                    <>
+                                        {wageProcessingLabels.features.map((item, index) => {
+                                            const isDateStep = index === 0 || index === 1;
+                                            const isVerifiedStep = index === 2 || index === 3;
+
+                                            return (
+                                                <View key={index}>
+                                                    <View style={styles.statusStepRow}>
+                                                        <View style={[styles.statusStepIcon, { backgroundColor: item?.bgcolor }]}>
+                                                            <CommonIcon
+                                                                name={item?.icon}
+                                                                size={20}
+                                                                family={item?.family}
+                                                                color={item?.iconcolor}
+                                                            />
+                                                        </View>
+
+                                                        <View style={styles.statusStepContent}>
+                                                            <Text style={styles.statusStepTitle}>
+                                                                {item?.title}
+                                                            </Text>
+                                                            <Text style={[styles.statusStepSubtitle]}>
+                                                                {
+                                                                    index == 0 ? replacemyDynamicValues(item?.description, defaultBankAccountType) : index == 3 ? replacemyDynamicValues(item?.description, ewfInfo?.manual ?? '') : item?.description
+                                                                }
 
 
-                        <AppCommonModal
-                            visible={openNewBankConnect}
-                            iconBackground={"#F1F5F9"}
-                            icon="credit-card"
-                            title={connectBankPromtTitle}
-                            message={connectNewBankAlertPromt}
-                            confirmText="Connect Bank"
-                            cancelText="Cancel"
-                            loading={deleteAccountLoading}
-                            bankIcon={true}
-                            iconFamilty={'FontAwesome5'}
-                            iconName={'university'}
-                            iconColor='#3F2B96'
-                            onConfirm={connectMultiBankService}
-                            onCancel={() => setNewBankConnect(false)}
-                        />
+                                                            </Text>
+                                                        </View>
+
+                                                        <View style={styles.statusStepDate}>
+                                                            {isDateStep && (
+                                                                <Text style={styles.statusStepDateText}>
+                                                                    {formatDateCommon(connectedRecord?.createdAt ?? new Date())}
+                                                                </Text>
+                                                            )}
+
+                                                            {isVerifiedStep && (
+                                                                <View style={[styles.statusStepBadge, { backgroundColor: 'transparent' }]}>
+                                                                    <>
+                                                                        {
+                                                                            wageProcessingLabels?.notes?.length && <>
+                                                                                {
+                                                                                    index === 2 ? <Text style={[styles.statusStepBadgeText, { color: '#5A21F1', fontSize: 13 }]}>
+                                                                                        {
+                                                                                            wageProcessingLabels?.notes?.[0]?.label ?? 'Verified'
+                                                                                        }
+                                                                                    </Text> :
+                                                                                        index === 3 ?
+                                                                                            <Text style={[styles.statusStepBadgeText, { color: '#f14021', fontSize: 13 }]}>
+                                                                                                {
+                                                                                                    wageProcessingLabels?.notes?.[1]?.label ?? 'Decline'
+                                                                                                }
+
+                                                                                            </Text> : <Text style={[styles.statusStepBadgeText, { color: '#f14021' }]}>
+
+                                                                                            </Text>
+                                                                                }
+
+                                                                            </>
+                                                                        }
+                                                                    </>
+
+
+                                                                </View>
+                                                            )}
+
+                                                            {isDateStep && (
+                                                                <Icon name="check-circle" size={16} color="#2FA948" />
+                                                            )}
+                                                        </View>
+                                                    </View>
+
+                                                    {index < wageProcessingLabels.features.length - 1 && (
+                                                        <View style={styles.statusStepLine} />
+                                                    )}
+                                                </View>
+                                            );
+                                        })}
+                                    </>
+                                )}
+                            </View>
+
+                            <View style={styles.statusMessageContainer}>
+                                <Icon name="info-circle" size={16} color="#5A21F1" />
+                                <Text style={styles.statusMessageText}>
+                                    {wageProcessingLabels?.information}
+                                </Text>
+                            </View>
+
+
+                        </View>
+                        <AccountManagementCard showBank={showBank} onConnectAnother={connectBankOpenhandler} onDeleteAccount={handleDeleteFunction} head={manageBankConnection} description={manageBankConnectionDescription} bankAccountDataLabel={bankAccountDataLabel} />
+                        {
+                            wageVerificationLabeleData && <BenefitSectionCard data={wageVerificationLabeleData} />
+                        }
+
+
+                    </ScrollView>
+
+
+                    <View style={styles.fixedBottomContainer}>
+                        <TouchableOpacity
+                            style={[styles.fixedBottomButton]}
+                            activeOpacity={0.8}
+                            onPress={connectBankOpenhandler}
+
+                        >
+                            <LinearGradient
+                                colors={['#3F2B96', '#2633a7']}
+                                style={styles.fixedBottomGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+
+                                <>
+                                    <CommonIcon
+                                        family={'FontAwesome5'}
+                                        name="university" size={18} color="#FFF" />
+                                    {
+                                        wageProcessingLabels?.notes?.length ? (
+                                            <Text style={styles.fixedBottomButtonText}>
+                                                {wageProcessingLabels?.notes?.[2]?.label}
+                                            </Text>
+                                        ) : (
+                                            <Text style={styles.fixedBottomButtonText}>
+                                                Connect Another Bank Account
+                                            </Text>
+                                        )
+                                    }
+
+                                </>
+
+                            </LinearGradient>
+                        </TouchableOpacity>
                     </View>
-                )
+
+
+
+                    <AppCommonModal
+                        visible={deteteModelOpen}
+                        icon="trash-2"
+                        title={deleteConnectBankPromtTitle}
+                        message={deleteBankPromtAlertPromt}
+                        confirmText="Disconnect"
+                        cancelText="Cancel"
+                        loading={deleteAccountLoading}
+                        bankIcon={true}
+                        iconFamilty={'MaterialCommunityIcons'}
+                        iconName={'bank-off'}
+                        onConfirm={() => {
+                            deleteAccountService()
+                        }}
+                        onCancel={() => setDeleteModel(false)}
+                    />
+
+
+                    <AppCommonModal
+                        visible={openNewBankConnect}
+                        iconBackground={"#F1F5F9"}
+                        icon="credit-card"
+                        title={connectBankPromtTitle}
+                        message={connectNewBankAlertPromt}
+                        confirmText="Connect Bank"
+                        cancelText="Cancel"
+                        loading={deleteAccountLoading}
+                        bankIcon={true}
+                        iconFamilty={'FontAwesome5'}
+                        iconName={'university'}
+                        iconColor='#3F2B96'
+                        onConfirm={connectMultiBankService}
+                        onCancel={() => setNewBankConnect(false)}
+                    />
+                </View>
+            )
 
 
 
@@ -2090,6 +2235,37 @@ const styles = StyleSheet.create({
         shadowOpacity: 0,
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,
+    },
+    fixedBottomContainer: {
+        marginTop: 10,
+        paddingHorizontal: 16,
+        paddingBottom: 10,
+        backgroundColor: 'transparent',
+    },
+    fixedBottomButton: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        width: '100%',
+        shadowColor: '#F8C80B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    fixedBottomGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 50,
+        gap: 10,
+    },
+    fixedBottomButtonText: {
+        fontSize: 16,
+        fontFamily: fontsFamily.boldFont,
+        color: '#FFFFFF',
+    },
+    connectBtnDisabled: {
+        opacity: 0.7,
     },
 });
 export default WageVerificationScreen;

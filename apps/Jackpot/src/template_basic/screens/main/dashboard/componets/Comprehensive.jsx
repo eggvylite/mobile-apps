@@ -31,17 +31,15 @@ export default function Comprehensive(props) {
   const { marketplaceFeature } = useSelector((state) => state.marketplace);
   const [offers, setOffers] = useState([])
   const { marketPlaceLabel } = useSelector((state) => state.labels || {});
-  const cardDetails = props?.record || ''
+  const cardDetails = props?.record || null;
 
   useEffect(() => {
     const reversed = [...(offerRec || [])].reverse();
     setOffers(reversed);
-  }, [offerssdata])
+  }, [offerRec, offerssdata])
 
 
-
-
-  const cards = [...cardDetails?.features];
+  const cards = cardDetails?.features || [];
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -65,8 +63,9 @@ export default function Comprehensive(props) {
   };
 
 
-
-
+  if (!cardDetails || cards.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -85,11 +84,15 @@ export default function Comprehensive(props) {
           snapToInterval={CARD_WIDTH + CARD_GAP}
         >
           {cards.map((card, index) => {
-            const details = marketplaceFeature.find((obj) => obj?._id === card.value)
+            const details = marketplaceFeature?.find((obj) => obj?._id === card?.value)
             return (
-              <TouchableOpacity key={card.id} style={[styles.card, { backgroundColor: details.card_bg, flexDirection: 'row' }]} onPress={() => {
-                props?.navigation?.navigate('OfferDetailScreen', { product: cardDetails })
-              }}>
+              <TouchableOpacity
+                key={card?.id ?? card?.value ?? index}
+                style={[styles.card, { backgroundColor: details?.card_bg, flexDirection: 'row' }]}
+                onPress={() => {
+                  props?.navigation?.navigate('OfferDetailScreen', { product: cardDetails })
+                }}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={[
                     styles.cardTitle,
@@ -107,17 +110,15 @@ export default function Comprehensive(props) {
 
                 </View>
 
-               <View style={{justifyContent:'center'}}>
- {
-                  details?.temp_image &&
-                  <CloudImage
-                    style={{ height: 80, width: 80 }}
-                    page='product'
-                    cloudSource={details?.temp_image} />
-                }
-               </View>
-
-
+                <View style={{ justifyContent: 'center' }}>
+                  {
+                    details?.temp_image &&
+                    <CloudImage
+                      style={{ height: 80, width: 80 }}
+                      page='product'
+                      cloudSource={details?.temp_image} />
+                  }
+                </View>
 
               </TouchableOpacity>
             )
@@ -126,7 +127,7 @@ export default function Comprehensive(props) {
       </View>
 
       <View style={styles.indicatorContainer}>
-        {cards.map((_, index) => (
+        {cards?.map((_, index) => (
           <TouchableOpacity
             key={index}
             onPress={() => scrollToIndex(index)}

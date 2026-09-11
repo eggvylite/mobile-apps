@@ -32,6 +32,9 @@ import { Divider } from 'react-native-paper';
 import appLog from '../../../../constants/logger';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import { fontsFamily } from '../../../../constants/fontsFamily';
+import usePaymentMethodLabelsHook from '../../../../hook/Labels/usePaymentMethodlabelHook';
+import { themeColors } from '../../../Common';
+
 const { width, height } = Dimensions.get('window');
 
 
@@ -39,7 +42,7 @@ const CARD_COLORS = {
     Visa: ['#1A1F71', '#2D3579'],
     Mastercard: ['#023d29', '#082e12'],
     Amex: ['#1500cf', '#2b0088'],
-    default: ['#3c3cd6', '#2633a7'],
+    default: themeColors.gradientColor,
 };
 const getCardColor = (type) => CARD_COLORS[type] || CARD_COLORS.default;
 
@@ -58,6 +61,7 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
     onSelect,
     onSetDefault,
     onDeletePress,
+    appLabels
 }) {
     const methodColors = getCardColor(method.brand || method.type);
     const isDefault = method.default?.toLowerCase() === 'yes';
@@ -86,8 +90,8 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
                 <View style={styles.methodRight}>
                     {isDefault && (
                         <View style={styles.defaultBadge}>
-                            <Feather name="check" size={10} color="#10B981" />
-                            <Text style={styles.defaultText}>Default</Text>
+                            <Feather name="check" size={10} color={themeColors.primarColor} />
+                            <Text style={styles.defaultText}>{appLabels.defaultBadgeLabel}</Text>
                         </View>
                     )}
                     <View style={[styles.methodRadio, isSelected && styles.methodRadioActive]}>
@@ -103,8 +107,8 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
                         onPress={() => onSetDefault(method)}
                         activeOpacity={0.7}
                     >
-                        <Feather name="star" size={14} color="#3c3cd6" />
-                        <Text style={styles.setDefaultText}>Set Default</Text>
+                        <Feather name="star" size={14} color={themeColors.primarColor} />
+                        <Text style={styles.setDefaultText}>{appLabels?.setdefuldButton ?? ''}</Text>
                     </TouchableOpacity>
                 )}
 
@@ -114,9 +118,9 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
                     activeOpacity={0.7}
                     disabled={isDefault}
                 >
-                    <Feather name="trash-2" size={14} color={isDefault ? '#94A3B8' : '#EF4444'} />
+                    <Feather name="trash-2" size={14} color={isDefault ? themeColors.secondarytextColor : themeColors.negativeColor} />
                     <Text style={[styles.deleteCardText, isDefault && styles.deleteCardTextDisabled]}>
-                        {isDefault ? 'Default' : 'Delete'}
+                        {isDefault ? appLabels.defaultBadgeLabel : 'Delete'}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -127,7 +131,7 @@ const PaymentCardRow = React.memo(function PaymentCardRow({
 
 const PaymentMethodSkeleton = () => (
     <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <SkeletonPlaceholder>
+        <SkeletonPlaceholder backgroundColor={themeColors.surface} highlightColor={themeColors.backgroudColor}>
             {/* Selected Card Skeleton */}
             <SkeletonPlaceholder.Item marginBottom={8} width={120} height={15} borderRadius={4} />
             <SkeletonPlaceholder.Item width="100%" height={150} borderRadius={16} marginBottom={20} />
@@ -160,7 +164,7 @@ export default function PaymentMethod({ route }) {
     const [isLoading, setIsLoading] = useState(false);
     const [showAddCardModal, setShowAddCardModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
+    const appLabels = usePaymentMethodLabelsHook()
     const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
         defaultValues: {
             cardNumber: '',
@@ -389,10 +393,10 @@ export default function PaymentMethod({ route }) {
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'top']}>
-            <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+            <StatusBar barStyle="dark-content" backgroundColor={themeColors.backgroudColor} />
 
             <TopBar
-                title={name ? name : 'Manage Payment Cards'}
+                title={name ? name : appLabels.screenTitle}
                 showBack={true}
                 onBackPress={() => navigation.goBack()}
                 showAdvance={false}
@@ -412,7 +416,7 @@ export default function PaymentMethod({ route }) {
                             (
                                 <View style={styles.providerInfo}>
                                     <View style={styles.providerInfoIcon}>
-                                        <Feather name="check-circle" size={16} color="#10B981" />
+                                        <Feather name="check-circle" size={16} color={themeColors.btnColor} />
                                     </View>
                                     <Text style={styles.providerInfoText}>
                                         Managing cards for: <Text style={styles.providerInfoHighlight}>{providerDisplayName}</Text>
@@ -423,7 +427,7 @@ export default function PaymentMethod({ route }) {
 
                         {selectedCard && (
                             <View style={styles.cardContainer}>
-                                <Text style={styles.sectionLabel}>Selected Card</Text>
+                                <Text style={styles.sectionLabel}>{appLabels.selectedCardSectionLabel}</Text>
                                 <View style={{ height: 150 }}>
                                     <LinearGradient
                                         colors={cardColors}
@@ -447,18 +451,18 @@ export default function PaymentMethod({ route }) {
 
                                             <View style={styles.cardFooter}>
                                                 <View>
-                                                    <Text style={styles.cardLabel}>Card Holder</Text>
+                                                    <Text style={styles.cardLabel}>{appLabels?.cardHoldename}</Text>
                                                     <Text style={styles.cardValue}>{selectedCard?.name || 'JOHN DOE'}</Text>
                                                 </View>
                                                 <View>
-                                                    <Text style={styles.cardLabel}>Expires</Text>
+                                                    <Text style={styles.cardLabel}>{appLabels?.cardHoldExpiries}</Text>
                                                     <Text style={styles.cardValue}>{selectedCard?.ExpMonth + '/' + selectedCard?.ExpYear || 'MM/YY'}</Text>
                                                 </View>
                                             </View>
 
                                             {selectedCard?.default === 'yes' && (
                                                 <View style={styles.cardBadge}>
-                                                    <Text style={styles.cardBadgeText}>Default</Text>
+                                                    <Text style={styles.cardBadgeText}>{appLabels.defaultBadgeLabel}</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -467,7 +471,7 @@ export default function PaymentMethod({ route }) {
                             </View>
                         )}
 
-                        <Text style={styles.sectionTitle}>All Cards ({cards.length})</Text>
+                        <Text style={styles.sectionTitle}>{appLabels?.allcardsLabel} ({cards.length})</Text>
 
 
                         {0 < cards?.length && cards.map((method) => (
@@ -478,6 +482,7 @@ export default function PaymentMethod({ route }) {
                                 onSelect={handleSelectMethod}
                                 onSetDefault={handleSetDefault}
                                 onDeletePress={openConfirmModal}
+                                appLabels={appLabels}
                             />
                         ))}
 
@@ -486,8 +491,8 @@ export default function PaymentMethod({ route }) {
                             onPress={openAddCardModal}
                             activeOpacity={0.7}
                         >
-                            <Feather name="plus-circle" size={20} color="#3c3cd6" />
-                            <Text style={styles.addCardText}>Add New Card</Text>
+                            <Feather name="plus-circle" size={20} color={themeColors.primarColor} />
+                            <Text style={styles.addCardText}>{appLabels.addNewCardCtaLabel}</Text>
                         </TouchableOpacity>
 
                         <View style={styles.bottomPadding} />
@@ -501,24 +506,24 @@ export default function PaymentMethod({ route }) {
 
                     <View style={styles.modalContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Delete Card</Text>
+                            <Text style={styles.modalTitle}>{appLabels?.useDeletedbuttonlable}</Text>
                             <TouchableOpacity onPress={closeConfirmModal} style={styles.modalClose}>
-                                <Feather name="x" size={24} color="#64748B" />
+                                <Feather name="x" size={24} color={themeColors.secondarytextColor} />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View style={styles.warningIconContainer}>
                                 <View style={styles.warningIcon}>
-                                    <Feather name="alert-triangle" size={40} color="#EF4444" />
+                                    <Feather name="alert-triangle" size={40} color={themeColors.negativeColor} />
                                 </View>
                             </View>
 
                             <View style={styles.warningMessage}>
-                                <Text style={styles.warningTitle}>Are you sure?</Text>
+                                <Text style={styles.warningTitle}>{appLabels.deleteWarningTitle}</Text>
                                 <Text style={styles.warningSubtitle}>
-                                    You are about to delete your {cardToDelete?.type} card ending in{' '}
-                                    {cardToDelete?.number?.slice(-4)}. This action cannot be undone.
+                                    {appLabels.deleteWarningPrefix} {cardToDelete?.type} {appLabels.deleteWarningMiddle}{' '}
+                                    {cardToDelete?.number?.slice(-4)}. {appLabels.deleteWarningSuffix}
                                 </Text>
                             </View>
 
@@ -544,11 +549,11 @@ export default function PaymentMethod({ route }) {
 
                                             <View style={styles.previewCardFooter}>
                                                 <View>
-                                                    <Text style={styles.previewCardLabel}>Card Holder</Text>
+                                                    <Text style={styles.previewCardLabel}>{appLabels.cardHoldename}</Text>
                                                     <Text style={styles.previewCardValue}>{cardToDelete.name}</Text>
                                                 </View>
                                                 <View>
-                                                    <Text style={styles.previewCardLabel}>Expires</Text>
+                                                    <Text style={styles.previewCardLabel}>{appLabels.cardHoldExpiries}</Text>
                                                     <Text style={styles.previewCardValue}>{cardToDelete.ExpMonth}/{cardToDelete.ExpYear}</Text>
                                                 </View>
                                             </View>
@@ -561,18 +566,18 @@ export default function PaymentMethod({ route }) {
                         </ScrollView>
                         <View style={styles.modalActions}>
                             <TouchableOpacity style={styles.cancelButton} onPress={closeConfirmModal} activeOpacity={0.7}>
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={styles.cancelButtonText}>{appLabels?.useCancelButton}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteCard} activeOpacity={0.8}>
                                 <LinearGradient
-                                    colors={['#EF4444', '#DC2626']}
+                                    colors={[themeColors.negativeColor, themeColors.negativeColor]}
                                     style={styles.deleteGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                 >
                                     <Feather name="trash-2" size={18} color="#FFFFFF" />
-                                    <Text style={styles.deleteButtonText}>Delete Card</Text>
+                                    <Text style={styles.deleteButtonText}>{appLabels?.useDeletedbuttonlable}</Text>
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
@@ -594,15 +599,15 @@ export default function PaymentMethod({ route }) {
             >
                 <View style={styles.sheetContent}>
                     <View style={styles.sheetHeader}>
-                        <Text style={styles.sheetTitle}>Set as Default?</Text>
+                        <Text style={styles.sheetTitle}>{appLabels.setDefaultModalHeader}</Text>
                         <TouchableOpacity onPress={() => refRBSheet.current?.close()}>
-                            <Feather name="x" size={24} color="#64748B" />
+                            <Feather name="x" size={24} color={themeColors.secondarytextColor} />
                         </TouchableOpacity>
                     </View>
                     <Divider />
 
                     <Text style={styles.sheetSubtitle}>
-                        Are you sure you want to set this card as your default payment method?
+                        {appLabels.setDefaultConfirmationMessage}
                     </Text>
 
                     <View style={{ flex: 1 }} />
@@ -621,13 +626,13 @@ export default function PaymentMethod({ route }) {
                             disabled={isLoading}
                         >
                             <LinearGradient
-                                colors={['#3c3cd6', '#2633a7']}
+                                colors={themeColors.gradientColor}
                                 style={styles.sheetConfirmGradient}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                             >
                                 <Text style={styles.sheetConfirmText}>
-                                    {isLoading ? 'Saving...' : 'Set as Default'}
+                                    {isLoading ? 'Saving...' : appLabels.setDefaultModalHeader}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -665,9 +670,9 @@ export default function PaymentMethod({ route }) {
                         ]}
                     >
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add New Card</Text>
+                            <Text style={styles.modalTitle}>{appLabels.addNewCardModalHeader}</Text>
                             <TouchableOpacity onPress={closeAddCardModal} style={styles.modalClose}>
-                                <Feather name="x" size={24} color="#64748B" />
+                                <Feather name="x" size={24} color={themeColors.secondarytextColor} />
                             </TouchableOpacity>
                         </View>
 
@@ -676,7 +681,7 @@ export default function PaymentMethod({ route }) {
 
                             <View style={{ height: 150, marginBottom: 20 }}>
                                 <LinearGradient
-                                    colors={['#3c3cd6', '#2633a7']}
+                                    colors={themeColors.gradientColor}
                                     style={styles.previewCard}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
@@ -705,7 +710,7 @@ export default function PaymentMethod({ route }) {
                                                 </Text>
                                             </View>
                                             <View>
-                                                <Text style={styles.previewCardLabel}>Expires</Text>
+                                                <Text style={styles.previewCardLabel}>{appLabels.cardPreviewExpiresLabel}</Text>
                                                 <Text style={styles.previewCardValue}>
                                                     {watchAllFields.expiryDate || 'MM/YY'}
                                                 </Text>
@@ -720,7 +725,7 @@ export default function PaymentMethod({ route }) {
                             {/* Form Fields */}
                             <View style={styles.formContainer}>
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.formLabel}>Card Number</Text>
+                                    <Text style={styles.formLabel}>{appLabels.cardNumberFieldLabel}</Text>
                                     <Controller
                                         control={control}
                                         name="cardNumber"
@@ -735,7 +740,7 @@ export default function PaymentMethod({ route }) {
                                             <TextInput
                                                 style={[styles.formInput, errors.cardNumber && styles.formInputError]}
                                                 placeholder="1234 5678 9012 3456"
-                                                placeholderTextColor="#94A3B8"
+                                                placeholderTextColor={themeColors.placeholderColor}
                                                 onBlur={onBlur}
                                                 onChangeText={(text) => {
                                                     const formatted = formatCardNumber(text);
@@ -751,7 +756,7 @@ export default function PaymentMethod({ route }) {
                                 </View>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.formLabel}>Cardholder Name</Text>
+                                    <Text style={styles.formLabel}>{appLabels.cardholderNameFieldLabel}</Text>
                                     <Controller
                                         control={control}
                                         name="cardHolder"
@@ -763,7 +768,7 @@ export default function PaymentMethod({ route }) {
                                             <TextInput
                                                 style={[styles.formInput, errors.cardHolder && styles.formInputError]}
                                                 placeholder="John Doe"
-                                                placeholderTextColor="#94A3B8"
+                                                placeholderTextColor={themeColors.placeholderColor}
                                                 onBlur={onBlur}
                                                 onChangeText={onChange}
                                                 value={value}
@@ -776,7 +781,7 @@ export default function PaymentMethod({ route }) {
 
                                 <View style={styles.formRow}>
                                     <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-                                        <Text style={styles.formLabel}>Expiry Date</Text>
+                                        <Text style={styles.formLabel}>{appLabels.expiryDateFieldLabel}</Text>
                                         <Controller
                                             control={control}
                                             name="expiryDate"
@@ -788,7 +793,7 @@ export default function PaymentMethod({ route }) {
                                                 <TextInput
                                                     style={[styles.formInput, errors.expiryDate && styles.formInputError]}
                                                     placeholder="MM/YY"
-                                                    placeholderTextColor="#94A3B8"
+                                                    placeholderTextColor={themeColors.placeholderColor}
                                                     onBlur={onBlur}
                                                     onChangeText={(text) => {
                                                         const formatted = formatExpiryDate(text);
@@ -804,7 +809,7 @@ export default function PaymentMethod({ route }) {
                                     </View>
 
                                     <View style={[styles.formGroup, { flex: 1 }]}>
-                                        <Text style={styles.formLabel}>CVV</Text>
+                                        <Text style={styles.formLabel}>{appLabels.cvvFieldLabel}</Text>
                                         <Controller
                                             control={control}
                                             name="cvv"
@@ -821,7 +826,7 @@ export default function PaymentMethod({ route }) {
                                                 <TextInput
                                                     style={[styles.formInput, errors.cvv && styles.formInputError]}
                                                     placeholder="•••"
-                                                    placeholderTextColor="#94A3B8"
+                                                    placeholderTextColor={themeColors.placeholderColor}
                                                     onBlur={onBlur}
                                                     onChangeText={onChange}
                                                     value={value}
@@ -842,13 +847,13 @@ export default function PaymentMethod({ route }) {
                                     disabled={isSubmitting}
                                 >
                                     <LinearGradient
-                                        colors={['#3c3cd6', '#2633a7']}
+                                        colors={themeColors.gradientColor}
                                         style={styles.addCardSubmitGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 0 }}
                                     >
                                         <Text style={styles.addCardSubmitText}>
-                                            {isSubmitting ? 'Adding...' : 'Add Card'}
+                                            {isSubmitting ? 'Adding...' : appLabels.addCardCtaLabel}
                                         </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
@@ -863,34 +868,34 @@ export default function PaymentMethod({ route }) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
+    safeArea: { flex: 1, backgroundColor: themeColors.backgroudColor },
     scrollView: { flex: 1 },
     scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20 },
     providerInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#D1FAE5',
+        backgroundColor: themeColors.surface,
         paddingHorizontal: 14,
         paddingVertical: 10,
         borderRadius: 10,
         marginBottom: 16,
         gap: 10,
         borderWidth: 1,
-        borderColor: '#A7F3D0',
+        borderColor: themeColors.borderColor,
     },
     providerInfoIcon: {
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: '#10B981',
+        backgroundColor: themeColors.primarColor,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    providerInfoText: { fontSize: 13, fontFamily: fontsFamily.mediumFont, color: '#065F46', flex: 1 },
-    providerInfoHighlight: { fontFamily: fontsFamily.boldFont, color: '#047857' },
+    providerInfoText: { fontSize: 13, fontFamily: fontsFamily.mediumFont, color: themeColors.primarytextColor, flex: 1 },
+    providerInfoHighlight: { fontFamily: fontsFamily.boldFont, color: themeColors.headtextColor },
     sectionLabel: {
         fontSize: 13,
-        color: '#94A3B8',
+        color: themeColors.secondarytextColor,
         fontFamily: fontsFamily.mediumFont,
         marginBottom: 8,
         textTransform: 'uppercase',
@@ -941,48 +946,48 @@ const styles = StyleSheet.create({
         padding: 5
     },
     cardBadgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: fontsFamily.semiboldFont },
-    sectionTitle: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: '#0F172A', marginBottom: 12 },
+    sectionTitle: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: themeColors.headtextColor, marginBottom: 12 },
     methodCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: themeColors.cardbgColor,
         borderRadius: 14,
         marginBottom: 10,
         borderWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: themeColors.borderColor,
         overflow: 'hidden',
     },
-    methodCardActive: { borderColor: '#3c3cd6', backgroundColor: '#EEF2FF' },
+    methodCardActive: { borderColor: themeColors.primarColor, backgroundColor: themeColors.surface },
     methodContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 },
     methodLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     methodIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     methodIconText: { fontSize: 16, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
-    methodNumber: { fontSize: 15, fontFamily: fontsFamily.mediumFont, color: '#0F172A' },
-    methodType: { fontSize: 12, fontFamily: fontsFamily.regularFont, color: '#94A3B8' ,marginTop:5},
+    methodNumber: { fontSize: 15, fontFamily: fontsFamily.mediumFont, color: themeColors.headtextColor },
+    methodType: { fontSize: 12, fontFamily: fontsFamily.regularFont, color: themeColors.secondarytextColor, marginTop: 5 },
     methodRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     defaultBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#D1FAE5',
+        backgroundColor: themeColors.surface,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 8,
         gap: 3,
     },
-    defaultText: { fontSize: 10, fontFamily: fontsFamily.semiboldFont, color: '#10B981' },
+    defaultText: { fontSize: 10, fontFamily: fontsFamily.semiboldFont, color: themeColors.primarColor },
     methodRadio: {
         width: 22,
         height: 22,
         borderRadius: 11,
         borderWidth: 2,
-        borderColor: '#D1D5DB',
+        borderColor: themeColors.dotinactiveColor,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    methodRadioActive: { borderColor: '#3c3cd6' },
-    methodRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3c3cd6' },
+    methodRadioActive: { borderColor: themeColors.primarColor },
+    methodRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: themeColors.primarColor },
     cardActions: {
         flexDirection: 'row',
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: themeColors.borderColor,
         paddingVertical: 8,
         paddingHorizontal: 14,
         gap: 8,
@@ -994,10 +999,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 6,
         borderRadius: 8,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: themeColors.surface,
         gap: 6,
     },
-    setDefaultText: { fontSize: 12, fontFamily: fontsFamily.mediumFont, color: '#3c3cd6' },
+    setDefaultText: { fontSize: 12, fontFamily: fontsFamily.mediumFont, color: themeColors.primarColor },
     deleteCardButton: {
         flex: 1,
         flexDirection: 'row',
@@ -1005,12 +1010,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 12,
         borderRadius: 8,
-        backgroundColor: '#FEE2E2',
+        backgroundColor: themeColors.surface,
         gap: 6,
     },
-    deleteCardButtonDisabled: { backgroundColor: '#F1F5F9' },
-    deleteCardText: { fontSize: 12, fontFamily: fontsFamily.mediumFont, color: '#EF4444' },
-    deleteCardTextDisabled: { color: '#94A3B8' },
+    deleteCardButtonDisabled: { backgroundColor: themeColors.surface },
+    deleteCardText: { fontSize: 12, fontFamily: fontsFamily.mediumFont, color: themeColors.negativeColor },
+    deleteCardTextDisabled: { color: themeColors.inactiveColor },
     addCardButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1018,17 +1023,17 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 14,
         borderWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: themeColors.borderColor,
         borderStyle: 'dashed',
         gap: 8,
         marginBottom: 20,
     },
-    addCardText: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: '#3c3cd6' },
+    addCardText: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: themeColors.primarColor },
     bottomPadding: { height: 20 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject },
     modalContainer: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: themeColors.cardbgColor,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
@@ -1036,20 +1041,20 @@ const styles = StyleSheet.create({
         height: '65%',
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontFamily: fontsFamily.boldFont, color: '#0F172A' },
+    modalTitle: { fontSize: 20, fontFamily: fontsFamily.boldFont, color: themeColors.headtextColor },
     modalClose: { padding: 4 },
     warningIconContainer: { alignItems: 'center', marginBottom: 16 },
     warningIcon: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: '#FEE2E2',
+        backgroundColor: themeColors.surface,
         alignItems: 'center',
         justifyContent: 'center',
     },
     warningMessage: { alignItems: 'center', marginBottom: 20 },
-    warningTitle: { fontSize: 18, fontFamily: fontsFamily.boldFont, color: '#0F172A', marginBottom: 8 },
-    warningSubtitle: { fontSize: 14, fontFamily: fontsFamily.regularFont, color: '#64748B', textAlign: 'center', lineHeight: 20 },
+    warningTitle: { fontSize: 18, fontFamily: fontsFamily.boldFont, color: themeColors.headtextColor, marginBottom: 8 },
+    warningSubtitle: { fontSize: 14, fontFamily: fontsFamily.regularFont, color: themeColors.secondarytextColor, textAlign: 'center', lineHeight: 20 },
     previewCard: { borderRadius: 16, marginBottom: 20, position: 'relative', overflow: 'hidden' },
     previewCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     previewCardChip: {
@@ -1070,15 +1075,15 @@ const styles = StyleSheet.create({
     // Sheet Styles
     sheetContent: { flex: 1 },
     sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sheetTitle: { fontSize: 20, fontFamily: fontsFamily.boldFont, color: '#0F172A' },
-    sheetSubtitle: { fontSize: 15, fontFamily: fontsFamily.regularFont, color: '#64748B', lineHeight: 22, marginBottom: 24, marginTop: 5 },
+    sheetTitle: { fontSize: 20, fontFamily: fontsFamily.boldFont, color: themeColors.headtextColor },
+    sheetSubtitle: { fontSize: 15, fontFamily: fontsFamily.regularFont, color: themeColors.secondarytextColor, lineHeight: 22, marginBottom: 24, marginTop: 5 },
     sheetCardPreview: {},
     miniCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, gap: 16 },
     miniCardText: { color: '#FFF', fontSize: 18, fontFamily: fontsFamily.boldFont },
     miniCardSubtext: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontFamily: fontsFamily.mediumFont },
     sheetActions: { flexDirection: 'row', gap: 12 },
-    sheetCancelButton: { flex: 1, height: 56, borderRadius: 14, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-    sheetCancelText: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: '#64748B' },
+    sheetCancelButton: { flex: 1, height: 56, borderRadius: 14, backgroundColor: themeColors.surface, justifyContent: 'center', alignItems: 'center' },
+    sheetCancelText: { fontSize: 16, fontFamily: fontsFamily.semiboldFont, color: themeColors.secondarytextColor },
     sheetConfirmButton: { flex: 1, height: 56, borderRadius: 14, overflow: 'hidden' },
     sheetConfirmGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     sheetConfirmText: { fontSize: 16, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
@@ -1087,11 +1092,11 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 14,
         borderRadius: 14,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: themeColors.surface,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    cancelButtonText: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: '#64748B' },
+    cancelButtonText: { fontSize: 15, fontFamily: fontsFamily.semiboldFont, color: themeColors.secondarytextColor },
     deleteButton: { flex: 1, borderRadius: 14, overflow: 'hidden', height: 40 },
     deleteGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 40, gap: 8 },
     deleteButtonText: { fontSize: 15, fontFamily: fontsFamily.boldFont, color: '#FFFFFF' },
@@ -1099,20 +1104,20 @@ const styles = StyleSheet.create({
     // Form Styles
     formContainer: { gap: 4 },
     formGroup: { marginBottom: 16 },
-    formLabel: { fontSize: 13, fontFamily: fontsFamily.semiboldFont, color: '#0F172A', marginBottom: 6 },
+    formLabel: { fontSize: 13, fontFamily: fontsFamily.semiboldFont, color: themeColors.headtextColor, marginBottom: 6 },
     formInput: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: themeColors.backgroudColor,
         borderRadius: 12,
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 15,
         fontFamily: fontsFamily.regularFont,
-        color: '#0F172A',
+        color: themeColors.headtextColor,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: themeColors.borderColor,
     },
-    formInputError: { borderColor: '#EF4444' },
-    errorText: { color: '#EF4444', fontSize: 12, marginTop: 4, fontFamily: fontsFamily.mediumFont },
+    formInputError: { borderColor: themeColors.negativeColor },
+    errorText: { color: themeColors.negativeColor, fontSize: 12, marginTop: 4, fontFamily: fontsFamily.mediumFont },
     formRow: { flexDirection: 'row' },
     addCardSubmitButton: { borderRadius: 12, overflow: 'hidden', marginTop: 8 },
     addCardSubmitGradient: { height: 50, alignItems: 'center', justifyContent: 'center' },

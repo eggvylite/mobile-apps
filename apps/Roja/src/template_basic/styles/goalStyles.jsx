@@ -238,7 +238,7 @@ const goalStyles = StyleSheet.create({
     paddingVertical: 20,
   },
   modalGoalName: {
-    fontSize: getFontSize(18),
+    fontSize: getFontSize(16),
     fontFamily: fontsFamily.boldFont, // was: regularFont + fontWeight:'600'
     color: '#0F172A',
     textAlign: 'center',
@@ -1522,6 +1522,9 @@ const goalStyles = StyleSheet.create({
     color: themeColors?.negativeColor,
     fontSize: getFontSize(14)
   },
+  norecord:{
+    justifyContent: 'center', alignItems: 'center',marginTop:20
+  }
 })
 
 export default goalStyles;

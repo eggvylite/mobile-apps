@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import CommonFunction from '../../../../utill/CommonFunction';
+import useReyPaymentLabelsHook from '../../../../hook/Labels/useRepaymentLableHook';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,7 +36,7 @@ const ChoosePaymentProviderModal = ({
     const navigation = useNavigation();
     const [selectedProvider, setSelectedProvider] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [bottomActiveTab, setBottomActiveTab] = useState('budget');
+    const appLabels = useReyPaymentLabelsHook()
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(height)).current;
@@ -92,7 +93,7 @@ const ChoosePaymentProviderModal = ({
     const paymentMethods = [
         {
             id: 'bank_account',
-            name: 'Bank Account (ACH)',
+            name: appLabels?.bankAccountOptionLabel ?? 'Bank Account (ACH)',
             icon: 'credit-card',
             description: 'Direct bank transfer',
             processingTime: '1-2 business days',
@@ -101,7 +102,7 @@ const ChoosePaymentProviderModal = ({
         },
         {
             id: 'debit_card',
-            name: 'Debit Card',
+            name: appLabels?.debitCardOptionLabel,
             icon: 'credit-card',
             description: 'Instant debit card payment',
             processingTime: 'Instant',
@@ -112,22 +113,22 @@ const ChoosePaymentProviderModal = ({
     ];
 
     const getModalTitle = () => {
-        if (fromAdvance) return 'Select Payment Method';
-        if (fromSubscription || onSubscribe) return 'Select Payment Method';
-        return 'Select Payment Method';
+        if (fromAdvance) return appLabels?.selectPaymentMethodModalHeader ?? 'Select Payment Method';
+        if (fromSubscription || onSubscribe) return appLabels?.selectPaymentMethodModalHeader ?? 'Select Payment Method';
+        return appLabels?.selectPaymentMethodModalHeader ?? 'Select Payment Method';
     };
 
     const getModalSubtitle = () => {
-        if (fromAdvance) return 'Choose your preferred payment method for your advance';
+        if (fromAdvance) return appLabels?.choosePaymentMethodDescription ?? 'Choose your preferred payment method for your advance';
         if (fromSubscription || onSubscribe) return 'Select a payment method to complete your subscription';
-        return 'Choose your preferred payment method';
+        return  appLabels?.choosePaymentMethodDescription ?? 'Choose your preferred payment method';
     };
 
     const getButtonText = () => {
         if (isProcessing) return 'Processing...';
         if (fromAdvance) return 'Continue to Payment';
         if (fromSubscription || onSubscribe) return 'Subscribe Now';
-        return 'Continue';
+        return appLabels?.continueCtaLabel ?? 'Continue';
     };
 
     const getIconName = (id) => {
@@ -200,7 +201,7 @@ const ChoosePaymentProviderModal = ({
                                     color={fromAdvance ? "#4F46E5" : "#10B981"}
                                 />
                                 <Text style={styles.flowBadgeText}>
-                                    {fromAdvance ?  'Advance Request' : (fromSubscription || onSubscribe ? 'Subscription' : 'Payment')}
+                                    {fromAdvance ? 'Advance Request' : (fromSubscription || onSubscribe ? 'Subscription' : 'Payment')}
                                 </Text>
                             </View>
                         </View>
@@ -213,7 +214,7 @@ const ChoosePaymentProviderModal = ({
                         {(amount > 0) && (
                             <View style={styles.amountSummaryCard}>
                                 <Text style={styles.amountSummaryLabel}>
-                                    {fromAdvance ? 'Advance Amount' : 'Repayment Amount'}
+                                    {fromAdvance ? 'Advance Amount' : appLabels?.repaymentAmountCardLabel}
                                 </Text>
                                 <Text style={styles.amountSummaryValue}>
                                     {currency}{CommonFunction.formatamount(amount)}
@@ -296,7 +297,7 @@ const ChoosePaymentProviderModal = ({
                                     </>
                                 ) : (
                                     <>
-                                        <Text style={styles.continueText}>{getButtonText()}</Text>
+                                        <Text style={styles.continueText}>{appLabels?.continueCtaLabel}</Text>
                                         <Feather name="arrow-right" size={18} color="#FFFFFF" />
                                     </>
                                 )}
@@ -307,7 +308,7 @@ const ChoosePaymentProviderModal = ({
                         <View style={styles.footerNote}>
                             <Feather name="shield" size={14} color="#94A3B8" />
                             <Text style={styles.footerNoteText}>
-                                Your payment information is encrypted and secure
+                               {appLabels?.paymentSecurityNoteLabel}
                             </Text>
                         </View>
                     </ScrollView>
