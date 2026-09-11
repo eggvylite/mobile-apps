@@ -130,6 +130,90 @@ jobs:
           npm ci --legacy-peer-deps
 
       # ========================================================
+      # PRE-BUILD VALIDATION: Check all JS/JSX/TS/TSX imports
+      # and asset references exist BEFORE starting native build
+      # Fails fast (~30 seconds) instead of wasting 20+ minutes
+      # ========================================================
+      - name: Validate Source Files and Assets
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Validating source files and assets before build..."
+          
+          ERRORS=0
+          
+          # 1. Check all relative imports in src/ resolve to existing files
+          echo ""
+          echo "=== Checking JS/JSX/TS/TSX imports ==="
+          while IFS= read -r SRCFILE; do
+            SRCDIR=$(dirname "$SRCFILE")
+            # Extract require('...') and import ... from '...' patterns (relative paths only)
+            grep -oE "(require|from)\s*\(\s*['\"](\.[^'\"]+)['\"]\s*\)" "$SRCFILE" 2>/dev/null | \
+              grep -oE "'\.[^']+'" | tr -d "'" | while read -r IMPORT_PATH; do
+                # Skip node_modules imports and URLs
+                case "$IMPORT_PATH" in
+                  ./*|../*)
+                    RESOLVED=""
+                    for EXT in "" ".js" ".jsx" ".ts" ".tsx" ".json" "/index.js" "/index.jsx" "/index.ts" "/index.tsx"; do
+                      if [ -f "$SRCDIR/$IMPORT_PATH$EXT" ]; then
+                        RESOLVED="$SRCDIR/$IMPORT_PATH$EXT"
+                        break
+                      fi
+                    done
+                    if [ -z "$RESOLVED" ]; then
+                      echo "❌ MISSING: '$IMPORT_PATH' imported from $SRCFILE"
+                      echo "   ERRORS_FOUND" >> /tmp/validation_errors
+                    fi
+                    ;;
+                esac
+              done
+          done < <(find src -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) 2>/dev/null)
+          
+          # 2. Check all image/asset require() references exist
+          echo ""
+          echo "=== Checking asset references ==="
+          while IFS= read -r SRCFILE; do
+            SRCDIR=$(dirname "$SRCFILE")
+            grep -oE "require\s*\(\s*['\"]([^'\"]+\.(png|jpg|jpeg|gif|svg|webp|mp4|mp3|wav|pdf))['\"]\s*\)" "$SRCFILE" 2>/dev/null | \
+              grep -oE "'[^']+'" | tr -d "'" | while read -r ASSET_PATH; do
+                case "$ASSET_PATH" in
+                  ./*|../*)
+                    if [ ! -f "$SRCDIR/$ASSET_PATH" ]; then
+                      echo "❌ MISSING ASSET: '$ASSET_PATH' referenced in $SRCFILE"
+                      echo "   ERRORS_FOUND" >> /tmp/validation_errors
+                    fi
+                    ;;
+                esac
+              done
+          done < <(find src -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) 2>/dev/null)
+          
+          # 3. Check critical peer dependencies are installed
+          echo ""
+          echo "=== Checking critical dependencies ==="
+          CRITICAL_DEPS=("date-fns" "react-native-reanimated" "react-native-gesture-handler")
+          for DEP in "${CRITICAL_DEPS[@]}"; do
+            if [ ! -d "node_modules/$DEP" ]; then
+              echo "❌ MISSING DEPENDENCY: $DEP not found in node_modules"
+              echo "   ERRORS_FOUND" >> /tmp/validation_errors
+            else
+              echo "✅ $DEP installed"
+            fi
+          done
+          
+          # 4. Summary
+          echo ""
+          if [ -f /tmp/validation_errors ]; then
+            ERROR_COUNT=$(wc -l < /tmp/validation_errors)
+            echo "❌ VALIDATION FAILED: $ERROR_COUNT issue(s) found above."
+            echo "Fix these issues before building to avoid wasting CI time."
+            rm -f /tmp/validation_errors
+            exit 1
+          else
+            echo "✅ All source files, assets, and dependencies validated successfully."
+          fi
+
+      # ========================================================
       # RUBY SETUP
       # ========================================================
       - name: Setup Ruby
@@ -224,10 +308,6 @@ jobs:
 
       # ========================================================
       # PATCH 3: FIX REANIMATED MOUNT HOOK
-      # ✅ Runs AFTER pod install
-      # ✅ Removes RN version conditional block
-      # ✅ Removes leftover REACT_NATIVE_MINOR_VERSION comments
-      # ✅ Forces HighResTimeStamp for RN 0.81
       # ========================================================
       - name: Fix ReanimatedMountHook HighResTimeStamp
         working-directory: apps/${{ env.APP_DIR }}
@@ -246,7 +326,6 @@ jobs:
 
           original = content
 
-          # Replace RN version conditional block with the RN 0.81+ branch only.
           content = re.sub(
               r'#if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#else\s*\n.*?#endif\s*(?://[^\n]*)?',
               r'\1',
@@ -254,7 +333,6 @@ jobs:
               flags=re.DOTALL
           )
 
-          # Clean any leftover comments mentioning REACT_NATIVE_MINOR_VERSION
           content = re.sub(
               r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*\n?',
               '',
@@ -262,19 +340,9 @@ jobs:
               flags=re.MULTILINE
           )
 
-          # Safety fallback: if a parameter still says double in the mount hook signature, replace it.
-          content = content.replace(
-              'double /*unmountTime*/',
-              'HighResTimeStamp /*unmountTime*/'
-          )
-          content = content.replace(
-              'double commitTime',
-              'HighResTimeStamp commitTime'
-          )
-          content = content.replace(
-              'double startTime',
-              'HighResTimeStamp startTime'
-          )
+          content = content.replace('double /*unmountTime*/', 'HighResTimeStamp /*unmountTime*/')
+          content = content.replace('double commitTime', 'HighResTimeStamp commitTime')
+          content = content.replace('double startTime', 'HighResTimeStamp startTime')
 
           if content != original:
               with open(real_path, 'w') as f:
@@ -304,8 +372,6 @@ jobs:
 
       # ========================================================
       # PATCH 4: FIX RNGESTUREHANDLER FOR RN 0.81
-      # ✅ shadowNodeListFromValue returns shared_ptr<vector<...>>
-      # ✅ Must dereference shared_ptr before accessing vector methods
       # ========================================================
       - name: Patch RNGestureHandler for RN 0.81
         working-directory: apps/${{ env.APP_DIR }}
@@ -323,12 +389,10 @@ jobs:
               content = f.read()
           original = content
 
-          # Fix 1: shadowNodeFromValue -> shadowNodeListFromValue
-          # In RN 0.81, this returns shared_ptr<vector<shared_ptr<ShadowNode>>>
           content = content.replace(
               "auto shadowNode = shadowNodeFromValue(runtime, arguments[0]);",
               "auto shadowNodeList = shadowNodeListFromValue(runtime, arguments[0]);\n"
-              "auto shadowNode = (shadowNodeList && !shadowNodeList->empty()) ? (*shadowNodeList)[0] : nullptr;"
+              "        auto shadowNode = (shadowNodeList && !shadowNodeList->empty()) ? (*shadowNodeList)[0] : nullptr;"
           )
 
           if content != original:
@@ -336,7 +400,7 @@ jobs:
                   f.write(content)
               print("✅ RNGestureHandlerModule.mm patched.")
           else:
-              print("ℹ️ No changes needed (may already be patched).")
+              print("ℹ️ No changes needed.")
           PYEOF
           else
             echo "⚠️ RNGestureHandlerModule.mm not found."
