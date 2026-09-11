@@ -130,28 +130,73 @@ jobs:
           npm ci --legacy-peer-deps
 
       # ========================================================
-      # QUICK DEPENDENCY CHECK (< 5 seconds)
-      # Only checks npm packages exist - no source parsing
+      # VERIFY ALL PEER DEPENDENCIES ARE INSTALLED
+      # Auto-discovers missing peers from ALL node_modules
+      # Fails fast (< 30 seconds) before native build starts
       # ========================================================
-      - name: Verify Critical Dependencies
+      - name: Verify All Peer Dependencies
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          echo "🔍 Checking critical dependencies..."
-          MISSING=0
-          for DEP in date-fns react-native-reanimated react-native-gesture-handler; do
-            if [ ! -d "node_modules/$DEP" ]; then
-              echo "❌ MISSING: $DEP"
-              MISSING=$((MISSING + 1))
-            else
-              echo "✅ $DEP"
-            fi
-          done
-          if [ "$MISSING" -gt 0 ]; then
-            echo "❌ $MISSING missing dependency(ies). Run 'npm install' locally and commit package-lock.json."
+          echo "🔍 Scanning all packages for unmet peer dependencies..."
+          
+          MISSING=""
+          
+          # Scan every package.json in node_modules for peerDependencies
+          while IFS= read -r PKG_JSON; do
+            PKG_DIR=$(dirname "$PKG_JSON")
+            PKG_NAME=$(basename "$PKG_DIR")
+            
+            # Skip scoped packages' internal dirs and nested node_modules
+            case "$PKG_DIR" in
+              */node_modules/*/node_modules/*) continue ;;
+            esac
+            
+            # Extract peerDependencies keys using python (reliable JSON parsing)
+            PEERS=$(python3 -c "
+          import json, sys
+          try:
+              with open('$PKG_JSON') as f:
+                  pkg = json.load(f)
+              peers = pkg.get('peerDependencies', {})
+              for name in peers:
+                  print(name)
+          except:
+              pass
+          " 2>/dev/null) || true
+            
+            # Check if each peer is installed
+            while IFS= read -r PEER; do
+              [ -z "$PEER" ] && continue
+              # Handle scoped packages (@scope/name)
+              if [[ "$PEER" == @* ]]; then
+                PEER_PATH="node_modules/$PEER"
+              else
+                PEER_PATH="node_modules/$PEER"
+              fi
+              
+              if [ ! -d "$PEER_PATH" ]; then
+                echo "❌ MISSING PEER: '$PEER' required by '$PKG_NAME'"
+                MISSING="$MISSING $PEER"
+              fi
+            done <<< "$PEERS"
+            
+          done < <(find node_modules -maxdepth 3 -name "package.json" -not -path "*/node_modules/*/node_modules/*" 2>/dev/null)
+          
+          # Summary
+          if [ -n "$MISSING" ]; then
+            UNIQUE_MISSING=$(echo "$MISSING" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+            echo ""
+            echo "❌ VALIDATION FAILED: Missing peer dependencies:$UNIQUE_MISSING"
+            echo ""
+            echo "Fix: Add these to your package.json and regenerate package-lock.json:"
+            for DEP in $UNIQUE_MISSING; do
+              echo "  npm install $DEP --legacy-peer-deps"
+            done
             exit 1
+          else
+            echo "✅ All peer dependencies satisfied."
           fi
-          echo "✅ All critical dependencies present."
 
       # ========================================================
       # RUBY SETUP
