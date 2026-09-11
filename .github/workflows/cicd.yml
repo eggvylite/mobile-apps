@@ -303,49 +303,95 @@ jobs:
           fi
 
       # ========================================================
-      # VERIFY PATCH WORKED
+      # PATCH 4: FIX RNGESTUREHANDLER FOR RN 0.81
+      # ✅ shadowNodeFromValue -> shadowNodeListFromValue + take first element
+      # ✅ Fixes dynamic_pointer_cast on vector type
       # ========================================================
-      - name: Verify ReanimatedMountHook Fix
+      - name: Patch RNGestureHandler for RN 0.81
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "=== Verifying ReanimatedMountHook fix ==="
 
+          GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
+
+          if [ -f "$GH_MODULE" ]; then
+            echo "🔧 Patching RNGestureHandlerModule.mm for RN 0.81..."
+            python3 << 'PYEOF'
+          import re
+          path = "node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
+          with open(path, "r") as f:
+              content = f.read()
+          original = content
+
+          # Fix 1: shadowNodeFromValue -> shadowNodeListFromValue + extract first element
+          content = content.replace(
+              "auto shadowNode = shadowNodeFromValue(runtime, arguments[0]);",
+              "auto shadowNodes = shadowNodeListFromValue(runtime, arguments[0]);\n        auto shadowNode = shadowNodes.empty() ? nullptr : shadowNodes[0];"
+          )
+
+          if content != original:
+              with open(path, "w") as f:
+                  f.write(content)
+              print("✅ RNGestureHandlerModule.mm patched.")
+          else:
+              print("ℹ️ No changes needed.")
+          PYEOF
+          else
+            echo "⚠️ RNGestureHandlerModule.mm not found."
+          fi
+
+      # ========================================================
+      # VERIFY ALL PATCHES
+      # ========================================================
+      - name: Verify All Patches
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=== 1. Verify ReanimatedMountHook ==="
           FOUND=0
-
           while IFS= read -r f; do
             FOUND=1
             REAL_F=$(readlink -f "$f" 2>/dev/null || echo "$f")
             echo "--- $REAL_F ---"
-
-            echo ""
-            echo "shadowTreeDidMount context:"
             grep -B2 -A8 "shadowTreeDidMount" "$REAL_F" || echo "Function not found!"
-
-            echo ""
-            echo "Checking for active preprocessor RN version conditionals..."
             if grep -Eq '^\s*#\s*(if|elif|else|endif).*REACT_NATIVE_MINOR_VERSION' "$REAL_F"; then
               echo "❌ FAIL: Active REACT_NATIVE_MINOR_VERSION preprocessor block still present!"
               exit 1
             else
               echo "✅ PASS: No active REACT_NATIVE_MINOR_VERSION preprocessor block"
             fi
-
-            echo ""
-            echo "Checking for double in shadowTreeDidMount..."
             if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
               echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
               exit 1
             else
               echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
             fi
-
-            echo ""
           done < <(find ios/Pods/Headers node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
-
           if [ "$FOUND" -eq 0 ]; then
             echo "❌ ERROR: No ReanimatedMountHook.h found!"
+            exit 1
+          fi
+
+          echo ""
+          echo "=== 2. Verify HermesExecutorFactory.cpp ==="
+          HERMES_SRC="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
+          if grep -q "#include <thread>" "$HERMES_SRC"; then
+            echo "✅ PASS: #include <thread> present"
+          else
+            echo "❌ FAIL: Missing #include <thread>"
+            exit 1
+          fi
+
+          echo ""
+          echo "=== 3. Verify RNGestureHandlerModule.mm ==="
+          GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
+          if grep -q "shadowNodeListFromValue" "$GH_MODULE"; then
+            echo "✅ PASS: Uses shadowNodeListFromValue"
+          else
+            echo "❌ FAIL: Still uses old shadowNodeFromValue"
             exit 1
           fi
 
