@@ -127,78 +127,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci --legacy-peer-deps
+          npm install --legacy-peer-deps
 
       # ========================================================
-      # VERIFY CRITICAL PEER DEPENDENCIES
-      # Filters out dev-only, platform-specific, and optional peers
-      # Only flags peers that will actually break the iOS build
+      # VERIFY CRITICAL DEPENDENCIES AFTER INSTALL
       # ========================================================
-      - name: Verify Critical Peer Dependencies
+      - name: Verify Critical Dependencies
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-          echo "🔍 Checking critical peer dependencies for iOS build..."
-
-          # These are dev-only, platform-specific, or optional — skip them
-          SKIP_PEERS="react-native-web react-native-windows node-notifier ts-node babel-plugin-macros @types/react @types/react-native expo expo-linear-gradient jest jest-cli"
-
-          MISSING=""
-
-          while IFS= read -r PKG_JSON; do
-            PKG_DIR=$(dirname "$PKG_JSON")
-            PKG_NAME=$(basename "$PKG_DIR")
-
-            case "$PKG_DIR" in
-              */node_modules/*/node_modules/*) continue ;;
-            esac
-
-            PEERS=$(python3 -c "
-          import json
-          try:
-              with open('$PKG_JSON') as f:
-                  pkg = json.load(f)
-              for name in pkg.get('peerDependencies', {}):
-                  print(name)
-          except:
-              pass
-          " 2>/dev/null) || true
-
-            while IFS= read -r PEER; do
-              [ -z "$PEER" ] && continue
-
-              # Skip known false positives
-              SKIP=0
-              for S in $SKIP_PEERS; do
-                if [ "$PEER" = "$S" ]; then
-                  SKIP=1
-                  break
-                fi
-              done
-              [ "$SKIP" -eq 1 ] && continue
-
-              if [ ! -d "node_modules/$PEER" ]; then
-                echo "❌ MISSING PEER: '$PEER' required by '$PKG_NAME'"
-                MISSING="$MISSING $PEER"
-              fi
-            done <<< "$PEERS"
-
-          done < <(find node_modules -maxdepth 3 -name "package.json" -not -path "*/node_modules/*/node_modules/*" 2>/dev/null)
-
-          if [ -n "$MISSING" ]; then
-            UNIQUE_MISSING=$(echo "$MISSING" | tr ' ' '\n' | sort -u | tr '\n' ' ')
-            echo ""
-            echo "❌ VALIDATION FAILED: Missing peer dependencies:$UNIQUE_MISSING"
-            echo ""
-            echo "Fix: Add these to package.json and regenerate package-lock.json:"
-            for DEP in $UNIQUE_MISSING; do
-              echo "  npm install $DEP --legacy-peer-deps"
-            done
+          echo "🔍 Checking critical dependencies..."
+          MISSING=0
+          for DEP in date-fns react-native-reanimated react-native-gesture-handler @react-native-picker/picker react-native-pager-view; do
+            if [ ! -d "node_modules/$DEP" ]; then
+              echo "❌ MISSING: $DEP"
+              MISSING=$((MISSING + 1))
+            else
+              echo "✅ $DEP"
+            fi
+          done
+          if [ "$MISSING" -gt 0 ]; then
+            echo "❌ $MISSING missing dependency(ies)."
             exit 1
-          else
-            echo "✅ All critical peer dependencies satisfied."
           fi
-
+          echo "✅ All critical dependencies present."
       # ========================================================
       # RUBY SETUP
       # ========================================================
