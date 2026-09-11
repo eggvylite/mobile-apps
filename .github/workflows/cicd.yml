@@ -541,7 +541,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          aws s3 cp "ios/build/${APP_NAME}-${GITHUB_RUN_NUMBER}.ipa" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
+          aws s3 cp "ios/build/${APP_NAME}.ipa" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
 
           
 
