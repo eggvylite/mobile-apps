@@ -541,8 +541,24 @@ jobs:
         shell: bash
         run: |
          set -euo pipefail
-         aws s3 cp "ios/build/export/${APP_NAME}.ipa" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
+    
+          # List files to debug
+          echo "📂 Contents of ios/build/export/:"
+          ls -la ios/build/export/ || true
+    
+          # Find the actual .ipa file
+          IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
           
+          if [ -z "$IPA_FILE" ]; then
+            echo "❌ ERROR: No .ipa file found in ios/build/export/"
+            echo "Available files:"
+            find ios/build/export -type f || true
+            exit 1
+          fi
+          
+          echo "📦 Found IPA: $IPA_FILE"
+          aws s3 cp "$IPA_FILE" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
+          echo "✅ Successfully uploaded to S3"
 
       # ========================================================
       # AUTO CLEAN POD CACHE (runs on success AND failure)
