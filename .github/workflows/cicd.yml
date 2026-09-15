@@ -514,7 +514,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
+            PROVISIONING_PROFILE_SPECIFIER="DemoROJA" \  # <-- ADD THIS LINE
             -allowProvisioningUpdates \
             -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
