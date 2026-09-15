@@ -498,46 +498,14 @@ jobs:
           target_attrs = attrs[target.uuid] ||= {}
           target_attrs['ProvisioningStyle'] = 'Manual'
           
-          # CRITICAL: Explicitly set the App Store profile name that includes Push Notifications
-          PROFILE_NAME = "DemoROJA"  # <-- CHANGE THIS TO YOUR EXACT PROFILE NAME FROM APPLE PORTAL
-          
           target.build_configurations.each do |config|
             config.build_settings.delete('PROVISIONING_PROFILE')
-            config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = PROFILE_NAME
+            config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
             config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
             config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
           end
           project.save
           RUBY
-      # ========================================================
-      # VERIFY PROFILE AVAILABILITY BEFORE BUILD
-      # ========================================================
-      - name: Verify Provisioning Profile Availability
-        shell: bash
-        run: |
-          echo "🔍 Searching for matching provisioning profiles..."
-          FOUND=0
-          while IFS= read -r profile; do
-            uuid=$(security cms -D -i "$profile" | grep -A1 UUID | tail -1 | tr -d '\t ')
-            name=$(security cms -D -i "$profile" | grep -A1 "<key>Name</key>" | tail -1 | sed "s/.*<string>//;s/<\/string>.*//")
-            bundle=$(security cms -D -i "$profile" | grep -A1 "application-identifier" | tail -1 | sed "s/.*<string>//;s/<\/string>.*//" | cut -d. -f2-)
-            
-            echo "  📋 Name: $name"
-            echo "     Bundle: $bundle"
-            echo "     UUID: $uuid"
-            echo ""
-            
-            if [[ "$name" == *"DemoROJA"* ]] || [[ "$name" == *"Roja"* ]]; then
-              FOUND=1
-            fi
-          done < <(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null)
-          
-          if [ "$FOUND" -eq 0 ]; then
-            echo "⚠️ WARNING: No profile named 'Demo ROJA' found on this runner!"
-            echo "   Ensure your App Store profile includes Push Notifications and matches Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
-          else
-            echo "✅ Matching profile found!"
-          fi
 
       # ========================================================
       # BUILD & ARCHIVE FOR TESTFLIGHT
@@ -547,29 +515,59 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild \
-            -workspace "${WORKSPACE_PATH}" \
-            -scheme "${SCHEME_NAME}" \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
-            PROVISIONING_PROFILE="b0ff62c4-5f8a-4708-9a33-64ff3638d355" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
-            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
-            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
-            archive
-      
+          
+          # Determine Profile UUID or Name
+          # Using UUID is safer. If you have different UUIDs per app, add them to secrets.
+          # For now, we try to use the specific UUID you found for Roja if the app is roja.
+          # Otherwise fallback to name.
+          
+          PROFILE_UUID=""
+          PROFILE_NAME="DemoROJA"
+          
+          if [ "${{ matrix.app }}" == "roja" ]; then
+            PROFILE_UUID="b0ff62c4-5f8a-4708-9a33-64ff3638d355"
+          fi
+          
+          # Construct xcodebuild args
+          XCODE_ARGS=(
+            -workspace "${WORKSPACE_PATH}"
+            -scheme "${SCHEME_NAME}"
+            -configuration Release
+            -sdk iphoneos
+            -destination "generic/platform=iOS"
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive"
+            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_IDENTITY="Apple Distribution"
+            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}"
+            -allowProvisioningUpdates
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}"
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}"
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
+          )
+          
+          if [ -n "$PROFILE_UUID" ]; then
+            echo "Using Profile UUID: $PROFILE_UUID"
+            XCODE_ARGS+=(PROVISIONING_PROFILE="$PROFILE_UUID")
+          else
+            echo "Using Profile Name: $PROFILE_NAME"
+            XCODE_ARGS+=(PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME")
+          fi
+          
+          xcodebuild "${XCODE_ARGS[@]}" archive
+
       - name: Export IPA for App Store
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
           rm -rf ios/build/export && mkdir -p ios/build/export
+          
+          # We must map the Bundle ID to the Profile Name for manual export
+          # Even if we used UUID for archive, export often prefers name mapping in plist
+          PROFILE_NAME="DemoROJA"
+          if [ "${{ matrix.app }}" == "roja" ]; then
+             PROFILE_NAME="DemoROJA"
+          fi
           
           cat > ios/build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -581,6 +579,11 @@ jobs:
             <key>stripSwiftSymbols</key><true/>
             <key>uploadSymbols</key><true/>
             <key>compileBitcode</key><false/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_SECRETS_IOS_BUNDLE_ID}</key>
+              <string>${PROFILE_NAME}</string>
+            </dict>
           </dict></plist>
           EOF
           
@@ -632,7 +635,7 @@ jobs:
             exit 1
           fi
           
-          echo " Uploading to TestFlight: $IPA_FILE"
+          echo "🚀 Uploading to TestFlight: $IPA_FILE"
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_FILE" \
@@ -650,6 +653,6 @@ jobs:
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
-          echo " Cleaning pod cache..."
+          echo "🧹 Cleaning pod cache..."
           bundle exec pod cache clean --all || true
           echo "✅ Pod cache cleaned."
