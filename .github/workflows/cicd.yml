@@ -153,7 +153,7 @@ jobs:
           MISSING=0
           for DEP in date-fns react-native-reanimated react-native-gesture-handler @react-native-picker/picker react-native-pager-view; do
             if [ ! -d "node_modules/$DEP" ]; then
-              echo " MISSING: $DEP"
+              echo "❌ MISSING: $DEP"
               MISSING=$((MISSING + 1))
             else
               echo "✅ $DEP"
@@ -408,12 +408,12 @@ jobs:
           if grep -q "shadowNodeListFromValue" "$GH_MODULE"; then
             echo "✅ PASS: Uses shadowNodeListFromValue"
           else
-            echo " FAIL: Still uses old shadowNodeFromValue"
+            echo "❌ FAIL: Still uses old shadowNodeFromValue"
             exit 1
           fi
 
       # ========================================================
-      # FIX POD RESOURCE BUNDLE SIGNING (FIXED FOR AGGREGATE TARGETS)
+      # FIX POD RESOURCE BUNDLE SIGNING (SAFE FOR AGGREGATE TARGETS)
       # ========================================================
       - name: Fix Pod Resource Bundle Signing
         working-directory: apps/${{ env.APP_DIR }}/ios
@@ -508,6 +508,36 @@ jobs:
           RUBY
 
       # ========================================================
+      # VERIFY PROFILE AVAILABILITY BEFORE BUILD
+      # ========================================================
+      - name: Verify Provisioning Profile Availability
+        shell: bash
+        run: |
+          echo "🔍 Searching for matching provisioning profiles..."
+          FOUND=0
+          while IFS= read -r profile; do
+            uuid=$(security cms -D -i "$profile" | grep -A1 UUID | tail -1 | tr -d '\t ')
+            name=$(security cms -D -i "$profile" | grep -A1 "<key>Name</key>" | tail -1 | sed "s/.*<string>//;s/<\/string>.*//")
+            bundle=$(security cms -D -i "$profile" | grep -A1 "application-identifier" | tail -1 | sed "s/.*<string>//;s/<\/string>.*//" | cut -d. -f2-)
+            
+            echo "  📋 Name: $name"
+            echo "     Bundle: $bundle"
+            echo "     UUID: $uuid"
+            echo ""
+            
+            if [[ "$name" == *"Demo ROJA"* ]] || [[ "$name" == *"Roja"* ]]; then
+              FOUND=1
+            fi
+          done < <(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null)
+          
+          if [ "$FOUND" -eq 0 ]; then
+            echo "⚠️ WARNING: No profile named 'Demo ROJA' found on this runner!"
+            echo "   Ensure your App Store profile includes Push Notifications and matches Bundle ID: ${APP_SECRETS_IOS_BUNDLE_ID}"
+          else
+            echo "✅ Matching profile found!"
+          fi
+
+      # ========================================================
       # BUILD & ARCHIVE FOR TESTFLIGHT
       # ========================================================
       - name: Build and Archive for TestFlight
@@ -543,7 +573,7 @@ jobs:
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
-            <key>method</key><string>app-store</string>
+            <key>method</key><string>app-store-connect</string>
             <key>signingStyle</key><string>manual</string>
             <key>teamID</key><string>${APP_SECRETS_IOS_TEAM_ID}</string>
             <key>stripSwiftSymbols</key><true/>
@@ -618,6 +648,6 @@ jobs:
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
-          echo "🧹 Cleaning pod cache..."
+          echo " Cleaning pod cache..."
           bundle exec pod cache clean --all || true
           echo "✅ Pod cache cleaned."
