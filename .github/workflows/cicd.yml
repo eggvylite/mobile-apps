@@ -1,4 +1,4 @@
-name: Mobile CI/CD - v6 Development Test
+name: Mobile CI/CD - v6 TestFlight & S3
 
 on:
   workflow_dispatch:
@@ -26,6 +26,11 @@ on:
         description: "App Version (example: 1.9). Leave blank to keep project version."
         required: false
         type: string
+      upload_testflight:
+        description: "Upload to TestFlight?"
+        required: false
+        type: boolean
+        default: true
 
 env:
   AWS_REGION: us-east-1
@@ -110,7 +115,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          required_vars=(APP_SECRETS_IOS_BUNDLE_ID APP_SECRETS_IOS_TEAM_ID APP_SECRETS_IOS_P12_BASE64 APP_SECRETS_IOS_P12_PASSWORD APP_SECRETS_IOS_APPSTORE_ISSUER_ID APP_SECRETS_IOS_APPSTORE_API_KEY_ID APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY)
+          required_vars=(APP_SECRETS_IOS_BUNDLE_ID APP_SECRETS_IOS_TEAM_ID APP_SECRETS_IOS_DISTRIBUTION_P12_BASE64 APP_SECRETS_IOS_DISTRIBUTION_P12_PASSWORD APP_SECRETS_IOS_APPSTORE_ISSUER_ID APP_SECRETS_IOS_APPSTORE_API_KEY_ID APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY)
           for var in "${required_vars[@]}"; do
             if [ -z "${!var:-}" ]; then echo "ERROR: Missing required iOS variable: $var"; exit 1; fi
           done
@@ -151,6 +156,7 @@ jobs:
             exit 1
           fi
           echo "✅ All critical dependencies present."
+
       # ========================================================
       # RUBY SETUP
       # ========================================================
@@ -320,7 +326,7 @@ jobs:
           GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
 
           if [ -f "$GH_MODULE" ]; then
-            echo "🔧 Patching RNGestureHandlerModule.mm for RN 0.81..."
+            echo " Patching RNGestureHandlerModule.mm for RN 0.81..."
             python3 << 'PYEOF'
           path = "node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
           with open(path, "r") as f:
@@ -341,7 +347,7 @@ jobs:
               print("ℹ️ No changes needed.")
           PYEOF
           else
-            echo "⚠️ RNGestureHandlerModule.mm not found."
+            echo "️ RNGestureHandlerModule.mm not found."
           fi
 
       # ========================================================
@@ -367,7 +373,7 @@ jobs:
               echo "✅ PASS: No active REACT_NATIVE_MINOR_VERSION preprocessor block"
             fi
             if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
-              echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
+              echo " FAIL: Still contains 'double' in shadowTreeDidMount!"
               exit 1
             else
               echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
@@ -428,13 +434,16 @@ jobs:
           end
           RUBY
 
-      - name: Import Apple Development Certificate
+      # ========================================================
+      # DISTRIBUTION SIGNING SETUP
+      # ========================================================
+      - name: Import Apple Distribution Certificate
         uses: apple-actions/import-codesign-certs@v7
         with:
-          p12-file-base64: ${{ env.APP_SECRETS_IOS_P12_BASE64 }}
-          p12-password: ${{ env.APP_SECRETS_IOS_P12_PASSWORD }}
+          p12-file-base64: ${{ env.APP_SECRETS_IOS_DISTRIBUTION_P12_BASE64 }}
+          p12-password: ${{ env.APP_SECRETS_IOS_DISTRIBUTION_P12_PASSWORD }}
 
-      - name: Prepare App Store Connect API Key for Xcode
+      - name: Prepare App Store Connect API Key
         shell: bash
         run: |
           set -euo pipefail
@@ -458,7 +467,7 @@ jobs:
           echo "WORKSPACE_PATH=$WORKSPACE_PATH" >> "$GITHUB_ENV"
           echo "SCHEME_NAME=$SCHEME_NAME" >> "$GITHUB_ENV"
 
-      - name: Normalize Xcode Development Signing
+      - name: Configure Distribution Signing
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -468,24 +477,29 @@ jobs:
           require 'xcodeproj'
           project_path = Dir.glob('ios/*.xcodeproj').first
           abort('ERROR: No .xcodeproj found inside ios/.') unless project_path
+          
           project = Xcodeproj::Project.open(project_path)
           application_targets = project.targets.select { |t| t.respond_to?(:product_type) && t.product_type == 'com.apple.product-type.application' }
           target = application_targets.find { |t| t.name == ENV['SCHEME_NAME'] } || application_targets.first
           abort('ERROR: Could not resolve the iOS application target.') unless target
+          
           attrs = project.root_object.attributes['TargetAttributes'] ||= {}
           target_attrs = attrs[target.uuid] ||= {}
-          target_attrs['ProvisioningStyle'] = 'Automatic'
+          target_attrs['ProvisioningStyle'] = 'Manual'
+          
           target.build_configurations.each do |config|
             config.build_settings.delete('PROVISIONING_PROFILE')
             config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
-            config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+            config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
             config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
-            config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
           end
           project.save
           RUBY
 
-      - name: Build and Archive (Development)
+      # ========================================================
+      # BUILD & ARCHIVE FOR TESTFLIGHT
+      # ========================================================
+      - name: Build and Archive for TestFlight
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
@@ -497,37 +511,50 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Development" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             -allowProvisioningUpdates \
-            -allowProvisioningDeviceRegistration \
             -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
             -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
             archive
 
-      - name: Export IPA
+      - name: Export IPA for App Store
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
           rm -rf ios/build/export && mkdir -p ios/build/export
+          
           cat > ios/build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
-            <key>destination</key><string>export</string>
-            <key>method</key><string>development</string>
-            <key>signingStyle</key><string>automatic</string>
+            <key>method</key><string>app-store</string>
+            <key>signingStyle</key><string>manual</string>
             <key>teamID</key><string>${APP_SECRETS_IOS_TEAM_ID}</string>
             <key>stripSwiftSymbols</key><true/>
             <key>uploadSymbols</key><true/>
+            <key>compileBitcode</key><false/>
           </dict></plist>
           EOF
+          
           plutil -lint ios/build/ExportOptions.plist
-          xcodebuild -exportArchive -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" -exportPath "$PWD/ios/build/export" -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" -allowProvisioningUpdates -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
+          
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            -exportPath "$PWD/ios/build/export" \
+            -exportOptionsPlist "$PWD/ios/build/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
 
+      # ========================================================
+      # UPLOAD ARTIFACTS
+      # ========================================================
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -540,25 +567,37 @@ jobs:
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
-         set -euo pipefail
-    
-          # List files to debug
-          echo "📂 Contents of ios/build/export/:"
-          ls -la ios/build/export/ || true
-    
-          # Find the actual .ipa file
+          set -euo pipefail
           IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
-          
           if [ -z "$IPA_FILE" ]; then
             echo "❌ ERROR: No .ipa file found in ios/build/export/"
-            echo "Available files:"
-            find ios/build/export -type f || true
             exit 1
           fi
-          
           echo "📦 Found IPA: $IPA_FILE"
           aws s3 cp "$IPA_FILE" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
           echo "✅ Successfully uploaded to S3"
+
+      - name: Upload to TestFlight
+        if: inputs.upload_testflight == true
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "❌ ERROR: No .ipa file found for TestFlight upload"
+            exit 1
+          fi
+          
+          echo "🚀 Uploading to TestFlight: $IPA_FILE"
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_FILE" \
+            --apiKey "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            --apiIssuer "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
+            --verbose
+          
+          echo "✅ TestFlight upload initiated"
 
       # ========================================================
       # AUTO CLEAN POD CACHE (runs on success AND failure)
