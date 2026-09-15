@@ -515,45 +515,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          
-          # Determine Profile UUID or Name
-          # Using UUID is safer. If you have different UUIDs per app, add them to secrets.
-          # For now, we try to use the specific UUID you found for Roja if the app is roja.
-          # Otherwise fallback to name.
-          
-          PROFILE_UUID=""
-          PROFILE_NAME="DemoROJA"
-          
-          if [ "${{ matrix.app }}" == "roja" ]; then
-            PROFILE_UUID="b0ff62c4-5f8a-4708-9a33-64ff3638d355"
-          fi
-          
-          # Construct xcodebuild args
-          XCODE_ARGS=(
-            -workspace "${WORKSPACE_PATH}"
-            -scheme "${SCHEME_NAME}"
-            -configuration Release
-            -sdk iphoneos
-            -destination "generic/platform=iOS"
-            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive"
-            CODE_SIGN_STYLE=Manual
-            CODE_SIGN_IDENTITY="Apple Distribution"
-            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}"
-            -allowProvisioningUpdates
-            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}"
-            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}"
-            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}"
-          )
-          
-          if [ -n "$PROFILE_UUID" ]; then
-            echo "Using Profile UUID: $PROFILE_UUID"
-            XCODE_ARGS+=(PROVISIONING_PROFILE="$PROFILE_UUID")
-          else
-            echo "Using Profile Name: $PROFILE_NAME"
-            XCODE_ARGS+=(PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME")
-          fi
-          
-          xcodebuild "${XCODE_ARGS[@]}" archive
+          xcodebuild \
+            -workspace "${WORKSPACE_PATH}" \
+            -scheme "${SCHEME_NAME}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
+            PROVISIONING_PROFILE_SPECIFIER="DemoROJA" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
+            -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
+            archive
 
       - name: Export IPA for App Store
         working-directory: apps/${{ env.APP_DIR }}
@@ -561,13 +538,6 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf ios/build/export && mkdir -p ios/build/export
-          
-          # We must map the Bundle ID to the Profile Name for manual export
-          # Even if we used UUID for archive, export often prefers name mapping in plist
-          PROFILE_NAME="DemoROJA"
-          if [ "${{ matrix.app }}" == "roja" ]; then
-             PROFILE_NAME="DemoROJA"
-          fi
           
           cat > ios/build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -582,7 +552,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>${APP_SECRETS_IOS_BUNDLE_ID}</key>
-              <string>${PROFILE_NAME}</string>
+              <string>DemoROJA</string>
             </dict>
           </dict></plist>
           EOF
