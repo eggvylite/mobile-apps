@@ -115,7 +115,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          required_vars=(APP_SECRETS_IOS_BUNDLE_ID APP_SECRETS_IOS_TEAM_ID APP_SECRETS_IOS_DISTRIBUTION_P12_BASE64 APP_SECRETS_IOS_DISTRIBUTION_P12_PASSWORD APP_SECRETS_IOS_APPSTORE_ISSUER_ID APP_SECRETS_IOS_APPSTORE_API_KEY_ID APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY)
+          required_vars=(
+            APP_SECRETS_IOS_BUNDLE_ID 
+            APP_SECRETS_IOS_TEAM_ID 
+            APP_SECRETS_IOS_DISTRIBUTION_P12_BASE64 
+            APP_SECRETS_IOS_DISTRIBUTION_P12_PASSWORD 
+            APP_SECRETS_IOS_APPSTORE_ISSUER_ID 
+            APP_SECRETS_IOS_APPSTORE_API_KEY_ID 
+            APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY
+          )
           for var in "${required_vars[@]}"; do
             if [ -z "${!var:-}" ]; then echo "ERROR: Missing required iOS variable: $var"; exit 1; fi
           done
@@ -145,7 +153,7 @@ jobs:
           MISSING=0
           for DEP in date-fns react-native-reanimated react-native-gesture-handler @react-native-picker/picker react-native-pager-view; do
             if [ ! -d "node_modules/$DEP" ]; then
-              echo "❌ MISSING: $DEP"
+              echo " MISSING: $DEP"
               MISSING=$((MISSING + 1))
             else
               echo "✅ $DEP"
@@ -326,7 +334,7 @@ jobs:
           GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
 
           if [ -f "$GH_MODULE" ]; then
-            echo " Patching RNGestureHandlerModule.mm for RN 0.81..."
+            echo "🔧 Patching RNGestureHandlerModule.mm for RN 0.81..."
             python3 << 'PYEOF'
           path = "node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
           with open(path, "r") as f:
@@ -347,7 +355,7 @@ jobs:
               print("ℹ️ No changes needed.")
           PYEOF
           else
-            echo "️ RNGestureHandlerModule.mm not found."
+            echo "⚠️ RNGestureHandlerModule.mm not found."
           fi
 
       # ========================================================
@@ -373,7 +381,7 @@ jobs:
               echo "✅ PASS: No active REACT_NATIVE_MINOR_VERSION preprocessor block"
             fi
             if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
-              echo " FAIL: Still contains 'double' in shadowTreeDidMount!"
+              echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
               exit 1
             else
               echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
@@ -400,10 +408,13 @@ jobs:
           if grep -q "shadowNodeListFromValue" "$GH_MODULE"; then
             echo "✅ PASS: Uses shadowNodeListFromValue"
           else
-            echo "❌ FAIL: Still uses old shadowNodeFromValue"
+            echo " FAIL: Still uses old shadowNodeFromValue"
             exit 1
           fi
 
+      # ========================================================
+      # FIX POD RESOURCE BUNDLE SIGNING (FIXED FOR AGGREGATE TARGETS)
+      # ========================================================
       - name: Fix Pod Resource Bundle Signing
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
@@ -416,10 +427,10 @@ jobs:
           if File.exist?(project_path)
             project = Xcodeproj::Project.open(project_path)
             project.targets.each do |target|
-              # Skip the main app target - it MUST be signed
-              next if target.product_type == 'com.apple.product-type.application'
+              # Skip aggregate targets that don't have product_type
+              next unless target.respond_to?(:product_type)
               
-              # Disable code signing for ALL other targets (bundles, extensions, privacy info, etc.)
+              # Disable code signing for ALL non-application targets
               target.build_configurations.each do |config|
                 config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
                 config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
@@ -514,7 +525,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="${APP_SECRETS_IOS_TEAM_ID}" \
-            PROVISIONING_PROFILE_SPECIFIER="DemoROJA" \  # <-- ADD THIS LINE
+            PROVISIONING_PROFILE_SPECIFIER="DemoROJA" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "${XCODE_AUTH_KEY_PATH}" \
             -authenticationKeyID "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
@@ -589,7 +600,7 @@ jobs:
             exit 1
           fi
           
-          echo "🚀 Uploading to TestFlight: $IPA_FILE"
+          echo " Uploading to TestFlight: $IPA_FILE"
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_FILE" \
