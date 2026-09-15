@@ -610,25 +610,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          
           IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
           if [ -z "$IPA_FILE" ]; then
             echo "❌ ERROR: No .ipa file found for TestFlight upload"
             exit 1
           fi
           
+          # 1. Create the directory altool looks for by default
+          mkdir -p ~/.private_keys
+          
+          # 2. Copy the key from temp to that directory with the exact name altool expects
+          # altool expects the file to be named: AuthKey_<KEY_ID>.p8
+          cp "${XCODE_AUTH_KEY_PATH}" ~/.private_keys/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8
+          
           echo "🚀 Uploading to TestFlight: $IPA_FILE"
           
-          # ADDED: --apiKeyPath pointing to the saved .p8 file
+          # 3. Run altool WITHOUT --apiKeyPath (it will find the key in ~/.private_keys automatically)
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_FILE" \
             --apiKey "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
             --apiIssuer "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
-            --apiKeyPath "${XCODE_AUTH_KEY_PATH}" \
             --verbose
           
           echo "✅ TestFlight upload initiated"
-
+          
       # ========================================================
       # AUTO CLEAN POD CACHE (runs on success AND failure)
       # ========================================================
