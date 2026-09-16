@@ -113,8 +113,9 @@ jobs:
       - name: Get App Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
+          # FIXED: Changed from 'creds' to 'cred' to match your AWS Secret Name
           secret-ids: |
-            APP_SECRETS,app/${{ matrix.app }}/creds
+            APP_SECRETS,app/${{ matrix.app }}/cred
           parse-json-secrets: true
 
       - name: Validate iOS Configuration
