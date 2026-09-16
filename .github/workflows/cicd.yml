@@ -26,6 +26,10 @@ on:
         description: "App Version (example: 1.9). Leave blank to keep project version."
         required: false
         type: string
+      build_number:
+        description: "Build Number (example: 8). Leave blank to auto-increment."
+        required: false
+        type: string
       upload_testflight:
         description: "Upload to TestFlight?"
         required: false
@@ -438,6 +442,40 @@ jobs:
           project.save
           puts "✅ Injected Provisioning Profile UUID: #{profile_uuid}"
           RUBY
+
+      # ========================================================
+      # SET APP VERSION AND BUILD NUMBER FROM WORKFLOW INPUTS
+      # ========================================================
+      - name: Set App Version and Build Number
+        working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          # Set Marketing Version (e.g., 1.9) if provided
+          if [ -n "${{ inputs.version_name }}" ]; then
+            echo "📦 Setting Marketing Version to: ${{ inputs.version_name }}"
+            agvtool new-marketing-version "${{ inputs.version_name }}"
+            echo "   ✅ Marketing Version set to: $(agvtool what-marketing-version -terse)"
+          else
+            echo "ℹ️ No version_name provided. Keeping existing: $(agvtool what-marketing-version -terse)"
+          fi
+          
+          # Set Build Number (e.g., 8) if provided, otherwise auto-increment
+          if [ -n "${{ inputs.build_number }}" ]; then
+            echo "🔢 Setting Build Number to: ${{ inputs.build_number }}"
+            agvtool new-version -all "${{ inputs.build_number }}"
+            echo "   ✅ Build Number set to: $(agvtool what-version -terse)"
+          else
+            echo "🔢 Auto-incrementing Build Number..."
+            agvtool next-version -all
+            echo "   ✅ Build Number incremented to: $(agvtool what-version -terse)"
+          fi
+          
+          echo ""
+          echo "📋 Final Version Info:"
+          echo "   Marketing Version: $(agvtool what-marketing-version -terse)"
+          echo "   Build Number: $(agvtool what-version -terse)"    
 
       - name: Build and Archive for TestFlight
         working-directory: apps/${{ env.APP_DIR }}
