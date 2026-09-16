@@ -269,6 +269,52 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
+      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (NEW)
+      # ========================================================
+      - name: Patch fmt for Xcode 26
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔧 Patching fmt library for Xcode 26 compatibility..."
+          python3 << 'PYEOF'
+          import glob
+          import os
+
+          patched = False
+          # Try patching xcconfig first
+          for path in glob.glob("ios/Pods/Target Support Files/fmt/*.xcconfig"):
+              with open(path, "r") as f:
+                  content = f.read()
+              
+              if "FMT_USE_CONSTEVAL=0" not in content:
+                  if "GCC_PREPROCESSOR_DEFINITIONS" in content:
+                      # Handle case where it might already have values
+                      if "$(inherited)" not in content.split("GCC_PREPROCESSOR_DEFINITIONS")[1].split("\n")[0]:
+                           content = content.replace("GCC_PREPROCESSOR_DEFINITIONS =", "GCC_PREPROCESSOR_DEFINITIONS = $(inherited)")
+                      content = content.replace("GCC_PREPROCESSOR_DEFINITIONS = $(inherited)", "GCC_PREPROCESSOR_DEFINITIONS = $(inherited) FMT_USE_CONSTEVAL=0")
+                  else:
+                      content += "\nGCC_PREPROCESSOR_DEFINITIONS = $(inherited) FMT_USE_CONSTEVAL=0\n"
+                  
+                  with open(path, "w") as f:
+                      f.write(content)
+                  print(f"✅ Patched xcconfig: {path}")
+                  patched = True
+
+          if not patched:
+              print("⚠️ xcconfig patch failed. Patching header directly...")
+              fmt_base_h = "ios/Pods/fmt/include/fmt/base.h"
+              if os.path.exists(fmt_base_h):
+                  with open(fmt_base_h, "r") as f:
+                      content = f.read()
+                  if "FMT_USE_CONSTEVAL 0" not in content:
+                      content = "#ifndef FMT_USE_CONSTEVAL\n#define FMT_USE_CONSTEVAL 0\n#endif\n" + content
+                      with open(fmt_base_h, "w") as f:
+                          f.write(content)
+                      print(f"✅ Patched header: {fmt_base_h}")
+          PYEOF
+
+      # ========================================================
       # PATCH 3: FIX REANIMATED MOUNT HOOK
       # ========================================================
       - name: Fix ReanimatedMountHook HighResTimeStamp
