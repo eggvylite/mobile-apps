@@ -337,16 +337,32 @@ jobs:
           set -euo pipefail
           cat > /tmp/fix_mount_hook.py << 'ENDSCRIPT'
           import re, sys, os
+          
           path = sys.argv[1]
           real_path = os.path.realpath(path)
+          
           with open(real_path, 'r') as f:
               content = f.read()
+          
           original = content
-          content = re.sub(r'#if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*(.*?)#else\s*.*?#endif\s*(?://[^]*)?', r'\1', content, flags=re.DOTALL)
-          content = re.sub(r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*?$', '', content, flags=re.MULTILINE)
+          
+          # 1. Remove the entire #if/#else/#endif block for RN version checks
+          # This regex looks for #if ... >= 81, captures the content inside, and removes the directives
+          content = re.sub(
+              r'#\s*if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#\s*else\s*\n.*?#\s*endif',
+              r'\1',
+              content,
+              flags=re.DOTALL
+          )
+          
+          # 2. Clean up any remaining single-line comments about REACT_NATIVE_MINOR_VERSION
+          content = re.sub(r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*$', '', content, flags=re.MULTILINE)
+          
+          # 3. Replace double with HighResTimeStamp
           content = content.replace('double /*unmountTime*/', 'HighResTimeStamp /*unmountTime*/')
           content = content.replace('double commitTime', 'HighResTimeStamp commitTime')
           content = content.replace('double startTime', 'HighResTimeStamp startTime')
+          
           if content != original:
               with open(real_path, 'w') as f:
                   f.write(content)
@@ -370,7 +386,6 @@ jobs:
           if [ "$FOUND" -eq 0 ]; then
               echo "⚠️ No ReanimatedMountHook files found to patch."
           fi
-
       # ========================================================
       # PATCH 4: FIX RNGESTUREHANDLER FOR RN 0.81
       # ========================================================
