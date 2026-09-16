@@ -41,12 +41,6 @@ config[:reactNativePath],
 
 # ============================================================
 # fmt 11.0.2 / Xcode 26 workaround
-#
-# Xcode 26 + Apple Clang can fail while compiling fmt because
-# fmt enables FMT_USE_CONSTEVAL through __cpp_consteval.
-#
-# Do NOT simply add the macro at the top of base.h because fmt
-# can redefine it later. Patch the actual fmt definition instead.
 # ============================================================
 
 fmt_base_h = File.join(
@@ -74,6 +68,7 @@ if File.exist?(fmt_base_h)
     puts "fmt workaround: FMT_USE_CONSTEVAL is already disabled"
   elsif content.include?(original_pattern)
     content = content.sub(original_pattern, patched_pattern)
+
     File.chmod(0644, fmt_base_h)
     File.write(fmt_base_h, content)
 
@@ -118,7 +113,7 @@ installer.pods_project.targets.each do |target|
     # Pods do not need code signing
     build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
 
-    # Minimum iOS deployment target
+    # iOS deployment target
     build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
 
     # Warnings
