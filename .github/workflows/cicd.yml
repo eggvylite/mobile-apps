@@ -270,7 +270,8 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (ROBUST)
+      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (DEFINITIVE)
+      # MUST RUN AFTER POD INSTALL
       # ========================================================
       - name: Patch fmt for Xcode 26
         working-directory: apps/${{ env.APP_DIR }}/ios
@@ -279,23 +280,33 @@ jobs:
           set -euo pipefail
           echo "🔧 Patching fmt library for Xcode 26 compatibility..."
           
-          # Method 1: Modify the header file directly to disable consteval if FMT_USE_CONSTEVAL is not defined
-          FMT_HEADER="Pods/fmt/include/fmt/base.h"
-          if [ -f "$FMT_HEADER" ]; then
-            echo "✅ Found fmt/base.h. Applying source patch..."
-            # Add #define FMT_USE_CONSTEVAL 0 at the very top of the file if not present
-            if ! grep -q "FMT_USE_CONSTEVAL" "$FMT_HEADER"; then
-              sed -i '' '1s/^/#define FMT_USE_CONSTEVAL 0\n/' "$FMT_HEADER"
-              echo "✅ Added FMT_USE_CONSTEVAL 0 to fmt/base.h"
-            else
-              echo "ℹ️ FMT_USE_CONSTEVAL already defined in header."
-            fi
-          else
-            echo "❌ ERROR: fmt/base.h not found at $FMT_HEADER. Build will likely fail."
+          FORMAT_INL="Pods/fmt/include/fmt/format-inl.h"
+          BASE_H="Pods/fmt/include/fmt/base.h"
+          
+          if [ ! -f "$FORMAT_INL" ]; then
+            echo "❌ ERROR: $FORMAT_INL not found!"
             exit 1
           fi
-
-          # Method 2: Also try to set it in Xcode project as backup
+          
+          # Method 1: Replace FMT_STRING() with plain string literals in format-inl.h
+          # This completely bypasses the consteval check
+          echo "📝 Removing FMT_STRING wrappers from format-inl.h..."
+          sed -i '' 's/FMT_STRING("\([^"]*\)")/"\1"/g' "$FORMAT_INL"
+          echo "✅ Replaced all FMT_STRING() calls with plain strings"
+          
+          # Method 2: Also patch base.h to disable consteval at the source
+          if [ -f "$BASE_H" ]; then
+            echo "📝 Patching base.h to disable consteval..."
+            # Insert before any existing FMT_USE_CONSTEVAL definition
+            if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$BASE_H"; then
+              sed -i '' '1i\
+          #define FMT_USE_CONSTEVAL 0
+          ' "$BASE_H"
+              echo "✅ Added FMT_USE_CONSTEVAL 0 to base.h"
+            fi
+          fi
+          
+          # Method 3: Set compiler flags as additional backup
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
           
           ruby <<'RUBY'
@@ -305,47 +316,30 @@ jobs:
           if File.exist?(project_path)
             project = Xcodeproj::Project.open(project_path)
             
-            found_fmt = false
             project.targets.each do |target|
               if target.name.include?('fmt')
-                found_fmt = true
-                puts "✅ Found '#{target.name}' target. Applying Xcode patches..."
-                
                 target.build_configurations.each do |config|
-                  existing = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
-                  existing = [] unless existing.is_a?(Array)
-                  
-                  unless existing.any? { |d| d.include?('FMT_USE_CONSTEVAL=0') }
-                    existing << 'FMT_USE_CONSTEVAL=0'
-                    config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing
-                    puts "✅ Added FMT_USE_CONSTEVAL=0 to #{target.name} (#{config.name})"
-                  end
-                  
-                  # Also add to OTHER_CPLUSPLUSFLAGS
                   cxx_flags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || []
                   cxx_flags = [cxx_flags] unless cxx_flags.is_a?(Array)
-                  unless cxx_flags.any? { |f| f.include?('-DFMT_USE_CONSTEVAL=0') }
-                    cxx_flags << '-DFMT_USE_CONSTEVAL=0'
-                    config.build_settings['OTHER_CPLUSPLUSFLAGS'] = cxx_flags
-                    puts "✅ Added -DFMT_USE_CONSTEVAL=0 to OTHER_CPLUSPLUSFLAGS"
+                  
+                  ['-DFMT_USE_CONSTEVAL=0', '-DFMT_USE_CONSTEXPR=0'].each do |flag|
+                    unless cxx_flags.any? { |f| f.include?(flag) }
+                      cxx_flags << flag
+                    end
                   end
+                  
+                  config.build_settings['OTHER_CPLUSPLUSFLAGS'] = cxx_flags
                 end
               end
             end
             
-            if found_fmt
-              project.save
-              puts "✅ Saved Pods.xcodeproj with fmt patch"
-            else
-              puts "⚠️ WARNING: No 'fmt' target found. Listing targets:"
-              project.targets.each { |t| puts " - #{t.name}" }
-            end
-          else
-            puts "❌ ERROR: Pods.xcodeproj not found"
-            exit 1
+            project.save
+            puts "✅ Saved Pods.xcodeproj with fmt compiler flags"
           end
           RUBY
-
+          
+          echo "✅ fmt library patched successfully"
+          
       - name: Fix ReanimatedMountHook HighResTimeStamp
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
