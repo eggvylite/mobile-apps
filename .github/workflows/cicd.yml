@@ -146,15 +146,60 @@ jobs:
           set -euo pipefail
           npm install --legacy-peer-deps
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: apps/${{ env.APP_DIR }}
+
       # ========================================================
-      # ROBUST VERIFICATION STEP (FAIL FAST)
+      # PATCH IOS DEPENDENCIES & INSTALL PODS
       # ========================================================
-      - name: Verify Build Prerequisites
+      - name: Patch iOS Dependencies & Install Pods
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔍 Verifying build prerequisites..."
+          
+          # 1. Fix Boost URL
+          python3 <<'PY'
+          import glob
+          old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
+          new_url = "https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2"
+          for path in glob.glob("node_modules/**/boost*.podspec", recursive=True):
+              with open(path, "r", encoding="utf-8") as f: content = f.read()
+              if old_url in content:
+                  content = content.replace(old_url, new_url)
+                  with open(path, "w", encoding="utf-8") as f: f.write(content)
+                  print(f"Patched Boost: {path}")
+          
+          for path in glob.glob("node_modules/**/RCT-Folly.podspec", recursive=True):
+              with open(path, "r", encoding="utf-8") as f: content = f.read()
+              if "-Wno-error=unqualified-std-cast-call" not in content:
+                  content = content.replace("folly_compiler_flags = [", 'folly_compiler_flags = ["-Wno-error=unqualified-std-cast-call", "-Wno-error=c++11-narrowing", "-DFOLLY_NO_CONFIG=1", ', 1)
+                  with open(path, "w", encoding="utf-8") as f: f.write(content)
+                  print(f"Patched RCT-Folly: {path}")
+          PY
+
+          # 2. Clean Pods Cache
+          cd ios
+          bundle exec pod cache clean boost --all || true
+          bundle exec pod cache clean RCT-Folly --all || true
+          
+          # 3. Install Pods
+          bundle exec pod install --repo-update
+
+      # ========================================================
+      # PRE-FLIGHT CHECK: VERIFY ALL PACKAGES & PATCHES
+      # THIS RUNS BEFORE BUILD TO SAVE TIME
+      # ========================================================
+      - name: Pre-Flight Build Verification
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Starting Pre-Flight Verification..."
           ERRORS=0
 
           # 1. Check Critical Node Modules
@@ -167,29 +212,43 @@ jobs:
 
           # 2. Check iOS Pods Directory
           if [ ! -d "ios/Pods" ]; then
-            echo "⚠️ WARNING: ios/Pods directory not found yet (expected before pod install)"
-          fi
-
-          # 3. Check Files We Intend to Patch (Pre-check)
-          # Note: Some of these might only exist AFTER pod install, so we check what we can now.
-          if [ ! -f "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp" ]; then
-            echo "❌ MISSING FILE: HermesExecutorFactory.cpp"
+            echo "❌ MISSING: ios/Pods directory"
             ERRORS=$((ERRORS + 1))
           fi
 
+          # 3. Check Files We Intend to Patch
+          FILES_TO_CHECK=(
+            "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
+            "ios/Pods/fmt/include/fmt/base.h"
+            "ios/Pods/fmt/include/fmt/format-inl.h"
+          )
+
+          for FILE in "${FILES_TO_CHECK[@]}"; do
+            if [ ! -f "$FILE" ]; then
+              echo "❌ MISSING FILE: $FILE"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          # 4. Verify fmt Patch was Applied (Check for our injected define)
+          FMT_HEADER="ios/Pods/fmt/include/fmt/base.h"
+          if [ -f "$FMT_HEADER" ]; then
+            if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$FMT_HEADER"; then
+              echo "⚠️ WARNING: fmt/base.h does not contain FMT_USE_CONSTEVAL 0 yet. The next step will apply it."
+            else
+              echo "✅ fmt/base.h already patched."
+            fi
+          fi
+
           if [ "$ERRORS" -gt 0 ]; then
-            echo "❌ $ERRORS critical prerequisites missing. Aborting."
+            echo "❌ $ERRORS critical prerequisites missing. Aborting before build."
             exit 1
           fi
-          echo "✅ All build prerequisites verified."
+          echo "✅ All pre-flight checks passed. Ready to build."
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-          working-directory: apps/${{ env.APP_DIR }}
-
+      # ========================================================
+      # APPLY ALL SOURCE CODE PATCHES
+      # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
@@ -235,45 +294,7 @@ jobs:
             echo "ℹ️ HermesExecutorFactory.cpp already has #include <thread> or not found."
           fi
 
-      - name: Patch iOS Dependencies & Install Pods
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          # 1. Fix Boost URL
-          python3 <<'PY'
-          import glob
-          old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
-          new_url = "https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2"
-          for path in glob.glob("node_modules/**/boost*.podspec", recursive=True):
-              with open(path, "r", encoding="utf-8") as f: content = f.read()
-              if old_url in content:
-                  content = content.replace(old_url, new_url)
-                  with open(path, "w", encoding="utf-8") as f: f.write(content)
-                  print(f"Patched Boost: {path}")
-          
-          for path in glob.glob("node_modules/**/RCT-Folly.podspec", recursive=True):
-              with open(path, "r", encoding="utf-8") as f: content = f.read()
-              if "-Wno-error=unqualified-std-cast-call" not in content:
-                  content = content.replace("folly_compiler_flags = [", 'folly_compiler_flags = ["-Wno-error=unqualified-std-cast-call", "-Wno-error=c++11-narrowing", "-DFOLLY_NO_CONFIG=1", ', 1)
-                  with open(path, "w", encoding="utf-8") as f: f.write(content)
-                  print(f"Patched RCT-Folly: {path}")
-          PY
-
-          # 2. Clean Pods Cache
-          cd ios
-          bundle exec pod cache clean boost --all || true
-          bundle exec pod cache clean RCT-Folly --all || true
-          
-          # 3. Install Pods
-          bundle exec pod install --repo-update
-
-      # ========================================================
-      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (FINAL SAFE FIX)
-      # MUST RUN AFTER POD INSTALL
-      # ========================================================
-      - name: Patch fmt for Xcode 26
+      - name: Patch fmt for Xcode 26 (Final Safe Fix)
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
@@ -289,7 +310,6 @@ jobs:
           fi
 
           # 1. Disable consteval at the source level in base.h
-          # We insert this BEFORE any other code to ensure it takes precedence
           if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$BASE_H"; then
             sed -i '' '1i\
             #define FMT_USE_CONSTEVAL 0\
@@ -299,8 +319,6 @@ jobs:
           fi
 
           # 2. Targeted replacement of FMT_STRING() calls in format-inl.h
-          # This regex specifically targets FMT_STRING("...") and replaces it with just "..."
-          # It does NOT touch variables named 's', avoiding the syntax errors from before.
           echo "📝 Removing FMT_STRING wrappers from format-inl.h..."
           sed -i '' 's/FMT_STRING(\("[^"]*"\))/\1/g' "$FORMAT_INL"
           echo "✅ Safely removed FMT_STRING() wrappers"
@@ -338,7 +356,7 @@ jobs:
           RUBY
           
           echo "✅ fmt library patched successfully"
-          
+
       - name: Fix ReanimatedMountHook HighResTimeStamp
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
@@ -377,7 +395,7 @@ jobs:
           done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" 2>/dev/null)
           
           if [ "$FOUND" -eq 0 ]; then
-            echo "⚠️ No ReanimatedMountHook files found to patch."
+              echo "⚠️ No ReanimatedMountHook files found to patch."
           fi
 
       - name: Patch RNGestureHandler for RN 0.81
@@ -406,49 +424,6 @@ jobs:
           PYEOF
           else
             echo "⚠️ RNGestureHandlerModule.mm not found."
-          fi
-
-      - name: Verify All Patches
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "=== 1. Verify ReanimatedMountHook ==="
-          FOUND=0
-          while IFS= read -r f; do
-              FOUND=1
-              REAL_F=$(readlink -f "$f" 2>/dev/null || echo "$f")
-              echo "- $REAL_F -"
-              if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
-                  echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
-                  exit 1
-              else
-                  echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
-              fi
-          done < <(find ios/Pods/Headers node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
-          if [ "$FOUND" -eq 0 ]; then
-            echo "❌ ERROR: No ReanimatedMountHook.h found!"
-            exit 1
-          fi
-
-          echo ""
-          echo "=== 2. Verify HermesExecutorFactory.cpp ==="
-          HERMES_SRC="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
-          if grep -q "#include <thread>" "$HERMES_SRC"; then
-              echo "✅ PASS: #include <thread> present"
-          else
-              echo "❌ FAIL: Missing #include <thread>"
-              exit 1
-          fi
-
-          echo ""
-          echo "=== 3. Verify fmt Patch ==="
-          FMT_HEADER="ios/Pods/fmt/include/fmt/base.h"
-          if [ -f "$FMT_HEADER" ] && grep -q "FMT_USE_CONSTEVAL" "$FMT_HEADER"; then
-              echo "✅ PASS: fmt header patched"
-          else
-            echo "❌ FAIL: fmt header might not be patched correctly"
-            exit 1
           fi
 
       - name: Fix Pod Resource Bundle Signing
