@@ -270,7 +270,7 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (NUCLEAR OPTION)
+      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (FINAL SAFE FIX)
       # MUST RUN AFTER POD INSTALL
       # ========================================================
       - name: Patch fmt for Xcode 26
@@ -278,40 +278,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Applying nuclear patch to fmt library..."
+          echo "🔧 Applying final safe patch to fmt library..."
           
+          FORMAT_INL="Pods/fmt/include/fmt/format-inl.h"
           BASE_H="Pods/fmt/include/fmt/base.h"
-          FORMAT_H="Pods/fmt/include/fmt/format.h"
           
-          if [ ! -f "$BASE_H" ]; then
-            echo "❌ ERROR: $BASE_H not found!"
+          if [ ! -f "$FORMAT_INL" ]; then
+            echo "❌ ERROR: $FORMAT_INL not found!"
             exit 1
           fi
 
-          # 1. Force disable consteval/constexpr checks at the very top of base.h
-          # We insert these defines BEFORE any other code to ensure they take precedence
-          sed -i '' '1i\
-          #define FMT_USE_CONSTEVAL 0\
-          #define FMT_USE_CONSTEXPR 0\
-          #define FMT_COMPILE_STRING ""\
-          #define FMT_STRING(s) s
-          ' "$BASE_H"
-          
-          echo "✅ Injected disable macros into base.h"
-
-          # 2. Also patch format.h to ensure FMT_STRING is neutralized there too
-          if [ -f "$FORMAT_H" ]; then
+          # 1. Disable consteval at the source level in base.h
+          # We insert this BEFORE any other code to ensure it takes precedence
+          if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$BASE_H"; then
             sed -i '' '1i\
-            #define FMT_STRING(s) s
-            ' "$FORMAT_H"
-            echo "✅ Neutralized FMT_STRING in format.h"
+            #define FMT_USE_CONSTEVAL 0\
+            #define FMT_USE_CONSTEXPR 0
+            ' "$BASE_H"
+            echo "✅ Disabled consteval/constexpr in base.h"
           fi
 
-          # 3. Remove any remaining FMT_STRING() calls in source files just in case
-          find Pods/fmt -name "*.cc" -o -name "*.h" | xargs sed -i '' 's/FMT_STRING(\([^)]*\))/\1/g'
-          echo "✅ Removed all FMT_STRING() wrappers from fmt sources"
+          # 2. Targeted replacement of FMT_STRING() calls in format-inl.h
+          # This regex specifically targets FMT_STRING("...") and replaces it with just "..."
+          # It does NOT touch variables named 's', avoiding the syntax errors from before.
+          echo "📝 Removing FMT_STRING wrappers from format-inl.h..."
+          sed -i '' 's/FMT_STRING(\("[^"]*"\))/\1/g' "$FORMAT_INL"
+          echo "✅ Safely removed FMT_STRING() wrappers"
 
-          # 4. Add compiler flags as backup
+          # 3. Add compiler flags as a backup
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
           
           ruby <<'RUBY'
