@@ -287,7 +287,7 @@ jobs:
 
       # ========================================================
       # PERMANENT FIX FOR FMT LIBRARY (XCODE 26)
-      # PYTHON-BASED SOURCE PATCHING
+      # PYTHON-BASED SOURCE PATCHING WITH PERMISSION FIX
       # ========================================================
       - name: Patch fmt for Xcode 26 (Permanent Fix)
         working-directory: apps/${{ env.APP_DIR }}/ios
@@ -303,7 +303,6 @@ jobs:
           fmt_dir = "Pods/fmt"
           
           # Regex to match FMT_STRING("...") and replace with "..."
-          # This is safer than sed as it handles C++ templates correctly
           pattern = re.compile(r'FMT_STRING\(\s*("[^"]*")\s*\)')
           
           for root, dirs, files in os.walk(fmt_dir):
@@ -311,6 +310,9 @@ jobs:
                   if file.endswith(('.h', '.cc', '.cpp')):
                       filepath = os.path.join(root, file)
                       try:
+                          # Make file writable before modifying
+                          os.chmod(filepath, 0o644)
+                          
                           with open(filepath, 'r', encoding='utf-8') as f:
                               content = f.read()
                           
@@ -326,6 +328,7 @@ jobs:
           # Also disable consteval in base.h as backup
           base_h = os.path.join(fmt_dir, "include/fmt/base.h")
           if os.path.exists(base_h):
+              os.chmod(base_h, 0o644)
               with open(base_h, 'r', encoding='utf-8') as f:
                   content = f.read()
               
