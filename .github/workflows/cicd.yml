@@ -132,6 +132,7 @@ jobs:
           done
           if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
+      # CHANGE 1: Update to Node 24
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -230,16 +231,6 @@ jobs:
             fi
           done
 
-          # 4. Verify fmt Patch was Applied (Check for our injected define)
-          FMT_HEADER="ios/Pods/fmt/include/fmt/base.h"
-          if [ -f "$FMT_HEADER" ]; then
-            if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$FMT_HEADER"; then
-              echo "⚠️ WARNING: fmt/base.h does not contain FMT_USE_CONSTEVAL 0 yet. The next step will apply it."
-            else
-              echo "✅ fmt/base.h already patched."
-            fi
-          fi
-
           if [ "$ERRORS" -gt 0 ]; then
             echo "❌ $ERRORS critical prerequisites missing. Aborting before build."
             exit 1
@@ -294,12 +285,15 @@ jobs:
             echo "ℹ️ HermesExecutorFactory.cpp already has #include <thread> or not found."
           fi
 
-      - name: Patch fmt for Xcode 26 (Final Safe Fix)
+      # ========================================================
+      # PERMANENT FIX FOR FMT LIBRARY (XCODE 26)
+      # ========================================================
+      - name: Patch fmt for Xcode 26 (Permanent Fix)
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Applying final safe patch to fmt library..."
+          echo "🔧 Applying permanent fix to fmt library..."
           
           FORMAT_INL="Pods/fmt/include/fmt/format-inl.h"
           BASE_H="Pods/fmt/include/fmt/base.h"
@@ -319,6 +313,7 @@ jobs:
           fi
 
           # 2. Targeted replacement of FMT_STRING() calls in format-inl.h
+          # This regex specifically targets FMT_STRING("...") and replaces it with just "..."
           echo "📝 Removing FMT_STRING wrappers from format-inl.h..."
           sed -i '' 's/FMT_STRING(\("[^"]*"\))/\1/g' "$FORMAT_INL"
           echo "✅ Safely removed FMT_STRING() wrappers"
