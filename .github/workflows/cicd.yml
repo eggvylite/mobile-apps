@@ -66,17 +66,14 @@ jobs:
     if: >
       inputs.platform == 'all' ||
       inputs.platform == 'ios'
-    
     # CHANGE 1: Update runner to macOS 26 for Xcode 26 / iOS 26 SDK
     runs-on: macos-26
-
     strategy:
       fail-fast: false
       matrix:
         app: ${{ fromJSON(needs.setup.outputs.apps) }}
     env:
       APP_NAME: ${{ matrix.app }}
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -112,13 +109,12 @@ jobs:
         run: |
           set -euo pipefail
           aws sts get-caller-identity
-          if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
       - name: Get App Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
-            APP_SECRETS,app/${{ matrix.app }}/cred
+            APP_SECRETS,app/${{ matrix.app }}/creds
           parse-json-secrets: true
 
       - name: Validate iOS Configuration
@@ -126,17 +122,18 @@ jobs:
         run: |
           set -euo pipefail
           required_vars=(
-            APP_SECRETS_IOS_BUNDLE_ID 
-            APP_SECRETS_IOS_TEAM_ID 
-            APP_SECRETS_IOS_DISTRIBUTION_P12_BASE64 
-            APP_SECRETS_IOS_DISTRIBUTION_P12_PASSWORD 
-            APP_SECRETS_IOS_APPSTORE_ISSUER_ID 
-            APP_SECRETS_IOS_APPSTORE_API_KEY_ID 
+            APP_SECRETS_IOS_BUNDLE_ID
+            APP_SECRETS_IOS_TEAM_ID
+            APP_SECRETS_IOS_DISTRIBUTION_P12_BASE64
+            APP_SECRETS_IOS_DISTRIBUTION_P12_PASSWORD
+            APP_SECRETS_IOS_APPSTORE_ISSUER_ID
+            APP_SECRETS_IOS_APPSTORE_API_KEY_ID
             APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY
           )
           for var in "${required_vars[@]}"; do
             if [ -z "${!var:-}" ]; then echo "ERROR: Missing required iOS variable: $var"; exit 1; fi
           done
+          if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -236,11 +233,16 @@ jobs:
             echo "ℹ️ HermesExecutorFactory.cpp already has #include <thread> or not found."
           fi
 
-      - name: Patch iOS Dependencies
+      # ========================================================
+      # PATCH IOS DEPENDENCIES (Boost/Folly) & INSTALL PODS
+      # ========================================================
+      - name: Patch iOS Dependencies & Install Pods
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
+          
+          # 1. Fix Boost URL
           python3 <<'PY'
           import glob
           old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
@@ -251,6 +253,7 @@ jobs:
                   content = content.replace(old_url, new_url)
                   with open(path, "w", encoding="utf-8") as f: f.write(content)
                   print(f"Patched Boost: {path}")
+          
           for path in glob.glob("node_modules/**/RCT-Folly.podspec", recursive=True):
               with open(path, "r", encoding="utf-8") as f: content = f.read()
               if "-Wno-error=unqualified-std-cast-call" not in content:
@@ -259,17 +262,17 @@ jobs:
                   print(f"Patched RCT-Folly: {path}")
           PY
 
-      - name: Install CocoaPods
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
+          # 2. Clean Pods Cache
+          cd ios
           bundle exec pod cache clean boost --all || true
           bundle exec pod cache clean RCT-Folly --all || true
+          
+          # 3. Install Pods (This generates the Pods.xcodeproj)
           bundle exec pod install --repo-update
 
       # ========================================================
       # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (CRITICAL)
+      # MUST RUN AFTER POD INSTALL
       # ========================================================
       - name: Patch fmt for Xcode 26
         working-directory: apps/${{ env.APP_DIR }}/ios
@@ -277,41 +280,51 @@ jobs:
         run: |
           set -euo pipefail
           echo "🔧 Patching fmt library for Xcode 26 compatibility..."
+          
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
+          
           ruby <<'RUBY'
           require 'xcodeproj'
-          
           project_path = 'Pods/Pods.xcodeproj'
-          abort('ERROR: Pods.xcodeproj not found') unless File.exist?(project_path)
           
-          project = Xcodeproj::Project.open(project_path)
-          
-          # Find the fmt target
-          fmt_target = project.targets.find { |t| t.name == 'fmt' }
-          
-          if fmt_target
-            fmt_target.build_configurations.each do |config|
-              # Get existing preprocessor definitions or start empty
-              existing = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-              
-              # Ensure it's an array
-              existing = [existing] unless existing.is_a?(Array)
-              
-              # Add FMT_USE_CONSTEVAL=0 if not already present
-              unless existing.any? { |d| d.include?('FMT_USE_CONSTEVAL=0') }
-                existing << 'FMT_USE_CONSTEVAL=0'
-                config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing
-                puts "✅ Added FMT_USE_CONSTEVAL=0 to fmt target (#{config.name})"
+          if File.exist?(project_path)
+            project = Xcodeproj::Project.open(project_path)
+            
+            found_fmt = false
+            project.targets.each do |target|
+              if target.name == 'fmt'
+                found_fmt = true
+                puts "✅ Found 'fmt' target. Applying patches..."
+                
+                target.build_configurations.each do |config|
+                  # Get existing definitions or initialize empty array
+                  existing = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+                  existing = [] unless existing.is_a?(Array)
+                  
+                  # Add FMT_USE_CONSTEVAL=0 if not already present
+                  unless existing.any? { |d| d.include?('FMT_USE_CONSTEVAL=0') }
+                    existing << 'FMT_USE_CONSTEVAL=0'
+                    config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing
+                    puts "✅ Added FMT_USE_CONSTEVAL=0 to fmt target (#{config.name})"
+                  end
+                end
               end
             end
-            project.save
-            puts "✅ Saved Pods.xcodeproj with fmt patch"
+            
+            if found_fmt
+              project.save
+              puts "✅ Saved Pods.xcodeproj with fmt patch"
+            else
+              puts "⚠️ WARNING: 'fmt' target not found in Pods.xcodeproj"
+              puts "Available targets:"
+              project.targets.each { |t| puts " - #{t.name}" }
+            end
           else
-            puts "⚠️ WARNING: 'fmt' target not found in Pods.xcodeproj"
-            puts "Available targets:"
-            project.targets.each { |t| puts "  - #{t.name}" }
+            puts "❌ ERROR: Pods.xcodeproj not found at #{project_path}"
+            exit 1
           end
           RUBY
+
       # ========================================================
       # PATCH 3: FIX REANIMATED MOUNT HOOK
       # ========================================================
@@ -320,36 +333,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           cat > /tmp/fix_mount_hook.py << 'ENDSCRIPT'
           import re, sys, os
-
           path = sys.argv[1]
           real_path = os.path.realpath(path)
-
           with open(real_path, 'r') as f:
               content = f.read()
-
           original = content
-
-          content = re.sub(
-              r'#if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#else\s*\n.*?#endif\s*(?://[^\n]*)?',
-              r'\1',
-              content,
-              flags=re.DOTALL
-          )
-
-          content = re.sub(
-              r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*\n?',
-              '',
-              content,
-              flags=re.MULTILINE
-          )
-
+          content = re.sub(r'#if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*(.*?)#else\s*.*?#endif\s*(?://[^]*)?', r'\1', content, flags=re.DOTALL)
+          content = re.sub(r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*?$', '', content, flags=re.MULTILINE)
           content = content.replace('double /*unmountTime*/', 'HighResTimeStamp /*unmountTime*/')
           content = content.replace('double commitTime', 'HighResTimeStamp commitTime')
           content = content.replace('double startTime', 'HighResTimeStamp startTime')
-
           if content != original:
               with open(real_path, 'w') as f:
                   f.write(content)
@@ -357,23 +352,21 @@ jobs:
           else:
               print(f'ℹ️ No changes needed: {real_path}')
           ENDSCRIPT
-
+          
           echo "🔍 Finding all ReanimatedMountHook files..."
           FOUND=0
-
           while IFS= read -r FILE; do
-            FOUND=1
-            python3 /tmp/fix_mount_hook.py "$FILE"
+              FOUND=1
+              python3 /tmp/fix_mount_hook.py "$FILE"
           done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
-
+          
           while IFS= read -r FILE; do
-            FOUND=1
-            python3 /tmp/fix_mount_hook.py "$FILE"
+              FOUND=1
+              python3 /tmp/fix_mount_hook.py "$FILE"
           done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" 2>/dev/null)
-
+          
           if [ "$FOUND" -eq 0 ]; then
-            echo "❌ ERROR: No ReanimatedMountHook files found!"
-            exit 1
+              echo "⚠️ No ReanimatedMountHook files found to patch."
           fi
 
       # ========================================================
@@ -384,9 +377,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
-
           if [ -f "$GH_MODULE" ]; then
             echo "🔧 Patching RNGestureHandlerModule.mm for RN 0.81..."
             python3 << 'PYEOF'
@@ -394,13 +385,10 @@ jobs:
           with open(path, "r") as f:
               content = f.read()
           original = content
-
           content = content.replace(
               "auto shadowNode = shadowNodeFromValue(runtime, arguments[0]);",
-              "auto shadowNodeList = shadowNodeListFromValue(runtime, arguments[0]);\n"
-              "        auto shadowNode = (shadowNodeList && !shadowNodeList->empty()) ? (*shadowNodeList)[0] : nullptr;"
+              "auto shadowNodeList = shadowNodeListFromValue(runtime, arguments[0]);\n  auto shadowNode = (shadowNodeList && !shadowNodeList->empty()) ? (*shadowNodeList)[0] : nullptr;"
           )
-
           if content != original:
               with open(path, "w") as f:
                   f.write(content)
@@ -420,50 +408,49 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           echo "=== 1. Verify ReanimatedMountHook ==="
           FOUND=0
           while IFS= read -r f; do
-            FOUND=1
-            REAL_F=$(readlink -f "$f" 2>/dev/null || echo "$f")
-            echo "--- $REAL_F ---"
-            grep -B2 -A8 "shadowTreeDidMount" "$REAL_F" || echo "Function not found!"
-            if grep -Eq '^\s*#\s*(if|elif|else|endif).*REACT_NATIVE_MINOR_VERSION' "$REAL_F"; then
-              echo "❌ FAIL: Active REACT_NATIVE_MINOR_VERSION preprocessor block still present!"
-              exit 1
-            else
-              echo "✅ PASS: No active REACT_NATIVE_MINOR_VERSION preprocessor block"
-            fi
-            if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
-              echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
-              exit 1
-            else
-              echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
-            fi
+              FOUND=1
+              REAL_F=$(readlink -f "$f" 2>/dev/null || echo "$f")
+              echo "- $REAL_F -"
+              grep -B2 -A8 "shadowTreeDidMount" "$REAL_F" || echo "Function not found!"
+              if grep -Eq '^\s*#\s*(if|elif|else|endif).*REACT_NATIVE_MINOR_VERSION' "$REAL_F"; then
+                  echo "❌ FAIL: Active REACT_NATIVE_MINOR_VERSION preprocessor block still present!"
+                  exit 1
+              else
+                  echo "✅ PASS: No active REACT_NATIVE_MINOR_VERSION preprocessor block"
+              fi
+              if grep -A8 "shadowTreeDidMount" "$REAL_F" | grep -q "\bdouble\b"; then
+                  echo "❌ FAIL: Still contains 'double' in shadowTreeDidMount!"
+                  exit 1
+              else
+                  echo "✅ PASS: shadowTreeDidMount uses HighResTimeStamp"
+              fi
           done < <(find ios/Pods/Headers node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
           if [ "$FOUND" -eq 0 ]; then
-            echo "❌ ERROR: No ReanimatedMountHook.h found!"
-            exit 1
+              echo "❌ ERROR: No ReanimatedMountHook.h found!"
+              exit 1
           fi
 
           echo ""
           echo "=== 2. Verify HermesExecutorFactory.cpp ==="
           HERMES_SRC="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
           if grep -q "#include <thread>" "$HERMES_SRC"; then
-            echo "✅ PASS: #include <thread> present"
+              echo "✅ PASS: #include <thread> present"
           else
-            echo "❌ FAIL: Missing #include <thread>"
-            exit 1
+              echo "❌ FAIL: Missing #include <thread>"
+              exit 1
           fi
 
           echo ""
           echo "=== 3. Verify RNGestureHandlerModule.mm ==="
           GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
           if grep -q "shadowNodeListFromValue" "$GH_MODULE"; then
-            echo "✅ PASS: Uses shadowNodeListFromValue"
+              echo "✅ PASS: Uses shadowNodeListFromValue"
           else
-            echo "❌ FAIL: Still uses old shadowNodeFromValue"
-            exit 1
+              echo "❌ FAIL: Still uses old shadowNodeFromValue"
+              exit 1
           fi
 
       # ========================================================
@@ -483,7 +470,6 @@ jobs:
             project.targets.each do |target|
               # Skip aggregate targets that don't have product_type
               next unless target.respond_to?(:product_type)
-              
               # Disable code signing for ALL non-application targets
               target.build_configurations.each do |config|
                 config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
@@ -516,7 +502,7 @@ jobs:
           if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
             printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
           else
-            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r\n' | base64 --decode > "$API_KEY_PATH"
+            printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r' | base64 --decode > "$API_KEY_PATH"
           fi
           chmod 600 "$API_KEY_PATH"
           echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
@@ -545,20 +531,18 @@ jobs:
           require 'xcodeproj'
           project_path = Dir.glob('ios/*.xcodeproj').first
           abort('ERROR: No .xcodeproj found inside ios/.') unless project_path
-          
           project = Xcodeproj::Project.open(project_path)
           application_targets = project.targets.select { |t| t.respond_to?(:product_type) && t.product_type == 'com.apple.product-type.application' }
           target = application_targets.find { |t| t.name == ENV['SCHEME_NAME'] } || application_targets.first
           abort('ERROR: Could not resolve the iOS application target.') unless target
-          
           attrs = project.root_object.attributes['TargetAttributes'] ||= {}
           target_attrs = attrs[target.uuid] ||= {}
           target_attrs['ProvisioningStyle'] = 'Manual'
           
           # DYNAMIC UUID RESOLUTION
-          # For now, we hardcode the Roja UUID. 
+          # For now, we hardcode the Roja UUID.
           # In a real multi-app setup, you would fetch this from AWS Secrets per app.
-          profile_uuid = "b0ff62c4-5f8a-4708-9a33-64ff3638d355" 
+          profile_uuid = "b0ff62c4-5f8a-4708-9a33-64ff3638d355"
           
           target.build_configurations.each do |config|
             # DO NOT DELETE. Instead, SET the UUID explicitly.
@@ -603,27 +587,32 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf ios/build/export && mkdir -p ios/build/export
-          
           cat > ios/build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>signingStyle</key><string>manual</string>
-            <key>teamID</key><string>${APP_SECRETS_IOS_TEAM_ID}</string>
-            <key>stripSwiftSymbols</key><true/>
-            <key>uploadSymbols</key><true/>
-            <key>compileBitcode</key><false/>
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${APP_SECRETS_IOS_TEAM_ID}</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
             <key>provisioningProfiles</key>
             <dict>
               <key>${APP_SECRETS_IOS_BUNDLE_ID}</key>
               <string>b0ff62c4-5f8a-4708-9a33-64ff3638d355</string>
             </dict>
-          </dict></plist>
+          </dict>
+          </plist>
           EOF
-          
           plutil -lint ios/build/ExportOptions.plist
-          
           xcodebuild -exportArchive \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             -exportPath "$PWD/ios/build/export" \
@@ -657,37 +646,6 @@ jobs:
           echo "📦 Found IPA: $IPA_FILE"
           aws s3 cp "$IPA_FILE" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
           echo "✅ Successfully uploaded to S3"
-
-      # - name: Upload to TestFlight
-      #   if: inputs.upload_testflight == true
-      #   working-directory: apps/${{ env.APP_DIR }}
-      #   shell: bash
-      #   run: |
-      #     set -euo pipefail
-      #     IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
-      #     if [ -z "$IPA_FILE" ]; then
-      #       echo "❌ ERROR: No .ipa file found for TestFlight upload"
-      #       exit 1
-      #     fi
-          
-      #     # 1. Create the directory altool looks for by default
-      #     mkdir -p ~/.private_keys
-          
-      #     # 2. Copy the key from temp to that directory with the exact name altool expects
-      #     # altool expects the file to be named: AuthKey_<KEY_ID>.p8
-      #     cp "${XCODE_AUTH_KEY_PATH}" ~/.private_keys/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8
-          
-      #     echo "🚀 Uploading to TestFlight: $IPA_FILE"
-          
-      #     # 3. Run altool WITHOUT --apiKeyPath (it will find the key in ~/.private_keys automatically)
-      #     xcrun altool --upload-app \
-      #       --type ios \
-      #       --file "$IPA_FILE" \
-      #       --apiKey "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
-      #       --apiIssuer "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
-      #       --verbose
-          
-      #     echo "✅ TestFlight upload initiated"
 
       # ========================================================
       # AUTO CLEAN POD CACHE (runs on success AND failure)
