@@ -269,51 +269,49 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (NEW)
+      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (CRITICAL)
       # ========================================================
       - name: Patch fmt for Xcode 26
-        working-directory: apps/${{ env.APP_DIR }}
+        working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
           echo "🔧 Patching fmt library for Xcode 26 compatibility..."
-          python3 << 'PYEOF'
-          import glob
-          import os
-
-          patched = False
-          # Try patching xcconfig first
-          for path in glob.glob("ios/Pods/Target Support Files/fmt/*.xcconfig"):
-              with open(path, "r") as f:
-                  content = f.read()
+          gem install xcodeproj --no-document > /dev/null 2>&1 || true
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          
+          project_path = 'Pods/Pods.xcodeproj'
+          abort('ERROR: Pods.xcodeproj not found') unless File.exist?(project_path)
+          
+          project = Xcodeproj::Project.open(project_path)
+          
+          # Find the fmt target
+          fmt_target = project.targets.find { |t| t.name == 'fmt' }
+          
+          if fmt_target
+            fmt_target.build_configurations.each do |config|
+              # Get existing preprocessor definitions or start empty
+              existing = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
               
-              if "FMT_USE_CONSTEVAL=0" not in content:
-                  if "GCC_PREPROCESSOR_DEFINITIONS" in content:
-                      # Handle case where it might already have values
-                      if "$(inherited)" not in content.split("GCC_PREPROCESSOR_DEFINITIONS")[1].split("\n")[0]:
-                           content = content.replace("GCC_PREPROCESSOR_DEFINITIONS =", "GCC_PREPROCESSOR_DEFINITIONS = $(inherited)")
-                      content = content.replace("GCC_PREPROCESSOR_DEFINITIONS = $(inherited)", "GCC_PREPROCESSOR_DEFINITIONS = $(inherited) FMT_USE_CONSTEVAL=0")
-                  else:
-                      content += "\nGCC_PREPROCESSOR_DEFINITIONS = $(inherited) FMT_USE_CONSTEVAL=0\n"
-                  
-                  with open(path, "w") as f:
-                      f.write(content)
-                  print(f"✅ Patched xcconfig: {path}")
-                  patched = True
-
-          if not patched:
-              print("⚠️ xcconfig patch failed. Patching header directly...")
-              fmt_base_h = "ios/Pods/fmt/include/fmt/base.h"
-              if os.path.exists(fmt_base_h):
-                  with open(fmt_base_h, "r") as f:
-                      content = f.read()
-                  if "FMT_USE_CONSTEVAL 0" not in content:
-                      content = "#ifndef FMT_USE_CONSTEVAL\n#define FMT_USE_CONSTEVAL 0\n#endif\n" + content
-                      with open(fmt_base_h, "w") as f:
-                          f.write(content)
-                      print(f"✅ Patched header: {fmt_base_h}")
-          PYEOF
-
+              # Ensure it's an array
+              existing = [existing] unless existing.is_a?(Array)
+              
+              # Add FMT_USE_CONSTEVAL=0 if not already present
+              unless existing.any? { |d| d.include?('FMT_USE_CONSTEVAL=0') }
+                existing << 'FMT_USE_CONSTEVAL=0'
+                config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing
+                puts "✅ Added FMT_USE_CONSTEVAL=0 to fmt target (#{config.name})"
+              end
+            end
+            project.save
+            puts "✅ Saved Pods.xcodeproj with fmt patch"
+          else
+            puts "⚠️ WARNING: 'fmt' target not found in Pods.xcodeproj"
+            puts "Available targets:"
+            project.targets.each { |t| puts "  - #{t.name}" }
+          end
+          RUBY
       # ========================================================
       # PATCH 3: FIX REANIMATED MOUNT HOOK
       # ========================================================
