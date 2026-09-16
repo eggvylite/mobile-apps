@@ -287,34 +287,56 @@ jobs:
 
       # ========================================================
       # PERMANENT FIX FOR FMT LIBRARY (XCODE 26)
-      # SURGICAL SOURCE PATCHING
+      # PYTHON-BASED SOURCE PATCHING
       # ========================================================
       - name: Patch fmt for Xcode 26 (Permanent Fix)
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Applying surgical patch to fmt library..."
+          echo "🔧 Applying permanent Python-based patch to fmt library..."
           
-          # 1. Replace FMT_STRING("...") with just "..." in all fmt headers and sources
-          # This regex is safe and only targets the specific macro usage causing the error
-          find Pods/fmt -type f \( -name "*.h" -o -name "*.cc" \) -exec sed -i '' 's/FMT_STRING(\("[^"]*"\))/\1/g' {} +
+          python3 << 'PYEOF'
+          import os
+          import re
+
+          fmt_dir = "Pods/fmt"
           
-          echo "✅ Removed all FMT_STRING() wrappers from fmt library"
+          # Regex to match FMT_STRING("...") and replace with "..."
+          # This is safer than sed as it handles C++ templates correctly
+          pattern = re.compile(r'FMT_STRING\(\s*("[^"]*")\s*\)')
+          
+          for root, dirs, files in os.walk(fmt_dir):
+              for file in files:
+                  if file.endswith(('.h', '.cc', '.cpp')):
+                      filepath = os.path.join(root, file)
+                      try:
+                          with open(filepath, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          new_content = pattern.sub(r'\1', content)
+                          
+                          if new_content != content:
+                              with open(filepath, 'w', encoding='utf-8') as f:
+                                  f.write(new_content)
+                              print(f"✅ Patched: {filepath}")
+                      except Exception as e:
+                          print(f"⚠️ Error processing {filepath}: {e}")
+          
+          # Also disable consteval in base.h as backup
+          base_h = os.path.join(fmt_dir, "include/fmt/base.h")
+          if os.path.exists(base_h):
+              with open(base_h, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              
+              if "#define FMT_USE_CONSTEVAL 0" not in content:
+                  content = "#define FMT_USE_CONSTEVAL 0\n#define FMT_USE_CONSTEXPR 0\n" + content
+                  with open(base_h, 'w', encoding='utf-8') as f:
+                      f.write(content)
+                  print("✅ Disabled consteval/constexpr in base.h")
+          PYEOF
 
-          # 2. Disable consteval at the source level in base.h as backup
-          BASE_H="Pods/fmt/include/fmt/base.h"
-          if [ -f "$BASE_H" ]; then
-            if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$BASE_H"; then
-              sed -i '' '1i\
-              #define FMT_USE_CONSTEVAL 0\
-              #define FMT_USE_CONSTEXPR 0
-              ' "$BASE_H"
-              echo "✅ Disabled consteval/constexpr in base.h"
-            fi
-          fi
-
-          # 3. Add compiler flags as a final backup
+          # Add compiler flags as a final backup
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
           
           ruby <<'RUBY'
