@@ -192,142 +192,65 @@ jobs:
 
       # ========================================================
       # PATCH EXISTING POST_INSTALL HOOK FOR FMT FIX
-      # THIS MODIFIES THE EXISTING HOOK INSTEAD OF ADDING A NEW ONE
+      # REPLACES THE ENTIRE BLOCK TO GUARANTEE CORRECT SYNTAX
       # ========================================================
       - name: Patch Existing Post-Install Hook for fmt
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Modifying existing post_install hook in Podfile..."
-          
-          gem install xcodeproj --no-document > /dev/null 2>&1 || true
+          echo "🔧 Replacing post_install hook in Podfile with fmt fix..."
           
           ruby <<'RUBY'
-          require 'xcodeproj'
-          
           podfile_path = 'Podfile'
           content = File.read(podfile_path)
           
-          # Define the code to inject into the post_install hook
-          # We will inject this inside the existing target loop
-          fmt_fix_code = <<-CODE
-            # FIX FOR FMT LIBRARY ON XCODE 26
-            if target.name.include?('fmt')
-              config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
-              config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEVAL=0'
-              config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEXPR=0'
-              config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-              config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
-              config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
-            end
-          CODE
-          
-          # Check if post_install exists
-          if content.include?('post_install do |installer|')
-            lines = content.lines
-            new_lines = []
-            in_post_install = false
-            in_target_loop = false
-            inserted = false
-            
-            lines.each_with_index do |line, index|
-              new_lines << line
-              
-              if line.strip.start_with?('post_install do |installer|')
-                in_post_install = true
-              elsif in_post_install && !inserted
-                if line.strip.start_with?('installer.pods_project.targets.each do |target|')
-                  in_target_loop = true
-                elsif in_target_loop && line.strip.start_with?('target.build_configurations.each do |build_config|')
-                  # We found the inner loop. We will insert our code after the existing logic in this loop.
-                  # To keep it simple, we'll insert it right before the 'end' of the build_config loop.
-                  # But since nesting is complex, let's try a different approach:
-                  # Insert it at the end of the target loop, just before its 'end'.
-                elsif in_target_loop && line.strip == 'end' && !inserted
-                  # This 'end' likely closes the target.build_configurations loop or the target loop.
-                  # Let's look for the specific pattern in your Podfile.
-                  # Your Podfile has:
-                  # installer.pods_project.targets.each do |target|
-                  #   target.build_configurations.each do |build_config|
-                  #     ...
-                  #   end
-                  # end
-                  
-                  # We want to insert inside the target loop but outside the build_config loop? 
-                  # No, inside build_config is better.
-                  
-                  # Let's try to find the 'end' of the build_config loop.
-                  # Actually, let's just append it to the end of the target block.
-                  
-                  # Simpler approach: Find the line "end" that closes the targets.each loop.
-                  # In your Podfile, it's the last 'end' before the final 'end' of post_install.
-                  
-                  # Let's try to inject it right after the existing RNReanimated block.
-                  if lines[index-1].strip.end_with?('REACT_NATIVE_MINOR_VERSION=81\'') || lines[index-1].strip.end_with?('existing_flags')
-                     # This is fragile. Let's use a marker.
-                  end
-                  
-                  # Robust Approach: Insert before the final 'end' of the targets.each block.
-                  # We know your structure. Let's look for the 'end' that matches 'installer.pods_project.targets.each'.
-                  # It's usually the second to last 'end' in the post_install block.
-                  
-                  # Let's try to find the 'end' of the target loop by counting.
-                  # Actually, let's just insert it at the very beginning of the target loop.
-                end
-              end
-            end
-            
-            # REWRITE: Let's use a simpler string replacement for your specific Podfile structure.
-            # We will insert the fmt fix right after the RNReanimated block.
-            
-            rn_reanimated_block = <<~BLOCK
-              # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
-              if target.name == 'RNReanimated'
-                existing_flags = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-                existing_flags = [existing_flags] if existing_flags.is_a?(String)
-                existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
-                build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing_flags
-              end
-            BLOCK
-            
-            fmt_fix_block = <<~BLOCK
-              # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
-              if target.name == 'RNReanimated'
-                existing_flags = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-                existing_flags = [existing_flags] if existing_flags.is_a?(String)
-                existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
-                build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing_flags
-              end
+          # Define the NEW complete post_install block
+          new_post_install = <<-HOOK
+          post_install do |installer|
+            react_native_post_install(installer, config[:reactNativePath], :mac_catalyst_enabled => false)
 
-              # FIX FOR FMT LIBRARY ON XCODE 26
-              if target.name.include?('fmt')
-                build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
-                build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEVAL=0'
-                build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEXPR=0'
-                build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-                build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
-                build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |build_config|
+                # ALL targets use C++20
+                build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+                build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
+
+                # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
+                if target.name == 'RNReanimated'
+                  existing_flags = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+                  existing_flags = [existing_flags] if existing_flags.is_a?(String)
+                  existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
+                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing_flags
+                end
+
+                # FIX FOR FMT LIBRARY ON XCODE 26
+                if target.name.include?('fmt')
+                  build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+                  build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEVAL=0'
+                  build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEXPR=0'
+                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
+                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+                end
+
+                build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+                build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+                build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+                build_config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
               end
-            BLOCK
-            
-            if content.include?(rn_reanimated_block.strip)
-              new_content = content.gsub(rn_reanimated_block.strip, fmt_fix_block.strip)
-              File.write(podfile_path, new_content)
-              puts "✅ Successfully injected fmt fix into existing post_install hook"
-              inserted = true
-            else
-              puts "⚠️ Could not find RNReanimated block. Trying alternative injection..."
-              # Fallback: Insert before the last 'end' of the post_install block
-              # This is risky but necessary if the structure changes.
             end
-            
-            if !inserted
-               puts "❌ Failed to inject fmt fix. Please check Podfile manually."
-               exit 1
-            end
+          end
+          HOOK
+          
+          # Use regex to find and replace the entire old post_install block
+          # This matches from "post_install do" to the very last "end" of that block
+          if content =~ /(post_install do \|installer\|.*?^end\n)/m
+            new_content = content.sub(/(post_install do \|installer\|.*?^end\n)/m, new_post_install)
+            File.write(podfile_path, new_content)
+            puts "✅ Successfully replaced post_install hook with fmt fix"
           else
-            puts "❌ No post_install hook found in Podfile. Cannot inject fix."
+            puts "❌ Could not find post_install block in Podfile."
             exit 1
           end
           RUBY
