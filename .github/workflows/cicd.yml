@@ -88,7 +88,8 @@ jobs:
         run: |
           echo "Available Xcode versions:"
           ls /Applications | grep Xcode
-          sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
+          # Use the specific version found in your logs (26.6 is the latest listed)
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
           xcodebuild -version
 
       - name: Resolve App Directory
@@ -518,7 +519,7 @@ jobs:
           target.build_configurations.each do |config|
             # DO NOT DELETE. Instead, SET the UUID explicitly.
             config.build_settings['PROVISIONING_PROFILE'] = profile_uuid
-            config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = "" # Clear name to avoid conflict
+            config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = "DemoROJA" # Clear name to avoid conflict
             config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
             config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
             config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
