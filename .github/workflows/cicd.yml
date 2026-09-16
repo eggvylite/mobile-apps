@@ -91,10 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           APP_DIR="$(find apps -maxdepth 1 -mindepth 1 -type d -iname "${{ matrix.app }}" -print -quit | sed 's|^apps/||')"
-          if [ -z "$APP_DIR" ]; then
-            echo "ERROR: Could not find apps/${{ matrix.app }}"
-            exit 1
-          fi
+          if [ -z "$APP_DIR" ]; then echo "ERROR: Could not find apps/${{ matrix.app }}"; exit 1; fi
           echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
 
       - name: Configure AWS Credentials
@@ -121,7 +118,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           required_vars=(
             APP_SECRETS_IOS_BUNDLE_ID
             APP_SECRETS_IOS_TEAM_ID
@@ -131,18 +127,10 @@ jobs:
             APP_SECRETS_IOS_APPSTORE_API_KEY_ID
             APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY
           )
-
           for var in "${required_vars[@]}"; do
-            if [ -z "${!var:-}" ]; then
-              echo "ERROR: Missing required iOS variable: $var"
-              exit 1
-            fi
+            if [ -z "${!var:-}" ]; then echo "ERROR: Missing required iOS variable: $var"; exit 1; fi
           done
-
-          if [ -z "${S3_BUCKET:-}" ]; then
-            echo "ERROR: S3_BUCKET is empty."
-            exit 1
-          fi
+          if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -166,57 +154,101 @@ jobs:
           working-directory: apps/${{ env.APP_DIR }}
 
       # ========================================================
+      # AGGRESSIVE CACHE CLEAN BEFORE POD INSTALL
+      # THIS IS CRITICAL TO REMOVE CORRUPTED CACHED FILES
+      # ========================================================
+      - name: Clean All Caches Before Pod Install
+        working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🧹 Aggressively cleaning all caches..."
+          
+          # 1. Delete Pods directory entirely to force fresh download
+          rm -rf Pods
+          rm -f Podfile.lock
+          
+          # 2. Clean CocoaPods cache
+          bundle exec pod cache clean --all || true
+          
+          # 3. Clean DerivedData
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          
+          # 4. Clean Module Cache
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/*
+          
+          echo "✅ All caches cleaned."
+
+      # ========================================================
       # PATCH IOS DEPENDENCIES & INSTALL PODS
+      # NOTE: fmt fix is handled by Podfile post_install hook
+      # DO NOT add any fmt patching steps here
       # ========================================================
       - name: Patch iOS Dependencies & Install Pods
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-
+          
           # 1. Fix Boost URL
           python3 <<'PY'
           import glob
-
           old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
           new_url = "https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2"
-
           for path in glob.glob("node_modules/**/boost*.podspec", recursive=True):
-              with open(path, "r", encoding="utf-8") as f:
-                  content = f.read()
-
+              with open(path, "r", encoding="utf-8") as f: content = f.read()
               if old_url in content:
                   content = content.replace(old_url, new_url)
-
-                  with open(path, "w", encoding="utf-8") as f:
-                      f.write(content)
-
+                  with open(path, "w", encoding="utf-8") as f: f.write(content)
                   print(f"Patched Boost: {path}")
-
+          
           for path in glob.glob("node_modules/**/RCT-Folly.podspec", recursive=True):
-              with open(path, "r", encoding="utf-8") as f:
-                  content = f.read()
-
+              with open(path, "r", encoding="utf-8") as f: content = f.read()
               if "-Wno-error=unqualified-std-cast-call" not in content:
-                  content = content.replace(
-                      "folly_compiler_flags = [",
-                      'folly_compiler_flags = ["-Wno-error=unqualified-std-cast-call", "-Wno-error=c++11-narrowing", "-DFOLLY_NO_CONFIG=1", ',
-                      1
-                  )
-
-                  with open(path, "w", encoding="utf-8") as f:
-                      f.write(content)
-
+                  content = content.replace("folly_compiler_flags = [", 'folly_compiler_flags = ["-Wno-error=unqualified-std-cast-call", "-Wno-error=c++11-narrowing", "-DFOLLY_NO_CONFIG=1", ', 1)
+                  with open(path, "w", encoding="utf-8") as f: f.write(content)
                   print(f"Patched RCT-Folly: {path}")
           PY
 
-          # 2. Clean Pods Cache
+          # 2. Install Pods (Podfile post_install will handle fmt fix)
           cd ios
-          bundle exec pod cache clean boost --all || true
-          bundle exec pod cache clean RCT-Folly --all || true
-
-          # 3. Install Pods
           bundle exec pod install --repo-update
+
+      # ========================================================
+      # VERIFY FMT PATCH WAS APPLIED BY PODFILE
+      # ========================================================
+      - name: Verify fmt Patch Applied
+        working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Verifying fmt patch was applied by Podfile..."
+          
+          BASE_H="Pods/fmt/include/fmt/base.h"
+          if [ ! -f "$BASE_H" ]; then
+            echo "❌ ERROR: $BASE_H not found!"
+            exit 1
+          fi
+          
+          if grep -q "FMT_USE_CONSTEVAL 0" "$BASE_H"; then
+            echo "✅ PASS: FMT_USE_CONSTEVAL 0 found in base.h"
+          else
+            echo "❌ FAIL: FMT_USE_CONSTEVAL 0 NOT found in base.h"
+            echo "The Podfile post_install hook did not apply the fmt fix."
+            echo "First 5 lines of base.h:"
+            head -n 5 "$BASE_H"
+            exit 1
+          fi
+          
+          # Also verify format.h is NOT corrupted
+          FORMAT_H="Pods/fmt/include/fmt/format.h"
+          if grep -q "^#define s " "$FORMAT_H"; then
+            echo "❌ FAIL: format.h is corrupted with '#define s' macro!"
+            echo "This means a previous patch broke the file."
+            exit 1
+          else
+            echo "✅ PASS: format.h is not corrupted"
+          fi
 
       # ========================================================
       # PRE-FLIGHT CHECK
@@ -226,19 +258,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          echo "Starting Pre-Flight Verification..."
+          echo "🔍 Starting Pre-Flight Verification..."
           ERRORS=0
 
           for DEP in react-native-reanimated react-native-gesture-handler date-fns @react-native-picker/picker react-native-pager-view; do
             if [ ! -d "node_modules/$DEP" ]; then
-              echo "MISSING NODE MODULE: $DEP"
+              echo "❌ MISSING NODE MODULE: $DEP"
               ERRORS=$((ERRORS + 1))
             fi
           done
 
           if [ ! -d "ios/Pods" ]; then
-            echo "MISSING: ios/Pods directory"
+            echo "❌ MISSING: ios/Pods directory"
             ERRORS=$((ERRORS + 1))
           fi
 
@@ -250,73 +281,58 @@ jobs:
 
           for FILE in "${FILES_TO_CHECK[@]}"; do
             if [ ! -f "$FILE" ]; then
-              echo "MISSING FILE: $FILE"
+              echo "❌ MISSING FILE: $FILE"
               ERRORS=$((ERRORS + 1))
             fi
           done
 
           if [ "$ERRORS" -gt 0 ]; then
-            echo "$ERRORS critical prerequisites missing. Aborting before build."
+            echo "❌ $ERRORS critical prerequisites missing. Aborting before build."
             exit 1
           fi
-
-          echo "All pre-flight checks passed. Ready to build."
+          echo "✅ All pre-flight checks passed. Ready to build."
 
       # ========================================================
-      # APPLY OTHER SOURCE CODE PATCHES
+      # APPLY SOURCE CODE PATCHES (NO FMT PATCHING HERE)
       # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-
           REANIMATED_FILE=$(find node_modules/react-native-reanimated -name "ReanimatedVersion.cpp" -type f 2>/dev/null | head -n 1)
-
           if [ -z "$REANIMATED_FILE" ]; then
-            echo "ReanimatedVersion.cpp not found. Skipping."
+            echo "⚠️ ReanimatedVersion.cpp not found. Skipping."
             exit 0
           fi
-
           TEMP_FILE=$(mktemp)
-
           echo '#ifndef REANIMATED_VERSION_STRING' > "$TEMP_FILE"
           echo '#define REANIMATED_VERSION_STRING "3.19.5"' >> "$TEMP_FILE"
           echo '#endif' >> "$TEMP_FILE"
-
           cat "$REANIMATED_FILE" >> "$TEMP_FILE"
           mv "$TEMP_FILE" "$REANIMATED_FILE"
-
-          echo "ReanimatedVersion.cpp patched."
+          echo "✅ ReanimatedVersion.cpp patched."
 
       - name: Patch HermesExecutorFactory.cpp
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-
           HERMES_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
-
           if [ -f "$HERMES_FILE" ] && ! grep -q "#include <thread>" "$HERMES_FILE"; then
             python3 << 'PYEOF'
           path = "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
-
           with open(path, "r") as f:
               lines = f.readlines()
-
           insert_at = 0
-
           for i, line in enumerate(lines):
               if line.startswith("#include "):
                   insert_at = i
                   break
-
           lines.insert(insert_at, "#include <thread>\n")
-
           with open(path, "w") as f:
               f.writelines(lines)
-
-          print("HermesExecutorFactory.cpp patched.")
+          print("✅ HermesExecutorFactory.cpp patched.")
           PYEOF
           fi
 
@@ -325,76 +341,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           cat > /tmp/fix_mount_hook.py << 'ENDSCRIPT'
-          import re
-          import sys
-          import os
-
+          import re, sys, os
           path = sys.argv[1]
           real_path = os.path.realpath(path)
-
           with open(real_path, 'r') as f:
               content = f.read()
-
           original = content
-
-          content = re.sub(
-              r'#\s*if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#\s*else\s*\n.*?#\s*endif',
-              r'\1',
-              content,
-              flags=re.DOTALL
-          )
-
-          content = re.sub(
-              r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*$',
-              '',
-              content,
-              flags=re.MULTILINE
-          )
-
-          content = content.replace(
-              'double /*unmountTime*/',
-              'HighResTimeStamp /*unmountTime*/'
-          )
-
-          content = content.replace(
-              'double commitTime',
-              'HighResTimeStamp commitTime'
-          )
-
-          content = content.replace(
-              'double startTime',
-              'HighResTimeStamp startTime'
-          )
-
+          content = re.sub(r'#\s*if\s+REACT_NATIVE_MINOR_VERSION\s*>=\s*81\s*\n(.*?)#\s*else\s*\n.*?#\s*endif', r'\1', content, flags=re.DOTALL)
+          content = re.sub(r'^\s*//\s*REACT_NATIVE_MINOR_VERSION.*$', '', content, flags=re.MULTILINE)
+          content = content.replace('double /*unmountTime*/', 'HighResTimeStamp /*unmountTime*/')
+          content = content.replace('double commitTime', 'HighResTimeStamp commitTime')
+          content = content.replace('double startTime', 'HighResTimeStamp startTime')
           if content != original:
               with open(real_path, 'w') as f:
                   f.write(content)
-
-              print(f'Fixed: {real_path}')
+              print(f'✅ Fixed: {real_path}')
           ENDSCRIPT
-
+          
           FOUND=0
-
           while IFS= read -r FILE; do
               FOUND=1
               python3 /tmp/fix_mount_hook.py "$FILE"
-          done < <(
-              find ios/Pods node_modules/react-native-reanimated \
-                -name "ReanimatedMountHook.h" 2>/dev/null
-          )
-
+          done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
           while IFS= read -r FILE; do
               FOUND=1
               python3 /tmp/fix_mount_hook.py "$FILE"
-          done < <(
-              find ios/Pods node_modules/react-native-reanimated \
-                -name "ReanimatedMountHook.cpp" 2>/dev/null
-          )
-
+          done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" 2>/dev/null)
           if [ "$FOUND" -eq 0 ]; then
-              echo "No ReanimatedMountHook files found to patch."
+              echo "⚠️ No ReanimatedMountHook files found to patch."
           fi
 
       - name: Patch RNGestureHandler for RN 0.81
@@ -402,65 +377,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
-
           if [ -f "$GH_MODULE" ]; then
             python3 << 'PYEOF'
           path = "node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
-
           with open(path, "r") as f:
               content = f.read()
-
           original = content
-
           content = content.replace(
               "auto shadowNode = shadowNodeFromValue(runtime, arguments[0]);",
               "auto shadowNodeList = shadowNodeListFromValue(runtime, arguments[0]);\n  auto shadowNode = (shadowNodeList && !shadowNodeList->empty()) ? (*shadowNodeList)[0] : nullptr;"
           )
-
           if content != original:
               with open(path, "w") as f:
                   f.write(content)
-
-              print("RNGestureHandlerModule.mm patched.")
+              print("✅ RNGestureHandlerModule.mm patched.")
           PYEOF
           fi
-
-      - name: Fix Pod Resource Bundle Signing
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          gem install xcodeproj --no-document > /dev/null 2>&1 || true
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-
-          project_path = 'Pods/Pods.xcodeproj'
-
-          if File.exist?(project_path)
-            project = Xcodeproj::Project.open(project_path)
-
-            project.targets.each do |target|
-              next unless target.respond_to?(:product_type)
-
-              target.build_configurations.each do |config|
-                config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-                config.build_settings['CODE_SIGN_IDENTITY'] = ''
-                config.build_settings['DEVELOPMENT_TEAM'] = ''
-                config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
-                config.build_settings['PROVISIONING_PROFILE'] = ''
-              end
-            end
-
-            project.save
-
-            puts "Disabled code signing for all non-app targets."
-          end
-          RUBY
 
       - name: Import Apple Distribution Certificate
         uses: apple-actions/import-codesign-certs@v7
@@ -472,17 +405,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8"
-
           if printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | grep -q -- 'BEGIN PRIVATE KEY'; then
             printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" > "$API_KEY_PATH"
           else
             printf '%s' "$APP_SECRETS_IOS_APPSTORE_API_PRIVATE_KEY" | tr -d '\r' | base64 --decode > "$API_KEY_PATH"
           fi
-
           chmod 600 "$API_KEY_PATH"
-
           echo "XCODE_AUTH_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Resolve Xcode Workspace and Scheme
@@ -490,16 +419,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           WORKSPACE_PATH="$(find ios -maxdepth 1 -name "*.xcworkspace" -type d -print -quit)"
-
-          if [ -z "$WORKSPACE_PATH" ]; then
-            echo "ERROR: No .xcworkspace found."
-            exit 1
-          fi
-
+          if [ -z "$WORKSPACE_PATH" ]; then echo "ERROR: No .xcworkspace found."; exit 1; fi
           SCHEME_NAME=$(basename "$WORKSPACE_PATH" .xcworkspace)
-
           echo "WORKSPACE_PATH=$WORKSPACE_PATH" >> "$GITHUB_ENV"
           echo "SCHEME_NAME=$SCHEME_NAME" >> "$GITHUB_ENV"
 
@@ -508,69 +430,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           gem install xcodeproj --no-document
-
           ruby <<'RUBY'
           require 'xcodeproj'
-
           project_path = Dir.glob('ios/*.xcodeproj').first
-
           abort('ERROR: No .xcodeproj found inside ios/.') unless project_path
-
           project = Xcodeproj::Project.open(project_path)
-
-          application_targets = project.targets.select do |t|
-            t.respond_to?(:product_type) &&
-              t.product_type == 'com.apple.product-type.application'
-          end
-
-          target =
-            application_targets.find { |t| t.name == ENV['SCHEME_NAME'] } ||
-            application_targets.first
-
+          application_targets = project.targets.select { |t| t.respond_to?(:product_type) && t.product_type == 'com.apple.product-type.application' }
+          target = application_targets.find { |t| t.name == ENV['SCHEME_NAME'] } || application_targets.first
           abort('ERROR: Could not resolve the iOS application target.') unless target
-
           attrs = project.root_object.attributes['TargetAttributes'] ||= {}
           target_attrs = attrs[target.uuid] ||= {}
-
           target_attrs['ProvisioningStyle'] = 'Manual'
-
           profile_uuid = "b0ff62c4-5f8a-4708-9a33-64ff3638d355"
-
           target.build_configurations.each do |config|
             config.build_settings['PROVISIONING_PROFILE'] = profile_uuid
             config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = "DemoROJA"
             config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
-            config.build_settings['DEVELOPMENT_TEAM'] =
-              ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
-            config.build_settings['CODE_SIGN_IDENTITY'] =
-              'Apple Distribution'
+            config.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APP_SECRETS_IOS_TEAM_ID')
+            config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
           end
-
           project.save
-
-          puts "Injected Provisioning Profile UUID: #{profile_uuid}"
+          puts "✅ Injected Provisioning Profile UUID: #{profile_uuid}"
           RUBY
-
-      - name: Clean Derived Data
-        working-directory: apps/${{ env.APP_DIR }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Cleaning Derived Data..."
-
-          rm -rf ~/Library/Developer/Xcode/DerivedData/DemoROJA-*
-
-          echo "Derived Data cleaned."
 
       - name: Build and Archive for TestFlight
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-
           xcodebuild \
             -workspace "${WORKSPACE_PATH}" \
             -scheme "${SCHEME_NAME}" \
@@ -593,10 +481,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          rm -rf ios/build/export
-          mkdir -p ios/build/export
-
+          rm -rf ios/build/export && mkdir -p ios/build/export
           cat > ios/build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -604,22 +489,16 @@ jobs:
           <dict>
             <key>method</key>
             <string>app-store-connect</string>
-
             <key>signingStyle</key>
             <string>manual</string>
-
             <key>teamID</key>
             <string>${APP_SECRETS_IOS_TEAM_ID}</string>
-
             <key>stripSwiftSymbols</key>
             <true/>
-
             <key>uploadSymbols</key>
             <true/>
-
             <key>compileBitcode</key>
             <false/>
-
             <key>provisioningProfiles</key>
             <dict>
               <key>${APP_SECRETS_IOS_BUNDLE_ID}</key>
@@ -628,9 +507,7 @@ jobs:
           </dict>
           </plist>
           EOF
-
           plutil -lint ios/build/ExportOptions.plist
-
           xcodebuild -exportArchive \
             -archivePath "$PWD/ios/build/${APP_NAME}.xcarchive" \
             -exportPath "$PWD/ios/build/export" \
@@ -653,28 +530,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
-
           if [ -z "$IPA_FILE" ]; then
-            echo "ERROR: No .ipa file found in ios/build/export/"
+            echo "❌ ERROR: No .ipa file found in ios/build/export/"
             exit 1
           fi
-
-          echo "Found IPA: $IPA_FILE"
-
-          aws s3 cp \
-            "$IPA_FILE" \
-            "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" \
-            --only-show-errors
-
-          echo "Successfully uploaded to S3"
+          echo "📦 Found IPA: $IPA_FILE"
+          aws s3 cp "$IPA_FILE" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
+          echo "✅ Successfully uploaded to S3"
 
       - name: Clean Pod Cache
         if: always()
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
-          echo "Cleaning pod cache..."
+          echo "🧹 Cleaning pod cache..."
           bundle exec pod cache clean --all || true
-          echo "Pod cache cleaned."
+          echo "✅ Pod cache cleaned."
