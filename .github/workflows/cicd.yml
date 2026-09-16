@@ -132,7 +132,6 @@ jobs:
           done
           if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
-      # CHANGE 1: Update to Node 24
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -155,7 +154,7 @@ jobs:
           working-directory: apps/${{ env.APP_DIR }}
 
       # ========================================================
-      # PATCH IOS DEPENDENCIES & INSTALL PODS
+      # PATCH IOS DEPENDENCIES & INSTALL PODS WITH FMT FIX
       # ========================================================
       - name: Patch iOS Dependencies & Install Pods
         working-directory: apps/${{ env.APP_DIR }}
@@ -192,8 +191,44 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PRE-FLIGHT CHECK: VERIFY ALL PACKAGES & PATCHES
-      # THIS RUNS BEFORE BUILD TO SAVE TIME
+      # DEFINITIVE FMT FIX: INJECT FLAG VIA POST_INSTALL HOOK
+      # THIS IS THE ONLY RELIABLE WAY TO DISABLE CONSTEVAL
+      # ========================================================
+      - name: Inject fmt Compiler Flags via Post-Install Hook
+        working-directory: apps/${{ env.APP_DIR }}/ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔧 Injecting FMT_USE_CONSTEVAL=0 via Podfile post_install..."
+          
+          # Append post_install hook to Podfile if not already present
+          if ! grep -q "FMT_USE_CONSTEVAL" Podfile; then
+            cat >> Podfile <<'HOOK'
+          
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              if target.name.include?('fmt')
+                target.build_configurations.each do |config|
+                  config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= '$(inherited)'
+                  config.build_settings['OTHER_CPLUSPLUSFLAGS'] += ' -DFMT_USE_CONSTEVAL=0 -DFMT_USE_CONSTEXPR=0'
+                  config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= '$(inherited)'
+                  config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] += ' FMT_USE_CONSTEVAL=0 FMT_USE_CONSTEXPR=0'
+                end
+              end
+            end
+          end
+          HOOK
+            echo "✅ Added post_install hook to Podfile"
+          else
+            echo "ℹ️ post_install hook already exists"
+          fi
+          
+          # Re-run pod install to apply the hook
+          bundle exec pod install
+          echo "✅ fmt compiler flags injected successfully"
+
+      # ========================================================
+      # PRE-FLIGHT CHECK
       # ========================================================
       - name: Pre-Flight Build Verification
         working-directory: apps/${{ env.APP_DIR }}
@@ -203,7 +238,6 @@ jobs:
           echo "🔍 Starting Pre-Flight Verification..."
           ERRORS=0
 
-          # 1. Check Critical Node Modules
           for DEP in react-native-reanimated react-native-gesture-handler date-fns @react-native-picker/picker react-native-pager-view; do
             if [ ! -d "node_modules/$DEP" ]; then
               echo "❌ MISSING NODE MODULE: $DEP"
@@ -211,13 +245,11 @@ jobs:
             fi
           done
 
-          # 2. Check iOS Pods Directory
           if [ ! -d "ios/Pods" ]; then
             echo "❌ MISSING: ios/Pods directory"
             ERRORS=$((ERRORS + 1))
           fi
 
-          # 3. Check Files We Intend to Patch
           FILES_TO_CHECK=(
             "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
             "ios/Pods/fmt/include/fmt/base.h"
@@ -238,7 +270,7 @@ jobs:
           echo "✅ All pre-flight checks passed. Ready to build."
 
       # ========================================================
-      # APPLY ALL SOURCE CODE PATCHES
+      # APPLY OTHER SOURCE CODE PATCHES
       # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
@@ -250,7 +282,6 @@ jobs:
             echo "⚠️ ReanimatedVersion.cpp not found. Skipping."
             exit 0
           fi
-          echo "✅ Found: $REANIMATED_FILE"
           TEMP_FILE=$(mktemp)
           echo '#ifndef REANIMATED_VERSION_STRING' > "$TEMP_FILE"
           echo '#define REANIMATED_VERSION_STRING "3.19.5"' >> "$TEMP_FILE"
@@ -266,7 +297,6 @@ jobs:
           set -euo pipefail
           HERMES_FILE="node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
           if [ -f "$HERMES_FILE" ] && ! grep -q "#include <thread>" "$HERMES_FILE"; then
-            echo "🔧 Adding #include <thread>..."
             python3 << 'PYEOF'
           path = "node_modules/react-native/ReactCommon/hermes/executor/HermesExecutorFactory.cpp"
           with open(path, "r") as f:
@@ -281,97 +311,7 @@ jobs:
               f.writelines(lines)
           print("✅ HermesExecutorFactory.cpp patched.")
           PYEOF
-          else
-            echo "ℹ️ HermesExecutorFactory.cpp already has #include <thread> or not found."
           fi
-
-      # ========================================================
-      # PERMANENT FIX FOR FMT LIBRARY (XCODE 26)
-      # PYTHON-BASED SOURCE PATCHING WITH PERMISSION FIX
-      # ========================================================
-      - name: Patch fmt for Xcode 26 (Permanent Fix)
-        working-directory: apps/${{ env.APP_DIR }}/ios
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "🔧 Applying permanent Python-based patch to fmt library..."
-          
-          python3 << 'PYEOF'
-          import os
-          import re
-
-          fmt_dir = "Pods/fmt"
-          
-          # Regex to match FMT_STRING("...") and replace with "..."
-          pattern = re.compile(r'FMT_STRING\(\s*("[^"]*")\s*\)')
-          
-          for root, dirs, files in os.walk(fmt_dir):
-              for file in files:
-                  if file.endswith(('.h', '.cc', '.cpp')):
-                      filepath = os.path.join(root, file)
-                      try:
-                          # Make file writable before modifying
-                          os.chmod(filepath, 0o644)
-                          
-                          with open(filepath, 'r', encoding='utf-8') as f:
-                              content = f.read()
-                          
-                          new_content = pattern.sub(r'\1', content)
-                          
-                          if new_content != content:
-                              with open(filepath, 'w', encoding='utf-8') as f:
-                                  f.write(new_content)
-                              print(f"✅ Patched: {filepath}")
-                      except Exception as e:
-                          print(f"⚠️ Error processing {filepath}: {e}")
-          
-          # Also disable consteval in base.h as backup
-          base_h = os.path.join(fmt_dir, "include/fmt/base.h")
-          if os.path.exists(base_h):
-              os.chmod(base_h, 0o644)
-              with open(base_h, 'r', encoding='utf-8') as f:
-                  content = f.read()
-              
-              if "#define FMT_USE_CONSTEVAL 0" not in content:
-                  content = "#define FMT_USE_CONSTEVAL 0\n#define FMT_USE_CONSTEXPR 0\n" + content
-                  with open(base_h, 'w', encoding='utf-8') as f:
-                      f.write(content)
-                  print("✅ Disabled consteval/constexpr in base.h")
-          PYEOF
-
-          # Add compiler flags as a final backup
-          gem install xcodeproj --no-document > /dev/null 2>&1 || true
-          
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          project_path = 'Pods/Pods.xcodeproj'
-          
-          if File.exist?(project_path)
-            project = Xcodeproj::Project.open(project_path)
-            
-            project.targets.each do |target|
-              if target.name.include?('fmt')
-                target.build_configurations.each do |config|
-                  cxx_flags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || []
-                  cxx_flags = [cxx_flags] unless cxx_flags.is_a?(Array)
-                  
-                  ['-DFMT_USE_CONSTEVAL=0', '-DFMT_USE_CONSTEXPR=0'].each do |flag|
-                    unless cxx_flags.any? { |f| f.include?(flag) }
-                      cxx_flags << flag
-                    end
-                  end
-                  
-                  config.build_settings['OTHER_CPLUSPLUSFLAGS'] = cxx_flags
-                end
-              end
-            end
-            
-            project.save
-            puts "✅ Saved Pods.xcodeproj with fmt compiler flags"
-          end
-          RUBY
-          
-          echo "✅ fmt library patched successfully"
 
       - name: Fix ReanimatedMountHook HighResTimeStamp
         working-directory: apps/${{ env.APP_DIR }}
@@ -394,22 +334,17 @@ jobs:
               with open(real_path, 'w') as f:
                   f.write(content)
               print(f'✅ Fixed: {real_path}')
-          else:
-              print(f'ℹ️ No changes needed: {real_path}')
           ENDSCRIPT
           
-          echo "🔍 Finding all ReanimatedMountHook files..."
           FOUND=0
           while IFS= read -r FILE; do
               FOUND=1
               python3 /tmp/fix_mount_hook.py "$FILE"
           done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.h" 2>/dev/null)
-          
           while IFS= read -r FILE; do
               FOUND=1
               python3 /tmp/fix_mount_hook.py "$FILE"
           done < <(find ios/Pods node_modules/react-native-reanimated -name "ReanimatedMountHook.cpp" 2>/dev/null)
-          
           if [ "$FOUND" -eq 0 ]; then
               echo "⚠️ No ReanimatedMountHook files found to patch."
           fi
@@ -421,7 +356,6 @@ jobs:
           set -euo pipefail
           GH_MODULE="node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
           if [ -f "$GH_MODULE" ]; then
-            echo "🔧 Patching RNGestureHandlerModule.mm for RN 0.81..."
             python3 << 'PYEOF'
           path = "node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm"
           with open(path, "r") as f:
@@ -435,11 +369,7 @@ jobs:
               with open(path, "w") as f:
                   f.write(content)
               print("✅ RNGestureHandlerModule.mm patched.")
-          else:
-              print("ℹ️ No changes needed.")
           PYEOF
-          else
-            echo "⚠️ RNGestureHandlerModule.mm not found."
           fi
 
       - name: Fix Pod Resource Bundle Signing
@@ -516,9 +446,7 @@ jobs:
           attrs = project.root_object.attributes['TargetAttributes'] ||= {}
           target_attrs = attrs[target.uuid] ||= {}
           target_attrs['ProvisioningStyle'] = 'Manual'
-          
           profile_uuid = "b0ff62c4-5f8a-4708-9a33-64ff3638d355"
-          
           target.build_configurations.each do |config|
             config.build_settings['PROVISIONING_PROFILE'] = profile_uuid
             config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = "DemoROJA"
@@ -530,15 +458,12 @@ jobs:
           puts "✅ Injected Provisioning Profile UUID: #{profile_uuid}"
           RUBY
 
-      # ========================================================
-      # CLEAN DERIVED DATA BEFORE BUILD (CRITICAL)
-      # ========================================================
       - name: Clean Derived Data
         working-directory: apps/${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "🧹 Cleaning Derived Data to ensure fresh build..."
+          echo "🧹 Cleaning Derived Data..."
           rm -rf ~/Library/Developer/Xcode/DerivedData/DemoROJA-*
           echo "✅ Derived Data cleaned."
 
