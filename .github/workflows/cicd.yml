@@ -191,64 +191,40 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH EXISTING POST_INSTALL HOOK FOR FMT FIX
-      # SAFE LINE-BY-LINE INJECTION
+      # DIRECT SOURCE PATCH FOR FMT (THE ONLY FIX FOR XCODE 26)
       # ========================================================
-      - name: Patch Existing Post-Install Hook for fmt
+      - name: Patch fmt Library Source Code
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Injecting fmt fix into existing post_install hook..."
+          echo "🔧 Applying direct source patch to fmt library..."
           
-          gem install xcodeproj --no-document > /dev/null 2>&1 || true
+          BASE_H="Pods/fmt/include/fmt/base.h"
           
-          ruby <<'RUBY'
-          podfile_path = 'Podfile'
-          lines = File.readlines(podfile_path)
-          new_lines = []
-          injected = false
-          
-          # Define the code to inject
-          fmt_fix_code = [
-            "    # FIX FOR FMT LIBRARY ON XCODE 26\n",
-            "    installer.pods_project.targets.each do |target|\n",
-            "      if target.name.include?('fmt')\n",
-            "        target.build_configurations.each do |config|\n",
-            "          config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']\n",
-            "          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEVAL=0'\n",
-            "          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEXPR=0'\n",
-            "          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']\n",
-            "          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'\n",
-            "          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'\n",
-            "        end\n",
-            "      end\n",
-            "    end\n"
-          ]
-          
-          lines.each do |line|
-            new_lines << line
-            # Look for the start of the post_install block
-            if line.strip.start_with?('post_install do |installer|') && !injected
-              # Insert our code right after this line
-              new_lines.concat(fmt_fix_code)
-              injected = true
-              puts "✅ Injected fmt fix into post_install hook"
-            end
-          end
-          
-          if injected
-            File.write(podfile_path, new_lines.join)
-          else
-            puts "❌ Could not find post_install hook in Podfile."
+          if [ ! -f "$BASE_H" ]; then
+            echo "❌ ERROR: $BASE_H not found!"
             exit 1
-          end
-          RUBY
+          fi
+
+          # Make file writable
+          chmod 644 "$BASE_H"
           
-          # Re-run pod install to apply the modified hook
-          echo "🔄 Re-running pod install to apply changes..."
-          bundle exec pod install
-          echo "✅ Podfile updated and pods re-installed."
+          # Inject #define FMT_USE_CONSTEVAL 0 at the very first line
+          # This ensures it is defined BEFORE any other code in the header runs
+          sed -i '' '1i\
+          #define FMT_USE_CONSTEVAL 0
+          ' "$BASE_H"
+          
+          echo "✅ Successfully injected FMT_USE_CONSTEVAL 0 into base.h"
+          
+          # Verify the patch
+          if head -n 1 "$BASE_H" | grep -q "FMT_USE_CONSTEVAL 0"; then
+            echo "✅ Verification passed: Patch is present at line 1"
+          else
+            echo "❌ Verification failed: Patch not found at line 1"
+            exit 1
+          fi
 
       # ========================================================
       # PRE-FLIGHT CHECK
