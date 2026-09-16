@@ -287,38 +287,34 @@ jobs:
 
       # ========================================================
       # PERMANENT FIX FOR FMT LIBRARY (XCODE 26)
+      # SURGICAL SOURCE PATCHING
       # ========================================================
       - name: Patch fmt for Xcode 26 (Permanent Fix)
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Applying permanent fix to fmt library..."
+          echo "🔧 Applying surgical patch to fmt library..."
           
-          FORMAT_INL="Pods/fmt/include/fmt/format-inl.h"
+          # 1. Replace FMT_STRING("...") with just "..." in all fmt headers and sources
+          # This regex is safe and only targets the specific macro usage causing the error
+          find Pods/fmt -type f \( -name "*.h" -o -name "*.cc" \) -exec sed -i '' 's/FMT_STRING(\("[^"]*"\))/\1/g' {} +
+          
+          echo "✅ Removed all FMT_STRING() wrappers from fmt library"
+
+          # 2. Disable consteval at the source level in base.h as backup
           BASE_H="Pods/fmt/include/fmt/base.h"
-          
-          if [ ! -f "$FORMAT_INL" ]; then
-            echo "❌ ERROR: $FORMAT_INL not found!"
-            exit 1
+          if [ -f "$BASE_H" ]; then
+            if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$BASE_H"; then
+              sed -i '' '1i\
+              #define FMT_USE_CONSTEVAL 0\
+              #define FMT_USE_CONSTEXPR 0
+              ' "$BASE_H"
+              echo "✅ Disabled consteval/constexpr in base.h"
+            fi
           fi
 
-          # 1. Disable consteval at the source level in base.h
-          if ! grep -q "#define FMT_USE_CONSTEVAL 0" "$BASE_H"; then
-            sed -i '' '1i\
-            #define FMT_USE_CONSTEVAL 0\
-            #define FMT_USE_CONSTEXPR 0
-            ' "$BASE_H"
-            echo "✅ Disabled consteval/constexpr in base.h"
-          fi
-
-          # 2. Targeted replacement of FMT_STRING() calls in format-inl.h
-          # This regex specifically targets FMT_STRING("...") and replaces it with just "..."
-          echo "📝 Removing FMT_STRING wrappers from format-inl.h..."
-          sed -i '' 's/FMT_STRING(\("[^"]*"\))/\1/g' "$FORMAT_INL"
-          echo "✅ Safely removed FMT_STRING() wrappers"
-
-          # 3. Add compiler flags as a backup
+          # 3. Add compiler flags as a final backup
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
           
           ruby <<'RUBY'
