@@ -1,57 +1,131 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
+
 require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "react-native/scripts/react_native_pods.rb",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip
+'require.resolve(
+"react-native/scripts/react_native_pods.rb",
+{paths: [process.argv[1]]},
+)', **dir**]).strip
 
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
+Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+use_frameworks! :linkage => linkage.to_sym
 end
 
 target 'DemoROJA' do
-  config = use_native_modules!
+config = use_native_modules!
 
-  use_react_native!(
-    :path => config[:reactNativePath],
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
-  )
+use_react_native!(
+:path => config[:reactNativePath],
+:app_path => "#{Pod::Config.instance.installation_root}/.."
+)
 
-  permissions_path = '../node_modules/react-native-permissions/ios'
-  pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
-  pod 'RNFBMessaging', :path => '../node_modules/@react-native-firebase/messaging'
-  pod 'Firebase'
-  pod 'FirebaseCoreInternal', :modular_headers => true
-  pod 'GoogleUtilities', :modular_headers => true
-  pod 'FirebaseCore', :modular_headers => true
+permissions_path = '../node_modules/react-native-permissions/ios'
 
-  post_install do |installer|
-    react_native_post_install(installer, config[:reactNativePath], :mac_catalyst_enabled => false)
+pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+pod 'RNFBMessaging', :path => '../node_modules/@react-native-firebase/messaging'
+pod 'Firebase'
+pod 'FirebaseCoreInternal', :modular_headers => true
+pod 'GoogleUtilities', :modular_headers => true
+pod 'FirebaseCore', :modular_headers => true
 
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |build_config|
-        # ALL targets use C++20
-        build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-        build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
+post_install do |installer|
+react_native_post_install(
+installer,
+config[:reactNativePath],
+:mac_catalyst_enabled => false
+)
 
-        # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
-        if target.name == 'RNReanimated'
-          existing_flags = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-          existing_flags = [existing_flags] if existing_flags.is_a?(String)
-          existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
-          build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing_flags
-        end
+# ============================================================
+# fmt 11.0.2 / Xcode 26 workaround
+#
+# Xcode 26 + Apple Clang can fail while compiling fmt because
+# fmt enables FMT_USE_CONSTEVAL through __cpp_consteval.
+#
+# Do NOT simply add the macro at the top of base.h because fmt
+# can redefine it later. Patch the actual fmt definition instead.
+# ============================================================
 
-        build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
-        build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
-        build_config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
-      end
-    end
+fmt_base_h = File.join(
+  installer.sandbox.root,
+  'fmt',
+  'include',
+  'fmt',
+  'base.h'
+)
+
+if File.exist?(fmt_base_h)
+  content = File.read(fmt_base_h)
+
+  original_pattern = <<~'FMT'
+    #elif defined(__cpp_consteval)
+    #  define FMT_USE_CONSTEVAL 1
+  FMT
+
+  patched_pattern = <<~'FMT'
+    #elif defined(__cpp_consteval)
+    #  define FMT_USE_CONSTEVAL 0
+  FMT
+
+  if content.include?(patched_pattern)
+    puts "fmt workaround: FMT_USE_CONSTEVAL is already disabled"
+  elsif content.include?(original_pattern)
+    content = content.sub(original_pattern, patched_pattern)
+    File.chmod(0644, fmt_base_h)
+    File.write(fmt_base_h, content)
+
+    puts "fmt workaround: FMT_USE_CONSTEVAL disabled successfully"
+  else
+    puts "WARNING: fmt workaround pattern was not found in:"
+    puts fmt_base_h
   end
+else
+  puts "WARNING: fmt base.h was not found:"
+  puts fmt_base_h
+end
+
+# ============================================================
+# Pod build settings
+# ============================================================
+
+installer.pods_project.targets.each do |target|
+  target.build_configurations.each do |build_config|
+
+    # ALL targets use C++20
+    build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+    build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] =
+      '-std=c++20 -fno-aligned-new'
+
+    # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
+    if target.name == 'RNReanimated'
+      existing_flags =
+        build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||
+        ['$(inherited)']
+
+      existing_flags = [existing_flags] if existing_flags.is_a?(String)
+
+      unless existing_flags.include?('REACT_NATIVE_MINOR_VERSION=81')
+        existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
+      end
+
+      build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] =
+        existing_flags
+    end
+
+    # Pods do not need code signing
+    build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+
+    # Minimum iOS deployment target
+    build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+
+    # Warnings
+    build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+    build_config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+  end
+end
+
+end
 end
