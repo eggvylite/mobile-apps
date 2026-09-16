@@ -155,7 +155,6 @@ jobs:
 
       # ========================================================
       # AGGRESSIVE CACHE CLEAN BEFORE POD INSTALL
-      # THIS IS CRITICAL TO REMOVE CORRUPTED CACHED FILES
       # ========================================================
       - name: Clean All Caches Before Pod Install
         working-directory: apps/${{ env.APP_DIR }}/ios
@@ -163,26 +162,16 @@ jobs:
         run: |
           set -euo pipefail
           echo "🧹 Aggressively cleaning all caches..."
-          
-          # 1. Delete Pods directory entirely to force fresh download
           rm -rf Pods
           rm -f Podfile.lock
-          
-          # 2. Clean CocoaPods cache
           bundle exec pod cache clean --all || true
-          
-          # 3. Clean DerivedData
           rm -rf ~/Library/Developer/Xcode/DerivedData/*
-          
-          # 4. Clean Module Cache
           rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/*
-          
           echo "✅ All caches cleaned."
 
       # ========================================================
       # PATCH IOS DEPENDENCIES & INSTALL PODS
-      # NOTE: fmt fix is handled by Podfile post_install hook
-      # DO NOT add any fmt patching steps here
+      # fmt fix is handled by Podfile post_install hook
       # ========================================================
       - name: Patch iOS Dependencies & Install Pods
         working-directory: apps/${{ env.APP_DIR }}
@@ -190,7 +179,6 @@ jobs:
         run: |
           set -euo pipefail
           
-          # 1. Fix Boost URL
           python3 <<'PY'
           import glob
           old_url = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
@@ -210,8 +198,9 @@ jobs:
                   print(f"Patched RCT-Folly: {path}")
           PY
 
-          # 2. Install Pods (Podfile post_install will handle fmt fix)
           cd ios
+          bundle exec pod cache clean boost --all || true
+          bundle exec pod cache clean RCT-Folly --all || true
           bundle exec pod install --repo-update
 
       # ========================================================
@@ -234,17 +223,13 @@ jobs:
             echo "✅ PASS: FMT_USE_CONSTEVAL 0 found in base.h"
           else
             echo "❌ FAIL: FMT_USE_CONSTEVAL 0 NOT found in base.h"
-            echo "The Podfile post_install hook did not apply the fmt fix."
-            echo "First 5 lines of base.h:"
             head -n 5 "$BASE_H"
             exit 1
           fi
           
-          # Also verify format.h is NOT corrupted
           FORMAT_H="Pods/fmt/include/fmt/format.h"
           if grep -q "^#define s " "$FORMAT_H"; then
             echo "❌ FAIL: format.h is corrupted with '#define s' macro!"
-            echo "This means a previous patch broke the file."
             exit 1
           else
             echo "✅ PASS: format.h is not corrupted"
@@ -293,7 +278,7 @@ jobs:
           echo "✅ All pre-flight checks passed. Ready to build."
 
       # ========================================================
-      # APPLY SOURCE CODE PATCHES (NO FMT PATCHING HERE)
+      # APPLY SOURCE CODE PATCHES
       # ========================================================
       - name: Patch Reanimated for Xcode 16
         working-directory: apps/${{ env.APP_DIR }}
@@ -538,6 +523,35 @@ jobs:
           echo "📦 Found IPA: $IPA_FILE"
           aws s3 cp "$IPA_FILE" "s3://${S3_BUCKET}/ios/${APP_NAME}/${APP_NAME}.ipa" --only-show-errors
           echo "✅ Successfully uploaded to S3"
+
+      # ========================================================
+      # UPLOAD TO TESTFLIGHT
+      # Only runs when upload_testflight input is true
+      # ========================================================
+      - name: Upload to TestFlight
+        if: inputs.upload_testflight == true
+        working-directory: apps/${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA_FILE=$(find ios/build/export -name "*.ipa" -type f | head -n 1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "❌ ERROR: No .ipa file found for TestFlight upload"
+            exit 1
+          fi
+          
+          # Place API key where altool expects it
+          mkdir -p ~/.private_keys
+          cp "${XCODE_AUTH_KEY_PATH}" ~/.private_keys/AuthKey_${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}.p8
+          
+          echo "🚀 Uploading to TestFlight: $IPA_FILE"
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_FILE" \
+            --apiKey "${APP_SECRETS_IOS_APPSTORE_API_KEY_ID}" \
+            --apiIssuer "${APP_SECRETS_IOS_APPSTORE_ISSUER_ID}" \
+            --verbose
+          echo "✅ TestFlight upload completed successfully"
 
       - name: Clean Pod Cache
         if: always()
