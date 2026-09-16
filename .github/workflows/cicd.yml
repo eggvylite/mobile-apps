@@ -273,7 +273,7 @@ jobs:
           bundle exec pod install --repo-update
 
       # ========================================================
-      # PATCH 5: FIX FMT LIBRARY FOR XCODE 26 (CRITICAL)
+      # PATCH: FIX FMT LIBRARY FOR XCODE 26 (CRITICAL)
       # MUST RUN AFTER POD INSTALL
       # ========================================================
       - name: Patch fmt for Xcode 26
@@ -283,6 +283,7 @@ jobs:
           set -euo pipefail
           echo "🔧 Patching fmt library for Xcode 26 compatibility..."
           
+          # Ensure xcodeproj gem is available
           gem install xcodeproj --no-document > /dev/null 2>&1 || true
           
           ruby <<'RUBY'
