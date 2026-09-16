@@ -192,65 +192,55 @@ jobs:
 
       # ========================================================
       # PATCH EXISTING POST_INSTALL HOOK FOR FMT FIX
-      # REPLACES THE ENTIRE BLOCK TO GUARANTEE CORRECT SYNTAX
+      # SAFE LINE-BY-LINE INJECTION
       # ========================================================
       - name: Patch Existing Post-Install Hook for fmt
         working-directory: apps/${{ env.APP_DIR }}/ios
         shell: bash
         run: |
           set -euo pipefail
-          echo "🔧 Replacing post_install hook in Podfile with fmt fix..."
+          echo "🔧 Injecting fmt fix into existing post_install hook..."
+          
+          gem install xcodeproj --no-document > /dev/null 2>&1 || true
           
           ruby <<'RUBY'
           podfile_path = 'Podfile'
-          content = File.read(podfile_path)
+          lines = File.readlines(podfile_path)
+          new_lines = []
+          injected = false
           
-          # Define the NEW complete post_install block
-          new_post_install = <<-HOOK
-          post_install do |installer|
-            react_native_post_install(installer, config[:reactNativePath], :mac_catalyst_enabled => false)
-
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |build_config|
-                # ALL targets use C++20
-                build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-                build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '-std=c++20 -fno-aligned-new'
-
-                # Define REACT_NATIVE_MINOR_VERSION for RNReanimated
-                if target.name == 'RNReanimated'
-                  existing_flags = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-                  existing_flags = [existing_flags] if existing_flags.is_a?(String)
-                  existing_flags << 'REACT_NATIVE_MINOR_VERSION=81'
-                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = existing_flags
-                end
-
-                # FIX FOR FMT LIBRARY ON XCODE 26
-                if target.name.include?('fmt')
-                  build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
-                  build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEVAL=0'
-                  build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEXPR=0'
-                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
-                  build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
-                end
-
-                build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
-                build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
-                build_config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
-              end
+          # Define the code to inject
+          fmt_fix_code = [
+            "    # FIX FOR FMT LIBRARY ON XCODE 26\n",
+            "    installer.pods_project.targets.each do |target|\n",
+            "      if target.name.include?('fmt')\n",
+            "        target.build_configurations.each do |config|\n",
+            "          config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']\n",
+            "          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEVAL=0'\n",
+            "          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFMT_USE_CONSTEXPR=0'\n",
+            "          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']\n",
+            "          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'\n",
+            "          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'\n",
+            "        end\n",
+            "      end\n",
+            "    end\n"
+          ]
+          
+          lines.each do |line|
+            new_lines << line
+            # Look for the start of the post_install block
+            if line.strip.start_with?('post_install do |installer|') && !injected
+              # Insert our code right after this line
+              new_lines.concat(fmt_fix_code)
+              injected = true
+              puts "✅ Injected fmt fix into post_install hook"
             end
           end
-          HOOK
           
-          # Use regex to find and replace the entire old post_install block
-          # This matches from "post_install do" to the very last "end" of that block
-          if content =~ /(post_install do \|installer\|.*?^end\n)/m
-            new_content = content.sub(/(post_install do \|installer\|.*?^end\n)/m, new_post_install)
-            File.write(podfile_path, new_content)
-            puts "✅ Successfully replaced post_install hook with fmt fix"
+          if injected
+            File.write(podfile_path, new_lines.join)
           else
-            puts "❌ Could not find post_install block in Podfile."
+            puts "❌ Could not find post_install hook in Podfile."
             exit 1
           end
           RUBY
