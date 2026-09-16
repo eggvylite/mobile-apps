@@ -135,10 +135,11 @@ jobs:
           done
           if [ -z "${S3_BUCKET:-}" ]; then echo "ERROR: S3_BUCKET is empty."; exit 1; fi
 
+      # CHANGE 3: Update to Node 22 to avoid deprecation warnings
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "22"
           cache: npm
           cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
 
