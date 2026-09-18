@@ -1,4 +1,4 @@
-name: Mobile CI/CD - v6 TestFlight & S3
+name: Mobile CI/CD - IOS TestFlight & S3
 
 on:
   workflow_dispatch:
