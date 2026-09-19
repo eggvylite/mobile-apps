@@ -21,7 +21,6 @@ on:
         description: "Build Number (example: 8). Leave blank to auto-increment."
         required: false
         type: string
-      # Note: upload_play_store input is ignored in this test mode
 
 env:
   AWS_REGION: us-east-1
@@ -88,7 +87,7 @@ jobs:
           parse-json-secrets: true
 
       # ========================================================
-      # VALIDATION: Only check Keystore fields for Build Test
+      # VALIDATION: Check Keystore fields for Build Test
       # ========================================================
       - name: Validate Android Configuration (Build Only)
         shell: bash
@@ -96,7 +95,6 @@ jobs:
           set -euo pipefail
           echo "🔍 Validating keys required for BUILDING..."
           
-          # These are REQUIRED for signing the APK/AAB
           required_build_vars=(
             APP_SECRETS_ANDROID_KEYSTORE_BASE64
             APP_SECRETS_ANDROID_KEYSTORE_PASSWORD
@@ -112,17 +110,9 @@ jobs:
             fi
           done
           
-          # Check Application ID (needed for naming/output verification)
           if [ -z "${APP_SECRETS_ANDROID_APPLICATION_ID:-}" ]; then
              echo "⚠️ WARNING: ANDROID_APPLICATION_ID is missing. Using default package name."
              export APP_SECRETS_ANDROID_APPLICATION_ID="com.aparajayah.${{ matrix.app }}"
-          fi
-
-          # Optional: Warn about Play Store Key (since we aren't uploading)
-          if [ -z "${APP_SECRETS_ANDROID_PLAY_STORE_JSON_KEY:-}" ]; then
-             echo "ℹ️ INFO: PLAY_STORE_JSON_KEY is missing. This is OKAY for build-only test."
-          else
-             echo "✅ INFO: PLAY_STORE_JSON_KEY found (will ignore for this test)."
           fi
 
           echo "✅ All required BUILD secrets validated."
@@ -152,21 +142,33 @@ jobs:
           echo "✅ Keystore decoded successfully"
 
       # ========================================================
-      # GRADLE PROPERTIES: Match YOUR build.gradle (MYAPP_UPLOAD_)
+      # FIX: APPEND SIGNING CONFIGS TO EXISTING GRADLE.PROPERTIES
+      # DO NOT OVERWRITE! Preserves hermesEnabled, newArchEnabled, etc.
       # ========================================================
-      - name: Create Gradle Properties
+      - name: Append Signing Configs to Gradle Properties
         working-directory: apps/${{ env.APP_DIR }}/android
         run: |
-          cat > gradle.properties <<EOF
-          org.gradle.jvmargs=-Xmx4g -XX:+HeapDumpOnOutOfMemoryError
-          android.useAndroidX=true
-          android.enableJetifier=true
+          echo "📝 Appending signing configurations to gradle.properties..."
+          
+          # Ensure file exists
+          if [ ! -f gradle.properties ]; then
+            touch gradle.properties
+            echo "⚠️ Warning: gradle.properties was missing. Created empty file."
+          fi
+          
+          # Append the signing vars at the end of the file
+          cat >> gradle.properties <<EOF
+          
+          # --- CI/CD Dynamic Signing Configs ---
           MYAPP_UPLOAD_STORE_FILE=release.keystore
           MYAPP_UPLOAD_KEY_ALIAS=${APP_SECRETS_ANDROID_KEY_ALIAS}
           MYAPP_UPLOAD_STORE_PASSWORD=${APP_SECRETS_ANDROID_KEYSTORE_PASSWORD}
           MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
           EOF
-          echo "✅ gradle.properties created with MYAPP_UPLOAD variables"
+          
+          echo "✅ Signing configs appended successfully."
+          echo "Current gradle.properties content (last 10 lines):"
+          tail -n 10 gradle.properties
 
       - name: Set Version Name and Code
         if: inputs.version_name != '' || inputs.build_number != ''
@@ -221,11 +223,3 @@ jobs:
           echo "📤 Uploading to: $DESTINATION"
           aws s3 cp "$AAB_FILE" "$DESTINATION" --only-show-errors
           echo "✅ Successfully uploaded to S3"
-
-      # ========================================================
-      # SKIPPED: Google Play Upload (Test Mode)
-      # ========================================================
-      # - name: Upload to Google Play Internal Testing
-      #   if: inputs.upload_play_store == true
-      #   uses: r0adkll/upload-google-play@v1
-      #   ...
