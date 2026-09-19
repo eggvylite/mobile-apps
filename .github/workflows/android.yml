@@ -1,0 +1,231 @@
+name: Mobile CI/CD - Android (React Native) [TEST MODE]
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which app should be built?"
+        required: true
+        type: choice
+        options:
+          - all
+          - roja
+          - paiio
+          - jackpot
+        default: all
+      version_name:
+        description: "App Version (example: 1.9). Leave blank to keep project version."
+        required: false
+        type: string
+      build_number:
+        description: "Build Number (example: 8). Leave blank to auto-increment."
+        required: false
+        type: string
+      # Note: upload_play_store input is ignored in this test mode
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  setup:
+    name: Select Apps
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.matrix.outputs.apps }}
+    steps:
+      - name: Generate App Matrix
+        id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="${{ inputs.app }}"
+          case "$APP" in
+            all|"") echo 'apps=["roja","paiio","jackpot"]' >> "$GITHUB_OUTPUT" ;;
+            roja|paiio|jackpot) echo "apps=[\"$APP\"]" >> "$GITHUB_OUTPUT" ;;
+            *) echo "ERROR: Invalid app: $APP"; exit 1 ;;
+          esac
+
+  build-android:
+    name: Android - ${{ matrix.app }}
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.setup.outputs.apps) }}
+    env:
+      APP_NAME: ${{ matrix.app }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Resolve App Directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="$(find apps -maxdepth 1 -mindepth 1 -type d -iname "${{ matrix.app }}" -print -quit | sed 's|^apps/||')"
+          if [ -z "$APP_DIR" ]; then echo "ERROR: Could not find apps/${{ matrix.app }}"; exit 1; fi
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-mobile-${{ github.run_id }}-${{ matrix.app }}
+
+      - name: Get App Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+            APP_SECRETS,app/${{ matrix.app }}/cred
+          parse-json-secrets: true
+
+      # ========================================================
+      # VALIDATION: Only check Keystore fields for Build Test
+      # ========================================================
+      - name: Validate Android Configuration (Build Only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Validating keys required for BUILDING..."
+          
+          # These are REQUIRED for signing the APK/AAB
+          required_build_vars=(
+            APP_SECRETS_ANDROID_KEYSTORE_BASE64
+            APP_SECRETS_ANDROID_KEYSTORE_PASSWORD
+            APP_SECRETS_ANDROID_KEY_ALIAS
+            APP_SECRETS_ANDROID_KEY_PASSWORD
+          )
+          
+          for var in "${required_build_vars[@]}"; do
+            if [ -z "${!var:-}" ]; then 
+              echo "❌ ERROR: Missing required BUILD variable: $var"
+              echo "Please add '$var' to your AWS Secret 'app/${{ matrix.app }}/cred'"
+              exit 1
+            fi
+          done
+          
+          # Check Application ID (needed for naming/output verification)
+          if [ -z "${APP_SECRETS_ANDROID_APPLICATION_ID:-}" ]; then
+             echo "⚠️ WARNING: ANDROID_APPLICATION_ID is missing. Using default package name."
+             export APP_SECRETS_ANDROID_APPLICATION_ID="com.aparajayah.${{ matrix.app }}"
+          fi
+
+          # Optional: Warn about Play Store Key (since we aren't uploading)
+          if [ -z "${APP_SECRETS_ANDROID_PLAY_STORE_JSON_KEY:-}" ]; then
+             echo "ℹ️ INFO: PLAY_STORE_JSON_KEY is missing. This is OKAY for build-only test."
+          else
+             echo "✅ INFO: PLAY_STORE_JSON_KEY found (will ignore for this test)."
+          fi
+
+          echo "✅ All required BUILD secrets validated."
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/${{ env.APP_DIR }}/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: apps/${{ env.APP_DIR }}
+        run: npm install --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Decode Keystore
+        working-directory: apps/${{ env.APP_DIR }}/android/app
+        run: |
+          echo "${APP_SECRETS_ANDROID_KEYSTORE_BASE64}" | base64 --decode > release.keystore
+          ls -la release.keystore
+          echo "✅ Keystore decoded successfully"
+
+      # ========================================================
+      # GRADLE PROPERTIES: Match YOUR build.gradle (MYAPP_UPLOAD_)
+      # ========================================================
+      - name: Create Gradle Properties
+        working-directory: apps/${{ env.APP_DIR }}/android
+        run: |
+          cat > gradle.properties <<EOF
+          org.gradle.jvmargs=-Xmx4g -XX:+HeapDumpOnOutOfMemoryError
+          android.useAndroidX=true
+          android.enableJetifier=true
+          MYAPP_UPLOAD_STORE_FILE=release.keystore
+          MYAPP_UPLOAD_KEY_ALIAS=${APP_SECRETS_ANDROID_KEY_ALIAS}
+          MYAPP_UPLOAD_STORE_PASSWORD=${APP_SECRETS_ANDROID_KEYSTORE_PASSWORD}
+          MYAPP_UPLOAD_KEY_PASSWORD=${APP_SECRETS_ANDROID_KEY_PASSWORD}
+          EOF
+          echo "✅ gradle.properties created with MYAPP_UPLOAD variables"
+
+      - name: Set Version Name and Code
+        if: inputs.version_name != '' || inputs.build_number != ''
+        working-directory: apps/${{ env.APP_DIR }}/android
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_FILE="app/build.gradle"
+          
+          if [ -n "${{ inputs.version_name }}" ]; then
+            echo "📦 Setting versionName to ${{ inputs.version_name }}"
+            sed -i "s/versionName \".*\"/versionName \"${{ inputs.version_name }}\"/" "$GRADLE_FILE"
+          fi
+          
+          if [ -n "${{ inputs.build_number }}" ]; then
+            echo "🔢 Setting versionCode to ${{ inputs.build_number }}"
+            sed -i "s/versionCode .*/versionCode ${{ inputs.build_number }}/" "$GRADLE_FILE"
+          else
+            # Auto-increment based on GitHub Run Number
+            sed -i "s/versionCode .*/versionCode ${{ github.run_number }}/" "$GRADLE_FILE"
+          fi
+
+      - name: Build Release AAB
+        working-directory: apps/${{ env.APP_DIR }}/android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Verify AAB Exists
+        working-directory: apps/${{ env.APP_DIR }}
+        run: |
+          AAB_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB_PATH" ]; then
+            echo "❌ ERROR: AAB file not found at $AAB_PATH"
+            ls -R android/app/build/outputs/ || true
+            exit 1
+          fi
+          echo "✅ AAB generated successfully: $(ls -lh $AAB_PATH)"
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-android-${{ github.run_number }}
+          path: apps/${{ env.APP_DIR }}/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+      - name: Upload AAB to S3
+        working-directory: apps/${{ env.APP_DIR }}
+        run: |
+          AAB_FILE="android/app/build/outputs/bundle/release/app-release.aab"
+          DESTINATION="s3://${S3_BUCKET}/android/${APP_NAME}/${APP_NAME}.aab"
+          echo "📤 Uploading to: $DESTINATION"
+          aws s3 cp "$AAB_FILE" "$DESTINATION" --only-show-errors
+          echo "✅ Successfully uploaded to S3"
+
+      # ========================================================
+      # SKIPPED: Google Play Upload (Test Mode)
+      # ========================================================
+      # - name: Upload to Google Play Internal Testing
+      #   if: inputs.upload_play_store == true
+      #   uses: r0adkll/upload-google-play@v1
+      #   ...
